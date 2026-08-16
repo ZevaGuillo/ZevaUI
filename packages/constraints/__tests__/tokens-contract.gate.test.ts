@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { themeIds, themeKeyOf } from "@zevaui/tokens";
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "../src/color/contrast.js";
 import { relativeLuminance } from "../src/color/luminance.js";
@@ -18,23 +19,14 @@ type Manifest = { readonly themes: readonly string[]; readonly tokens: readonly 
 const manifestPath = createRequire(import.meta.url).resolve("@zevaui/tokens/tokens.manifest.json");
 const manifest: Manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 
-// BA-10: the manifest keys theme VALUES by JS identifier, while the contract,
-// the CSS selectors and manifest.themes use the kebab id. This object is the
-// ONLY place that mapping exists anywhere in the repository.
-const MANIFEST_VALUE_KEY: Record<string, string> = {
-  light: "light",
-  dark: "dark",
-  "high-contrast": "highContrast",
-};
-
 const themeFrom = (themeId: string): Theme => ({
   id: themeId,
   colors: Object.fromEntries(
-    manifest.tokens.map((t) => [t.name, t.values[MANIFEST_VALUE_KEY[themeId]]]),
+    manifest.tokens.map((t) => [t.name, t.values[themeKeyOf[themeId]]]),
   ),
 });
 
-describe.each(manifest.themes)("%s theme", (themeId: string) => {
+describe.each(themeIds)("%s theme", (themeId: string) => {
   it("satisfies the declared contrast contract", () => {
     const result = validateTheme(themeFrom(themeId));
     expect(result.violations).toEqual([]);
