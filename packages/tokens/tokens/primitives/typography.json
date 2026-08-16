@@ -1,0 +1,35 @@
+{
+  "fontFamily": {
+    "sans": { "$value": "\"Inter\", system-ui, -apple-system, sans-serif", "$type": "fontFamily" },
+    "mono": {
+      "$value": "\"JetBrains Mono\", ui-monospace, monospace",
+      "$type": "fontFamily"
+    }
+  },
+  "fontSize": {
+    "xs": { "$value": "0.75rem", "$type": "dimension" },
+    "sm": { "$value": "0.875rem", "$type": "dimension" },
+    "base": { "$value": "1rem", "$type": "dimension" },
+    "lg": { "$value": "1.125rem", "$type": "dimension" },
+    "xl": { "$value": "1.25rem", "$type": "dimension" },
+    "2xl": { "$value": "1.5rem", "$type": "dimension" },
+    "3xl": { "$value": "1.75rem", "$type": "dimension" },
+    "4xl": { "$value": "2rem", "$type": "dimension" },
+    "5xl": { "$value": "2.25rem", "$type": "dimension" },
+    "6xl": { "$value": "2.5rem", "$type": "dimension" },
+    "7xl": { "$value": "3rem", "$type": "dimension" },
+    "8xl": { "$value": "3.5rem", "$type": "dimension" },
+    "9xl": { "$value": "4rem", "$type": "dimension" }
+  },
+  "fontWeight": {
+    "normal": { "$value": 400, "$type": "fontWeight" },
+    "medium": { "$value": 500, "$type": "fontWeight" },
+    "semibold": { "$value": 600, "$type": "fontWeight" },
+    "bold": { "$value": 700, "$type": "fontWeight" }
+  },
+  "lineHeight": {
+    "tight": { "$value": 1.25, "$type": "number" },
+    "normal": { "$value": 1.5, "$type": "number" },
+    "relaxed": { "$value": 1.75, "$type": "number" }
+  }
+}

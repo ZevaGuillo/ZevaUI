@@ -1,0 +1,80 @@
+{
+  "color": {
+    "text": {
+      "default": { "$value": "{gray.900}", "$type": "color" },
+      "secondary": { "$value": "{gray.600}", "$type": "color" },
+      "muted": { "$value": "{gray.500}", "$type": "color" },
+      "inverse": { "$value": "{white}", "$type": "color" },
+      "link": { "$value": "{blue.600}", "$type": "color" },
+      "danger": { "$value": "{red.600}", "$type": "color" },
+      "success": { "$value": "{green.600}", "$type": "color" }
+    },
+    "bg": {
+      "canvas": { "$value": "{gray.50}", "$type": "color" },
+      "surface": { "$value": "{white}", "$type": "color" },
+      "subtle": { "$value": "{gray.100}", "$type": "color" },
+      "muted": { "$value": "{gray.200}", "$type": "color" },
+      "inverse": { "$value": "{gray.900}", "$type": "color" }
+    },
+    "border": {
+      "default": { "$value": "{gray.200}", "$type": "color" },
+      "subtle": { "$value": "{gray.100}", "$type": "color" },
+      "strong": { "$value": "{gray.400}", "$type": "color" }
+    },
+    "accent": {
+      "default": { "$value": "{blue.600}", "$type": "color" },
+      "subtle": { "$value": "{blue.100}", "$type": "color" },
+      "strong": { "$value": "{blue.700}", "$type": "color" }
+    },
+    "danger": {
+      "default": { "$value": "{red.600}", "$type": "color" },
+      "subtle": { "$value": "{red.100}", "$type": "color" }
+    },
+    "success": {
+      "default": { "$value": "{green.600}", "$type": "color" },
+      "subtle": { "$value": "{green.100}", "$type": "color" }
+    },
+    "warning": {
+      "default": { "$value": "{amber.500}", "$type": "color" },
+      "subtle": { "$value": "{amber.100}", "$type": "color" }
+    },
+    "focus": {
+      "ring": { "$value": "{blue.500}", "$type": "color" }
+    }
+  },
+  "font": {
+    "body": {
+      "family": { "$value": "{fontFamily.sans}", "$type": "fontFamily" },
+      "size": { "$value": "{fontSize.sm}", "$type": "dimension" },
+      "weight": { "$value": "{fontWeight.normal}", "$type": "fontWeight" },
+      "lineHeight": { "$value": "{lineHeight.normal}", "$type": "number" }
+    },
+    "heading": {
+      "family": { "$value": "{fontFamily.sans}", "$type": "fontFamily" },
+      "weight": { "$value": "{fontWeight.semibold}", "$type": "fontWeight" }
+    },
+    "mono": {
+      "family": { "$value": "{fontFamily.mono}", "$type": "fontFamily" }
+    }
+  },
+  "space": {
+    "input": {
+      "px": { "$value": "{space.3}", "$type": "dimension" },
+      "py": { "$value": "{space.2}", "$type": "dimension" }
+    },
+    "card": {
+      "px": { "$value": "{space.6}", "$type": "dimension" },
+      "py": { "$value": "{space.4}", "$type": "dimension" }
+    }
+  },
+  "radius": {
+    "input": { "$value": "{radius.md}", "$type": "dimension" },
+    "card": { "$value": "{radius.lg}", "$type": "dimension" },
+    "button": { "$value": "{radius.md}", "$type": "dimension" }
+  },
+  "shadow": {
+    "card": { "$value": "{shadow.sm}", "$type": "shadow" },
+    "dropdown": { "$value": "{shadow.lg}", "$type": "shadow" },
+    "modal": { "$value": "{shadow.xl}", "$type": "shadow" }
+  }
+}
