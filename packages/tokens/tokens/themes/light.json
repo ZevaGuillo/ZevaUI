@@ -7,7 +7,7 @@
       "inverse": { "$value": "{white}", "$type": "color" },
       "link": { "$value": "{blue.600}", "$type": "color" },
       "danger": { "$value": "{red.600}", "$type": "color" },
-      "success": { "$value": "{green.600}", "$type": "color" }
+      "success": { "$value": "{green.700}", "$type": "color" }
     },
     "bg": {
       "canvas": { "$value": "{gray.50}", "$type": "color" },
