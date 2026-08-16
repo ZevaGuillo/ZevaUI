@@ -20,6 +20,9 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"stage 1: no tests\""
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "style-dictionary": "^4.4.0"
   }
 }
