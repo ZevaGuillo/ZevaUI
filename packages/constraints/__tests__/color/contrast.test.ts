@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "../../src/color/contrast.js";
-import { parseColor } from "../../src/color/parse.js";
 import { relativeLuminance } from "../../src/color/luminance.js";
+import { parseColor } from "../../src/color/parse.js";
 
 describe("contrastRatio", () => {
   it("returns exactly 21 for black on white", () => {
