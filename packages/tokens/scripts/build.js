@@ -2,6 +2,9 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import StyleDictionary from "style-dictionary";
 
 const THEMES = ["light", "dark", "high-contrast"];
+const themeKeyOf = Object.fromEntries(
+  THEMES.map((id) => [id, id === "high-contrast" ? "highContrast" : id]),
+);
 const acc = { light: {}, dark: {}, highContrast: {}, primitives: [] };
 
 const kebab = (s) =>
@@ -16,7 +19,7 @@ const cssVarOf = (path) => `--zui-${nameOf(path)}`;
 StyleDictionary.registerFormat({
   name: "json/zevaui-collect",
   format: ({ dictionary, options }) => {
-    const key = options.theme === "high-contrast" ? "highContrast" : options.theme;
+    const key = themeKeyOf[options.theme];
     for (const t of dictionary.allTokens) {
       if (t.isSource) {
         const ref = /^\{(.+)\}$/.exec(t.original.$value)?.[1].split(".") ?? [];
@@ -101,15 +104,26 @@ writeFileSync(
 
 const flat = (theme) =>
   Object.fromEntries(Object.entries(acc[theme]).map(([n, t]) => [n, t.value]));
-const tokens = { light: flat("light"), dark: flat("dark"), highContrast: flat("highContrast") };
+const tokens = Object.fromEntries(THEMES.map((id) => [themeKeyOf[id], flat(themeKeyOf[id])]));
 writeFileSync(
   "dist/index.js",
-  `export const tokens = ${JSON.stringify(tokens, null, 2)};\n\nexport default tokens;\n`,
+  `export const themeIds = ${JSON.stringify(THEMES, null, 2)};\n\n` +
+    `export const themeKeyOf = ${JSON.stringify(themeKeyOf, null, 2)};\n\n` +
+    `export const tokens = ${JSON.stringify(tokens, null, 2)};\n\n` +
+    `export default tokens;\n`,
 );
 
 const names = Object.keys(acc.light);
 const dtsLines = names.map((n) => `  '${n}': string;`).join("\n");
-const dts = `interface ZevauiThemeTokens {\n${dtsLines}\n}\n\ndeclare const tokens: {\n  light: ZevauiThemeTokens;\n  dark: ZevauiThemeTokens;\n  highContrast: ZevauiThemeTokens;\n};\n\nexport default tokens;\n`;
+const idsType = THEMES.map((id) => `'${id}'`).join(", ");
+const keyLines = THEMES.map((id) => `  '${id}': '${themeKeyOf[id]}';`).join("\n");
+const tokenFields = THEMES.map((id) => `  ${themeKeyOf[id]}: ZevauiThemeTokens;`).join("\n");
+const dts =
+  `type ZevauiThemeTokens = {\n${dtsLines}\n};\n\n` +
+  `declare const themeIds: readonly [${idsType}];\n\n` +
+  `declare const themeKeyOf: {\n${keyLines}\n};\n\n` +
+  `declare const tokens: {\n${tokenFields}\n};\n\n` +
+  `export { themeIds, themeKeyOf };\nexport default tokens;\n`;
 writeFileSync("dist/index.d.ts", dts);
 
 const manifest = {

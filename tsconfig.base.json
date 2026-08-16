@@ -15,7 +15,7 @@
     "sourceMap": true,
     "jsx": "react-jsx",
     "paths": {
-      "@zevaui/tokens": ["./packages/tokens/src"],
+      "@zevaui/tokens": ["./packages/tokens/dist"],
       "@zevaui/components": ["./packages/components/src"],
       "@zevaui/constraints": ["./packages/constraints/src"],
       "@zevaui/mcp": ["./packages/mcp/src"],
