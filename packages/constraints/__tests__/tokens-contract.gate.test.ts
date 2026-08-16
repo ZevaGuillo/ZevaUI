@@ -21,9 +21,7 @@ const manifest: Manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 
 const themeFrom = (themeId: string): Theme => ({
   id: themeId,
-  colors: Object.fromEntries(
-    manifest.tokens.map((t) => [t.name, t.values[themeKeyOf[themeId]]]),
-  ),
+  colors: Object.fromEntries(manifest.tokens.map((t) => [t.name, t.values[themeKeyOf[themeId]]])),
 });
 
 describe.each(themeIds)("%s theme", (themeId: string) => {

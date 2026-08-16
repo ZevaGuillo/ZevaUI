@@ -11,11 +11,20 @@
   "files": [
     "dist"
   ],
+  "bin": {
+    "zevaui-mcp": "./dist/bin.js"
+  },
   "scripts": {
-    "build": "echo \"stage 1: build deferred (no dist)\"",
+    "build": "tsc",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "test": "echo \"stage 1: no tests\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@zevaui/constraints": "workspace:*",
+    "@zevaui/tokens": "workspace:*",
+    "zod": "^4.0.0"
   }
 }
