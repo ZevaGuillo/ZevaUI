@@ -41,7 +41,11 @@ importers:
 
   packages/config: {}
 
-  packages/constraints: {}
+  packages/constraints:
+    devDependencies:
+      '@zevaui/tokens':
+        specifier: workspace:*
+        version: link:../tokens
 
   packages/mcp: {}
 

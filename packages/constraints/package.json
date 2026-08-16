@@ -11,11 +11,15 @@
   "files": [
     "dist"
   ],
+  "sideEffects": false,
   "scripts": {
-    "build": "echo \"stage 1: build deferred (no dist)\"",
+    "build": "tsc",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"stage 1: no tests\""
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@zevaui/tokens": "workspace:*"
   }
 }

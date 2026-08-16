@@ -17,6 +17,9 @@ storybook-static/
 # Skill registry artifact (local only)
 .atl/
 
+# CodeGraph index (local only)
+.codegraph/
+
 # IDE
 .vscode/
 .idea/

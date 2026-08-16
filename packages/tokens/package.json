@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     "./styles.css": "./dist/styles.css",
+    "./tokens.manifest.json": "./dist/tokens.manifest.json",
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
