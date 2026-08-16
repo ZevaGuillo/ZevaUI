@@ -1,0 +1,29 @@
+{
+  "name": "@zevaui/components",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./styles.css": "./dist/styles.css",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "scripts": {
+    "build": "echo \"stage 1: build deferred (no dist)\"",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"stage 1: no tests\""
+  }
+}

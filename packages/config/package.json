@@ -1,0 +1,13 @@
+{
+  "name": "@zevaui/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo \"stage 1: build deferred (no dist)\"",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"stage 1: no tests\""
+  }
+}

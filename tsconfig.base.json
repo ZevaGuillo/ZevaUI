@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@zevaui/tokens": ["./packages/tokens/src"],
+      "@zevaui/components": ["./packages/components/src"],
+      "@zevaui/constraints": ["./packages/constraints/src"],
+      "@zevaui/mcp": ["./packages/mcp/src"],
+      "@zevaui/audit": ["./packages/audit/src"],
+      "@zevaui/config": ["./packages/config/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".turbo"]
+}
