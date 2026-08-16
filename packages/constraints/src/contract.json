@@ -1,0 +1,93 @@
+{
+  "version": "1.0.0",
+  "defaultMinContrastRatio": 4.5,
+  "themes": {
+    "light": { "minContrastRatio": 4.5 },
+    "dark": { "minContrastRatio": 4.5 },
+    "high-contrast": { "minContrastRatio": 7.0 }
+  },
+  "contrastPairs": [
+    { "foreground": "color-text-default", "background": "color-bg-canvas" },
+    { "foreground": "color-text-default", "background": "color-bg-surface" },
+    { "foreground": "color-text-secondary", "background": "color-bg-canvas" },
+    { "foreground": "color-text-secondary", "background": "color-bg-surface" },
+    { "foreground": "color-text-muted", "background": "color-bg-canvas" },
+    { "foreground": "color-text-muted", "background": "color-bg-surface" },
+    { "foreground": "color-text-link", "background": "color-bg-canvas" },
+    { "foreground": "color-text-link", "background": "color-bg-surface" },
+    { "foreground": "color-text-danger", "background": "color-bg-canvas" },
+    { "foreground": "color-text-danger", "background": "color-bg-surface" },
+    { "foreground": "color-text-success", "background": "color-bg-canvas" },
+    { "foreground": "color-text-success", "background": "color-bg-surface" },
+    { "foreground": "color-text-inverse", "background": "color-bg-inverse" }
+  ],
+  "tokenTypes": {
+    "dimension": [
+      "radius-input",
+      "radius-card",
+      "radius-button",
+      "space-input-px",
+      "space-input-py",
+      "space-card-px",
+      "space-card-py",
+      "font-body-size"
+    ],
+    "shadow": ["shadow-card", "shadow-dropdown", "shadow-modal"],
+    "color": [
+      "color-text-default",
+      "color-text-secondary",
+      "color-text-muted",
+      "color-text-inverse",
+      "color-text-link",
+      "color-text-danger",
+      "color-text-success",
+      "color-bg-canvas",
+      "color-bg-surface",
+      "color-bg-subtle",
+      "color-bg-muted",
+      "color-bg-inverse",
+      "color-border-default",
+      "color-border-subtle",
+      "color-border-strong",
+      "color-accent-default",
+      "color-accent-subtle",
+      "color-accent-strong",
+      "color-danger-default",
+      "color-danger-subtle",
+      "color-success-default",
+      "color-success-subtle",
+      "color-warning-default",
+      "color-warning-subtle",
+      "color-focus-ring"
+    ],
+    "fontFamily": ["font-body-family", "font-heading-family", "font-mono-family"],
+    "fontWeight": ["font-body-weight", "font-heading-weight"],
+    "number": ["font-body-line-height"]
+  },
+  "scales": {
+    "space": [
+      "0",
+      "px",
+      "0.5",
+      "1",
+      "1.5",
+      "2",
+      "2.5",
+      "3",
+      "4",
+      "5",
+      "6",
+      "8",
+      "10",
+      "12",
+      "16",
+      "20",
+      "24",
+      "32",
+      "40",
+      "48",
+      "64"
+    ],
+    "radius": ["none", "sm", "md", "lg", "xl", "2xl", "full"]
+  }
+}
