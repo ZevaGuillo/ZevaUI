@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
+import { contrastRatio } from "../src/color/contrast.js";
+import { relativeLuminance } from "../src/color/luminance.js";
+import { parseColor } from "../src/color/parse.js";
 import { contract } from "../src/contract.js";
 import type { Theme } from "../src/index.js";
 import { validateTheme } from "../src/index.js";
@@ -36,6 +39,28 @@ describe.each(manifest.themes)("%s theme", (themeId: string) => {
     const result = validateTheme(themeFrom(themeId));
     expect(result.violations).toEqual([]);
     expect(result.pass).toBe(true);
+  });
+});
+
+describe("high-contrast AAA headroom", () => {
+  // `color-text-success` clears the 7.0 AAA floor by roughly 1.3%, the narrowest
+  // margin in any base theme. The gate above only notices once the ratio has
+  // already broken; this pins the measured value so an edit to the green ramp or
+  // to the high-contrast canvas surfaces as a failure here first.
+  // If this fails because the margin WIDENED, update the README's stated headroom
+  // rather than loosening the assertion.
+  it("keeps color-text-success just above its 7.0 floor", () => {
+    const { colors } = themeFrom("high-contrast");
+    const foreground = parseColor(colors["color-text-success"]);
+    const background = parseColor(colors["color-bg-canvas"]);
+    if (foreground === undefined || background === undefined) {
+      throw new Error("high-contrast success and canvas tokens must be parseable");
+    }
+
+    const ratio = contrastRatio(relativeLuminance(foreground), relativeLuminance(background));
+
+    expect(ratio).toBeGreaterThan(contract.themes["high-contrast"].minContrastRatio);
+    expect(ratio).toBeCloseTo(7.09, 2);
   });
 });
 
