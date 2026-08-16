@@ -17,7 +17,7 @@
     "paths": {
       "@zevaui/tokens": ["./packages/tokens/dist"],
       "@zevaui/components": ["./packages/components/src"],
-      "@zevaui/constraints": ["./packages/constraints/src"],
+      "@zevaui/constraints": ["./packages/constraints/dist"],
       "@zevaui/mcp": ["./packages/mcp/src"],
       "@zevaui/audit": ["./packages/audit/src"],
       "@zevaui/config": ["./packages/config/src"]

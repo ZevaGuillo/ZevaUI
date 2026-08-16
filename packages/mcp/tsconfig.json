@@ -2,12 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
-    // Override the base "paths" (which maps @zevaui/constraints to its src)
-    // so both workspace deps resolve through their published dist output via
-    // normal package.json exports resolution instead of pulling foreign src
-    // files into this package's rootDir.
-    "paths": {}
+    "rootDir": "./src"
   },
   "include": ["src"]
 }
