@@ -8,10 +8,7 @@ async function connectedClient() {
   const mcpServer = createServer();
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "0.0.0" });
-  await Promise.all([
-    client.connect(clientTransport),
-    mcpServer.server.connect(serverTransport),
-  ]);
+  await Promise.all([client.connect(clientTransport), mcpServer.server.connect(serverTransport)]);
   return client;
 }
 
