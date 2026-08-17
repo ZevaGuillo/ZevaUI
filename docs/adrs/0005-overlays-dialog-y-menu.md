@@ -193,17 +193,18 @@ ausencia de `aria-hidden` con el menú abierto, más `inert === false` al
 cerrarlo. Si una react-aria futura abandona la rama de `inert`, esa story
 falla con un mensaje legible en vez de como una violación opaca de axe.
 
-**Desviación registrada:** las stories de `Dialog` siguen el arreglo más
-conservador que su comentario de cabecera describe —renderizan el diálogo
-solo, y la story con trigger lo cierra antes de que axe corra— sobre la
-premisa de que `useModalOverlay` marca el fondo con `aria-hidden`. Esa
-premisa **no se sostiene contra la versión instalada** (`useModalOverlay.mjs:38`
-pasa `shouldUseInert: true`). El arreglo no es incorrecto —es estrictamente
-más restrictivo que lo que el runtime exige, y las 8 stories de `Dialog`
-pasan— pero la razón anotada sí lo es. Se registra aquí en vez de corregirse
-en silencio, porque esta slice es solo de documentación; alinear el
-comentario y darle a `Dialog` la misma aserción de `inert` que tiene `Menu`
-queda como seguimiento.
+Las stories de `Dialog` conservan el arreglo más conservador —renderizan el
+diálogo solo, y la story con trigger lo cierra antes de que axe corra—, pero
+por una razón distinta de la que su comentario de cabecera afirmaba al
+escribirse esta slice. Ese comentario sostenía que `useModalOverlay` marca el
+fondo con `aria-hidden`, y eso **no se sostiene contra la versión instalada**:
+`useModalOverlay.mjs:38` pasa el mismo `shouldUseInert: true` que
+`usePopover.mjs:54`. El arreglo nunca fue incorrecto —es estrictamente más
+restrictivo que lo que el runtime exige, y las 8 stories pasan— pero la razón
+anotada sí lo era, y quedó corregida en el mismo stream. Hoy el comentario
+describe el mecanismo medido y explica que el arreglo se mantiene porque
+minimiza la superficie que axe escanea por story, no porque el runtime lo
+obligue.
 
 ## Alternativas consideradas
 
@@ -225,20 +226,23 @@ queda como seguimiento.
 
 **Positivas**
 
-- La suite de `@zevaui/components` pasó de **67 a 119 pruebas** (9 archivos,
-  todas en verde): `dialog.test.ts` aporta 22 y `menu.test.ts` 30, y son los
-  únicos archivos de prueba que la slice agregó.
-- La puerta de accesibilidad corre **26 stories en Chromium real, todas en
-  verde** (11 de `Button`, 8 de `Dialog`, 7 de `Menu`; la story
-  deliberadamente rota de `__gate__` queda fuera por tag).
-- El scoping de tokens por componente del manifest quedó **probado con tres
-  componentes**, que es donde recién empieza a significar algo: `Dialog`
-  reclama `--zui-shadow-modal` y **no** `--zui-shadow-dropdown` (16 tokens),
-  `Menu` exactamente al revés (16 tokens) y `Button` ninguno de los dos (17
-  tokens). Un escaneo del `dist/styles.css` completo —correcto mientras había
-  un solo componente— habría hecho que los tres reclamaran los dos.
-- Cero primitivos: las 49 entradas de token que declaran los tres componentes
-  (29 tokens distintos) son todas semánticas; ninguno de los 113 primitivos
+- Los dos overlays aportan **52 pruebas** (`dialog.test.ts` 22 y `menu.test.ts`
+  30, los únicos archivos de prueba que la slice agregó). Medido sobre `main`
+  ya con `Input` integrado, la suite de `@zevaui/components` queda en **139
+  pruebas repartidas en 10 archivos**, todas en verde.
+- La puerta de accesibilidad corre **39 stories en Chromium real, todas en
+  verde** (11 de `Button`, 13 de `Input`, 8 de `Dialog`, 7 de `Menu`; la story
+  deliberadamente rota de `__gate__` queda fuera por tag). Los overlays aportan
+  15 de esas 39.
+- El scoping de tokens por componente del manifest quedó **probado con cuatro
+  componentes**, que es donde recién significa algo: `Dialog` reclama
+  `--zui-shadow-modal` y **no** `--zui-shadow-dropdown` (16 tokens), `Menu`
+  exactamente al revés (16 tokens), `Input` ninguno de los dos (15 tokens) y
+  `Button` tampoco (17 tokens). Un escaneo del `dist/styles.css` completo
+  —correcto mientras había un solo componente— habría hecho que los cuatro
+  reclamaran todo.
+- Cero primitivos: las 64 entradas de token que declaran los cuatro componentes
+  (34 tokens distintos) son todas semánticas; ninguno de los 113 primitivos
   de `tokens.manifest.json` aparece en el manifest de componentes.
 - El registro de componentes absorbió los dos overlays sin tocar
   `panda.config.ts` más que para agregar los punteros de token que faltaban:
@@ -261,9 +265,11 @@ queda como seguimiento.
   sobre `color-border-strong` no se cerró en esta slice; se trabajó
   *alrededor* de él (D2). El costo no es teórico: es un eje de variante que
   los dos overlays no tienen.
-- El comentario de cabecera de `Dialog.stories.tsx` documenta un mecanismo
-  (`aria-hidden`) que la versión instalada de react-aria ya no usa (D5).
-  Queda como desviación registrada, no corregida aquí.
+- Las stories de `Dialog` siguen siendo más restrictivas de lo que el runtime
+  exige: renderizan el diálogo solo en vez de dejar el trigger en pantalla como
+  hace `Menu` (D5). Se mantiene a propósito —acota la superficie que axe
+  escanea— pero es una asimetría entre dos componentes que ya se sabe que
+  comparten mecanismo.
 - El overlay de `Dialog` fija `z-index: 50` como valor crudo. No existe un
   token semántico de capa y crear uno estaba fuera del alcance de esta slice;
   un consumidor con sus propios contextos de apilamiento puede necesitar
@@ -279,9 +285,10 @@ queda como seguimiento.
 
 ## Seguimiento (decisiones diferidas)
 
-- Alinear el comentario de `Dialog.stories.tsx` con el mecanismo medido y
-  darle a `Dialog` la misma aserción explícita de `inert` que ya tiene
-  `OpensNavigatesAndSelects` en `Menu` (desviación de D5).
+- Darle a `Dialog` la misma aserción explícita de `inert` que ya tiene
+  `OpensNavigatesAndSelects` en `Menu`, para que las dos rutas de overlay
+  fallen igual de legible si una react-aria futura abandona esa rama (D5). El
+  comentario de cabecera ya quedó alineado con el mecanismo medido.
 - Cerrar de verdad el hueco de WCAG 1.4.11: subir `color-border-strong` por
   encima de 3.0:1 en los tres temas y extender el contrato de
   `@zevaui/constraints` a pares no textuales. Ese es el disparador para
