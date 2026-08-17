@@ -79,6 +79,9 @@ export default defineConfig({
         },
         bg: {
           surface: ref("color-bg-surface"),
+          // Dialog mixes its scrim out of this one with `color-mix`, so the backdrop can be
+          // translucent without an `opacity` that would fade the modal inside it.
+          inverse: ref("color-bg-inverse"),
         },
         border: {
           default: ref("color-border-default"),
@@ -88,12 +91,23 @@ export default defineConfig({
       },
       radii: {
         button: ref("radius-button"),
+        card: ref("radius-card"),
         input: ref("radius-input"),
+      },
+      // New category, not a new token: `shadow-modal` already exists upstream as a semantic token
+      // in @zevaui/tokens; this is only the Panda-side pointer that lets `boxShadow: "modal"`
+      // resolve. Same pure-pointer rule as every other entry (G1).
+      shadows: {
+        modal: ref("shadow-modal"),
       },
       spacing: {
         button: {
           px: ref("space-button-px"),
           py: ref("space-button-py"),
+        },
+        card: {
+          px: ref("space-card-px"),
+          py: ref("space-card-py"),
         },
         input: {
           px: ref("space-input-px"),
@@ -102,12 +116,14 @@ export default defineConfig({
       },
       fonts: {
         body: ref("font-body-family"),
+        heading: ref("font-heading-family"),
       },
       fontSizes: {
         body: ref("font-body-size"),
       },
       fontWeights: {
         body: ref("font-body-weight"),
+        heading: ref("font-heading-weight"),
       },
       lineHeights: {
         body: ref("font-body-line-height"),
