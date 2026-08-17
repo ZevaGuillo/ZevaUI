@@ -9,7 +9,7 @@ const m = JSON.parse(
 it("conforms to the pinned schema", () => {
   expect(m.version).toMatch(/^\d+\.\d+\.\d+$/);
   expect(m.themes).toEqual(["light", "dark", "high-contrast"]);
-  expect(m.tokens).toHaveLength(42);
+  expect(m.tokens).toHaveLength(44);
   for (const e of m.tokens) {
     expect(e.cssVar.startsWith("--zui-")).toBe(true);
     for (const t of ["light", "dark", "highContrast"]) expect(typeof e.values[t]).toBe("string");

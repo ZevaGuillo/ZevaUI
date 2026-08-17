@@ -33,12 +33,12 @@ describe("createServer / resources", () => {
     ]);
   });
 
-  it("reads the high-contrast resource as JSON with 42 matching keys", async () => {
+  it("reads the high-contrast resource as JSON with 44 matching keys", async () => {
     const client = await connectedClient();
     const { contents } = await client.readResource({ uri: "zevaui://tokens/high-contrast" });
     expect(contents[0]?.mimeType).toBe("application/json");
     const parsed = JSON.parse(contents[0]?.text as string);
-    expect(Object.keys(parsed)).toHaveLength(42);
+    expect(Object.keys(parsed)).toHaveLength(44);
     expect(parsed).toEqual(themeFor("high-contrast").colors);
   });
 });

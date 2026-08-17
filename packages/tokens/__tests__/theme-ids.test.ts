@@ -14,7 +14,7 @@ it("exposes a single source of truth for theme ids and their JS key mapping", as
   expect(themeKeyOf).toEqual({ light: "light", dark: "dark", "high-contrast": "highContrast" });
   expect(Object.keys(tokens)).toEqual(themeIds.map((id: string) => themeKeyOf[id]));
   expect(manifest.themes).toEqual(themeIds);
-  expect(Object.keys(tokens.light).length).toBe(42);
+  expect(Object.keys(tokens.light).length).toBe(44);
 
   const dts = readFileSync(fileURLToPath(new URL("../dist/index.d.ts", import.meta.url)), "utf8");
   expect(dts.startsWith("type ZevauiThemeTokens = {")).toBe(true);

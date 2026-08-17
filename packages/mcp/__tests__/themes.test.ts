@@ -8,8 +8,8 @@ describe("themeFor / id passthrough", () => {
 });
 
 describe("themeFor / colors shape", () => {
-  it("exposes exactly 42 color tokens for light", () => {
-    expect(Object.keys(themeFor("light").colors)).toHaveLength(42);
+  it("exposes exactly 44 semantic tokens for light", () => {
+    expect(Object.keys(themeFor("light").colors)).toHaveLength(44);
   });
 
   it("selects a different token bucket for high-contrast than light", () => {
