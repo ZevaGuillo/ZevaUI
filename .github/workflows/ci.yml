@@ -21,6 +21,15 @@ jobs:
           node-version-file: ".nvmrc"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Chromium is ~300MB. Key the cache on the lockfile so it is reused until
+      # the resolved Playwright version actually changes.
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      # --with-deps installs OS packages, which the cache cannot carry, so it runs
+      # every time; the browser download itself is what the cache skips.
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm turbo run lint typecheck test
       - run: node -e "import('@zevaui/constraints').then(m => { if (typeof m.validateTheme !== 'function') process.exit(1) })"

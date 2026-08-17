@@ -31,7 +31,7 @@ validator to agents, over stdio.
 
 | URI | Content |
 |---|---|
-| `zevaui://tokens/light` | Flat JSON object, 44 `token-name: value` pairs, the light theme fully resolved. |
+| `zevaui://tokens/light` | Flat JSON object with one `token-name: value` pair per semantic token, the light theme fully resolved. |
 | `zevaui://tokens/dark` | Same shape, dark theme. |
 | `zevaui://tokens/high-contrast` | Same shape, high-contrast theme. |
 

@@ -14,7 +14,10 @@ it("exposes a single source of truth for theme ids and their JS key mapping", as
   expect(themeKeyOf).toEqual({ light: "light", dark: "dark", "high-contrast": "highContrast" });
   expect(Object.keys(tokens)).toEqual(themeIds.map((id: string) => themeKeyOf[id]));
   expect(manifest.themes).toEqual(themeIds);
-  expect(Object.keys(tokens.light).length).toBe(44);
+  // Agreement, not a second copy of the count: manifest-schema.test.ts owns the
+  // absolute number. Asserting against it catches the JS export and the manifest
+  // drifting apart, which duplicated literals never would — they get updated together.
+  expect(Object.keys(tokens.light).length).toBe(manifest.tokens.length);
 
   const dts = readFileSync(fileURLToPath(new URL("../dist/index.d.ts", import.meta.url)), "utf8");
   expect(dts.startsWith("type ZevauiThemeTokens = {")).toBe(true);

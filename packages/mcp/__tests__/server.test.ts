@@ -1,8 +1,21 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
 import { createServer } from "../src/server.js";
 import { themeFor } from "../src/themes.js";
+
+// Deliberately the manifest and not themeFor(): the deep-equality below already
+// compares against the projected theme, so deriving the count from the same object
+// would be tautological. The manifest is an independent source, making the two
+// assertions cover different invariants.
+const manifest = JSON.parse(
+  readFileSync(
+    createRequire(import.meta.url).resolve("@zevaui/tokens/tokens.manifest.json"),
+    "utf8",
+  ),
+);
 
 async function connectedClient() {
   const mcpServer = createServer();
@@ -33,12 +46,12 @@ describe("createServer / resources", () => {
     ]);
   });
 
-  it("reads the high-contrast resource as JSON with 44 matching keys", async () => {
+  it("reads the high-contrast resource as JSON matching every declared token", async () => {
     const client = await connectedClient();
     const { contents } = await client.readResource({ uri: "zevaui://tokens/high-contrast" });
     expect(contents[0]?.mimeType).toBe("application/json");
     const parsed = JSON.parse(contents[0]?.text as string);
-    expect(Object.keys(parsed)).toHaveLength(44);
+    expect(Object.keys(parsed)).toHaveLength(manifest.tokens.length);
     expect(parsed).toEqual(themeFor("high-contrast").colors);
   });
 });

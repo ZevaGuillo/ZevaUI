@@ -1,5 +1,17 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { themeFor, themeIds } from "../src/themes.js";
+
+// The count lives in @zevaui/tokens, which owns it. Reading it here asserts that
+// the MCP resource exposes everything the manifest declares, rather than pinning a
+// number that would silently drift out of step with the token layer.
+const manifest = JSON.parse(
+  readFileSync(
+    createRequire(import.meta.url).resolve("@zevaui/tokens/tokens.manifest.json"),
+    "utf8",
+  ),
+);
 
 describe("themeFor / id passthrough", () => {
   it("keeps the kebab id untranslated (THE regression guard)", () => {
@@ -8,8 +20,8 @@ describe("themeFor / id passthrough", () => {
 });
 
 describe("themeFor / colors shape", () => {
-  it("exposes exactly 44 semantic tokens for light", () => {
-    expect(Object.keys(themeFor("light").colors)).toHaveLength(44);
+  it("exposes every semantic token the manifest declares, for light", () => {
+    expect(Object.keys(themeFor("light").colors)).toHaveLength(manifest.tokens.length);
   });
 
   it("selects a different token bucket for high-contrast than light", () => {
