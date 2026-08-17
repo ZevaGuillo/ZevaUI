@@ -8,22 +8,16 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const distDir = join(packageRoot, "dist");
 
-const { buttonRecipe } = await import(pathToFileURL(join(distDir, "button", "button.recipe.js")));
+// src/registry.ts is the single declaration of what ships; this script never names a component.
+const { componentRegistry } = await import(pathToFileURL(join(distDir, "registry.js")));
 const { variantClassName } = await import(
   pathToFileURL(join(distDir, "internal", "recipe-class.js"))
 );
+const { consumedTokens } = await import(
+  pathToFileURL(join(distDir, "internal", "consumed-tokens.js"))
+);
 
 const css = readFileSync(join(distDir, "styles.css"), "utf8");
-const builtButtonSource = readFileSync(join(distDir, "button", "Button.js"), "utf8");
-
-// Reports what Button ACTUALLY consumes rather than what someone remembered to list.
-function extractConsumedTokens(source) {
-  const cssVars = new Set();
-  for (const match of source.matchAll(/var\(--zui-([a-z0-9-]+)\)/g)) {
-    cssVars.add(`--zui-${match[1]}`);
-  }
-  return [...cssVars].sort();
-}
 
 // Derived from the recipe via variantClassName, mirroring the same convention `recipeClassName`
 // uses at runtime — never a hand-maintained literal list.
@@ -45,21 +39,29 @@ function extractVariants(recipe) {
   }));
 }
 
+// The built module, not its source: `modulePath` is relative to dist for exactly this reason.
+function isClientOnly(modulePath) {
+  return readFileSync(join(distDir, modulePath), "utf8").startsWith('"use client";');
+}
+
 const manifest = {
   version: "1.0.0",
   generated: new Date().toISOString(),
-  components: [
-    {
-      name: "Button",
-      className: buttonRecipe.className,
-      clientOnly: builtButtonSource.startsWith('"use client";'),
+  components: componentRegistry.map((entry) => {
+    const classNames = extractClassNames(entry.recipe);
+    return {
+      name: entry.name,
+      className: entry.recipe.className,
+      clientOnly: isClientOnly(entry.modulePath),
       import: "@zevaui/components",
       slots: [],
-      variants: extractVariants(buttonRecipe),
-      classNames: extractClassNames(buttonRecipe),
-      tokens: extractConsumedTokens(css),
-    },
-  ],
+      variants: extractVariants(entry.recipe),
+      classNames,
+      // Scoped to this component's own rules: reporting what it ACTUALLY consumes rather than
+      // everything the package happens to reference.
+      tokens: consumedTokens(css, classNames),
+    };
+  }),
 };
 
 writeFileSync(join(distDir, "components.manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);

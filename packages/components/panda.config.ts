@@ -1,10 +1,23 @@
-import { defineConfig } from "@pandacss/dev";
-import { BUTTON_RECIPE_KEY, buttonRecipe } from "./src/button/button.recipe";
+import { defineConfig, type RecipeConfig } from "@pandacss/dev";
+import { componentRegistry } from "./src/registry";
 
-// Derived, never a literal list: a value added to the recipe is emitted on the
+// Derived, never a literal list (ADR-0004 D4): a value added to a recipe is emitted on the
 // next build, and gate G5 (see __tests__/css-gates.test.ts) fails if this drifts.
-const allButtonVariants = Object.fromEntries(
-  Object.entries(buttonRecipe.variants).map(([axis, values]) => [axis, Object.keys(values)]),
+const allVariantValues = (recipe: RecipeConfig): Record<string, string[]> =>
+  Object.fromEntries(
+    Object.entries(recipe.variants ?? {}).map(([axis, values]) => [axis, Object.keys(values)]),
+  );
+
+// Both maps come from src/registry.ts, so registering a component is one entry, not three edits.
+const recipes = Object.fromEntries(
+  componentRegistry.map((entry): [string, RecipeConfig] => [entry.recipeKey, entry.recipe]),
+);
+
+const staticCssRecipes = Object.fromEntries(
+  componentRegistry.map((entry): [string, Array<Record<string, string[]>>] => [
+    entry.recipeKey,
+    [allVariantValues(entry.recipe)],
+  ]),
 );
 
 // var(--zui-*) POINTERS ONLY — zero literal payload. G1 rejects anything else.
@@ -80,7 +93,7 @@ export default defineConfig({
         body: ref("font-body-line-height"),
       },
     },
-    recipes: { [BUTTON_RECIPE_KEY]: buttonRecipe },
+    recipes,
   },
-  staticCss: { recipes: { [BUTTON_RECIPE_KEY]: [allButtonVariants] } },
+  staticCss: { recipes: staticCssRecipes },
 });
