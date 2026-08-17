@@ -1,4 +1,5 @@
 import type { RecipeConfig, SlotRecipeConfig } from "@pandacss/dev";
+import { ALERT_RECIPE_KEY, alertRecipe } from "./alert/alert.recipe.js";
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
 import { CARD_RECIPE_KEY, cardRecipe } from "./card/card.recipe.js";
 import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
@@ -90,5 +91,14 @@ export const componentRegistry = [
     recipeKey: CARD_RECIPE_KEY,
     recipe: cardRecipe,
     modulePath: "card/Card.js",
+  },
+  // The second server-renderable entry, and the first single-part (flat) recipe registered after
+  // Button: Alert carries no "use client" directive either, for the same reason Card does not —
+  // see alert/Alert.tsx.
+  {
+    name: "Alert",
+    recipeKey: ALERT_RECIPE_KEY,
+    recipe: alertRecipe,
+    modulePath: "alert/Alert.js",
   },
 ] as const satisfies readonly ComponentRegistryEntry[];

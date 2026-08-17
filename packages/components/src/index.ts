@@ -1,3 +1,5 @@
+export { Alert } from "./alert/Alert.js";
+export type { AlertProps, AlertTone } from "./alert/alert.types.js";
 export { Button } from "./button/Button.js";
 export type { ButtonProps, ButtonSize, ButtonVisual } from "./button/button.types.js";
 export { Card } from "./card/Card.js";

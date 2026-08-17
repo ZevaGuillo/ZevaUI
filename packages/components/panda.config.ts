@@ -71,6 +71,14 @@ export default defineConfig({
           default: ref("color-danger-default"),
           subtle: ref("color-danger-subtle"),
         },
+        success: {
+          default: ref("color-success-default"),
+          subtle: ref("color-success-subtle"),
+        },
+        warning: {
+          default: ref("color-warning-default"),
+          subtle: ref("color-warning-subtle"),
+        },
         text: {
           default: ref("color-text-default"),
           secondary: ref("color-text-secondary"),
