@@ -8,10 +8,16 @@ import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 //
 //   * The dialog is portalled to <body>, and addon-a11y scans `document.body`, so the open
 //     dialog IS in scope — it is not silently skipped.
-//   * While the dialog is open, react-aria marks everything outside the portal `aria-hidden`.
-//     A focusable control left behind in the story root would then trip axe's
-//     `aria-hidden-focus` rule. The always-open stories therefore render the dialog alone, and
-//     the story that does need a trigger closes the dialog again before axe runs.
+//   * While the dialog is open, react-aria takes everything outside the portal out of the
+//     accessibility tree. Measured in react-aria 3.51.0, not assumed: `useModalOverlay.mjs:38`
+//     calls `ariaHideOutside(..., { shouldUseInert: true })`, and `ariaHideOutside.mjs:41` sets
+//     the `inert` property when the browser supports it — `aria-hidden` is only the fallback.
+//     `usePopover.mjs:54` passes the identical option, so Menu behaves the same way; the two
+//     overlay paths do NOT differ here. Because the content is genuinely inert rather than
+//     merely relabelled, axe's `aria-hidden-focus` has nothing to fire on. The arrangement
+//     below — always-open stories rendering the dialog alone, and the trigger story closing the
+//     dialog before axe runs — is therefore stricter than the runtime requires. It is kept
+//     because it also keeps each story's scan surface minimal. See ADR-0005 D5.
 const meta = {
   title: "Dialog",
   component: Dialog,
