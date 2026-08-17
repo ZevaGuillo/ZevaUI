@@ -70,13 +70,9 @@ describe("Alert", () => {
   });
 });
 
-describe('G6: the emitted Alert module does NOT ship the "use client" directive', () => {
-  it("does not start dist/alert/Alert.js with the client boundary directive", () => {
-    const built = readFileSync(join(packageRoot, "dist", "alert", "Alert.js"), "utf8");
-    expect(built.startsWith('"use client"')).toBe(false);
-  });
-});
-
+// G6 (the "use client" boundary assertion) moved to __tests__/emit-gates.test.ts, where it is
+// now one registry-driven gate covering every component instead of a hand-copied block per file.
+//
 // Routed through a plain function typed as `AlertProps` (rather than a direct call to
 // `createElement`) so the excess-property/type checks below still apply to a fresh object
 // literal, without tripping Biome's `noChildrenProp` rule on a raw `createElement` call.

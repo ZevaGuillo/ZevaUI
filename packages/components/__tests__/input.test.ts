@@ -4,9 +4,6 @@
 // `.test.ts` so this package's Vitest setup needs no JSX transform plugin, while
 // `React.createElement` preserves the excess-property/type-mismatch checking the
 // `@ts-expect-error` assertions at the bottom depend on.
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
@@ -171,14 +168,9 @@ describe("Input", () => {
   });
 });
 
-describe('G6: the emitted Input module ships the "use client" directive', () => {
-  it("starts dist/input/Input.js with the client boundary directive", () => {
-    const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-    const built = readFileSync(join(packageRoot, "dist", "input", "Input.js"), "utf8");
-    expect(built.startsWith('"use client";')).toBe(true);
-  });
-});
-
+// G6 (the "use client" boundary assertion) moved to __tests__/emit-gates.test.ts, where it is
+// now one registry-driven gate covering every component instead of a hand-copied block per file.
+//
 // Routed through a plain function typed as `InputProps` so the excess-property checks below
 // apply to a fresh object literal.
 function inputElement(props: InputProps) {

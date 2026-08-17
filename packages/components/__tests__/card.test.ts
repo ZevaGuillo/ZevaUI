@@ -75,13 +75,9 @@ describe("Card", () => {
   });
 });
 
-describe('G6: the emitted Card module does NOT ship the "use client" directive', () => {
-  it("does not start dist/card/Card.js with the client boundary directive", () => {
-    const built = readFileSync(join(packageRoot, "dist", "card", "Card.js"), "utf8");
-    expect(built.startsWith('"use client"')).toBe(false);
-  });
-});
-
+// G6 (the "use client" boundary assertion) moved to __tests__/emit-gates.test.ts, where it is
+// now one registry-driven gate covering every component instead of a hand-copied block per file.
+//
 // Routed through plain functions typed as `CardProps` / `CardPartProps` (rather than a direct
 // call to `createElement`) so the excess-property/type checks below still apply to a fresh object
 // literal, without tripping Biome's `noChildrenProp` rule on a raw `createElement` call.

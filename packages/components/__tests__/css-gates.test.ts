@@ -370,3 +370,103 @@ describe("G5: rules Panda collapsed into a shared selector list still count", ()
     expect(missingSelectors(groupedCss, prefixFixture)).toEqual(["zui-fixture__fiel"]);
   });
 });
+
+// G5's REVERSE direction: every describe block above only ever asks "does the CSS have a rule for
+// a class the recipe declares" — by construction, that question can never notice a class the CSS
+// renders that no recipe's derivation produces. That gap matters because the SAME class-name
+// derivation (`variantClassName`, `emittedSlotClassNames`, and `requiredSelectors` here, which
+// wraps both) feeds THREE consumers beyond this test file: the runtime class strings a component
+// renders, `components.manifest.json`'s `classNames` (scripts/build-manifest.js), and the scoping
+// argument `consumedTokens()` takes to attribute `--zui-*` tokens to one component. If the
+// derivation cannot see a selector the stylesheet genuinely contains, nothing fails today — that
+// rule's tokens are silently dropped from the manifest, and the MCP server (ADR-0001 D8)
+// publishes an under-report. This reverse direction is the only assertion in the repo that
+// catches that failure mode.
+//
+// FORWARD AND REVERSE DELIBERATELY USE DIFFERENT PREDICATES, and the asymmetry is load-bearing.
+// Forward's `hasRule` asks whether a class is MENTIONED anywhere in a rule's selector, compound
+// or not — `.x[data-hovered] {` satisfies it just as a bare `.x {` would, because a slot or
+// variant whose style object holds nothing but conditional keys (`&[data-hovered]`,
+// `&[data-focus-visible]`) legitimately emits only that compound rule and no bare one; demanding
+// a bare rule for it would redden a perfectly correct recipe. Reverse instead only ever inspects
+// an EXACT single-class rule head (`.zui-x {`, or one member of a Panda-collapsed comma list —
+// never a compound selector, an attribute selector, or a combinator), and for each one asks
+// whether `requiredSelectors` — the same declared set forward already demands the stylesheet
+// contain — counts it. That is "any class a recipe declares styles for": it does not require the
+// class's OWN rule to be bare, only that walking the recipe's declared classes would have
+// produced it, which accounts for the conditional-only case the same way forward's looseness
+// does, without forcing reverse to parse attribute selectors itself.
+//
+// Matched PACKAGE-WIDE against the whole stylesheet, deliberately, rather than once per
+// component: a per-component regex for `zui-button` would also capture a future
+// `zui-button-group` and fail spuriously the day that ships.
+//
+// Do NOT rewrite either half as `slots.length * variantValues.length`: an empty per-slot style
+// object emits nothing, so for a variant that styles only one slot that arithmetic demands rules
+// that do not exist. When this gate goes red, the correct read is "the recipe and the CSS
+// disagree", never "the gate is too strict" — fix the derivation or the recipe, not this
+// assertion.
+describe("G5 (reverse): every emitted single-class rule is declared by some registered recipe", () => {
+  /**
+   * Every distinct class name that opens as an EXACT single-class rule head somewhere in
+   * `source`: `.zui-button {`, or one member of a Panda-collapsed comma list
+   * (`.zui-input__label,.zui-input__input {`) — never a compound selector
+   * (`.zui-button[data-hovered] {`), a descendant selector, or anything else that is not, on its
+   * own, a bare class. Scoped to the `zui-` prefix so an unrelated selector (a future utility
+   * class, `:root`, `::before`, ...) can never trigger a false positive.
+   */
+  function exactSingleClassRuleHeads(source: string): Set<string> {
+    const names = new Set<string>();
+    for (const match of source.matchAll(/([^{}]*)\{/g)) {
+      for (const part of match[1].split(",")) {
+        const single = /^\.(zui-[\w-]+)$/.exec(part.trim());
+        if (single) names.add(single[1]);
+      }
+    }
+    return names;
+  }
+
+  /** Every class name any registered recipe's derivation declares styles for, package-wide. */
+  function allDeclaredClassNames(): Set<string> {
+    const names = new Set<string>();
+    for (const { recipe } of componentRegistry) {
+      for (const className of requiredSelectors(recipe)) names.add(className);
+    }
+    return names;
+  }
+
+  /**
+   * Whether `className` belongs to `recipeClassName`'s own namespace: the base class itself, one
+   * of its `--axis_value` variants, or (for a slot recipe) one of its `__slot` parts.
+   */
+  function ownsClassName(recipeClassName: string, className: string): boolean {
+    return (
+      className === recipeClassName ||
+      className.startsWith(`${recipeClassName}--`) ||
+      className.startsWith(`${recipeClassName}__`)
+    );
+  }
+
+  it("has at least one exact single-class rule head to check (sanity check)", () => {
+    expect(exactSingleClassRuleHeads(css).size).toBeGreaterThan(0);
+  });
+
+  it("declares, via some registered recipe, every emitted class in that recipe's own namespace", () => {
+    const declared = allDeclaredClassNames();
+    const emitted = exactSingleClassRuleHeads(css);
+    for (const { name, recipe } of componentRegistry) {
+      const undeclared = [...emitted].filter(
+        (className) => ownsClassName(recipe.className, className) && !declared.has(className),
+      );
+      expect({ [name]: undeclared }).toEqual({ [name]: [] });
+    }
+  });
+
+  it("never emits a zui-* class outside every registered recipe's own namespace", () => {
+    const unowned = [...exactSingleClassRuleHeads(css)].filter(
+      (className) =>
+        !componentRegistry.some(({ recipe }) => ownsClassName(recipe.className, className)),
+    );
+    expect(unowned).toEqual([]);
+  });
+});

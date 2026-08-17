@@ -5,9 +5,6 @@
 // dependency here, and adding it just for tests would be an extra build-pipeline dependency).
 // `React.createElement` gives the exact same excess-property/type-mismatch checking the
 // `@ts-expect-error` assertions below rely on, without that extra dependency.
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type ReactNode } from "react";
@@ -88,14 +85,9 @@ describe("Button", () => {
   });
 });
 
-describe('G6: the emitted Button module ships the "use client" directive', () => {
-  it("starts dist/button/Button.js with the client boundary directive", () => {
-    const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-    const built = readFileSync(join(packageRoot, "dist", "button", "Button.js"), "utf8");
-    expect(built.startsWith('"use client";')).toBe(true);
-  });
-});
-
+// G6 (the "use client" boundary assertion) moved to __tests__/emit-gates.test.ts, where it is
+// now one registry-driven gate covering every component instead of a hand-copied block per file.
+//
 // Routed through a plain function typed as `ButtonProps` (rather than a direct call to
 // `createElement`) so the excess-property/type checks below still apply to a fresh object
 // literal, without tripping Biome's `noChildrenProp` rule on a raw `createElement` call.

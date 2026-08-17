@@ -181,12 +181,8 @@ describe("Dialog", () => {
   });
 });
 
-describe('G6: the emitted Dialog module ships the "use client" directive', () => {
-  it("starts dist/dialog/Dialog.js with the client boundary directive", () => {
-    const built = readFileSync(join(packageRoot, "dist", "dialog", "Dialog.js"), "utf8");
-    expect(built.startsWith('"use client";')).toBe(true);
-  });
-});
+// G6 (the "use client" boundary assertion) moved to __tests__/emit-gates.test.ts, where it is
+// now one registry-driven gate covering every component instead of a hand-copied block per file.
 
 // Raw contents between the matching braces of the block that opens at `openBraceIndex`.
 function blockAt(source: string, openBraceIndex: number): string {
