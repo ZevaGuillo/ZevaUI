@@ -57,15 +57,14 @@ describe("the package build never runs panda codegen", () => {
 // this package's single declaration of what ships (see its header comment), so this gate loops it
 // instead: a future entry is covered the moment it is registered, with no test file to remember.
 //
-// The registry's own `modulePath` + `clientOnly` fields are what `scripts/build-manifest.js`
-// already reads to fill in the manifest's `clientOnly` field (`isClientOnly`, reading the FIRST
-// BYTES of the built module rather than trusting a hand-maintained flag anywhere else) — this test
-// reuses exactly that mechanism for the ACTUAL side of the assertion, rather than inventing a
-// second way to detect a `"use client"` directive. `clientOnly` on the registry entry is the
-// EXPECTED side: a build-artifact read alone cannot gate anything, since comparing a file's
-// content against itself is trivially true and tests nothing. Declaring the expectation once, on
-// the entry a component owns, is the field `ComponentRegistryEntry` was missing — see its comment
-// in src/registry.ts for why it belongs there and not on the recipe or the .tsx source.
+// The ACTUAL side of the assertion below reuses the exact mechanism `scripts/build-manifest.js`'s
+// own `isClientOnly` already uses for the manifest's `clientOnly` field: read the built module's
+// FIRST BYTES and check for the directive, rather than inventing a second way to detect it. The
+// EXPECTED side is the registry entry's own `clientOnly` field — a build-artifact read alone
+// cannot gate anything, since comparing a file's content against itself is trivially true and
+// tests nothing. Declaring the expectation once, on the entry a component owns, is the field
+// `ComponentRegistryEntry` was missing — see its comment in src/registry.ts for why it belongs
+// there and not on the recipe or the .tsx source.
 //
 // This is also the first time this gate exercises BOTH directions in one registry loop: until
 // Card and Alert existed every registered entry was client, so the "does NOT ship the directive"

@@ -51,6 +51,18 @@ export type ComponentRegistryEntry = {
   readonly recipe: ComponentRecipe;
   /** Built component module, relative to `dist` (e.g. "button/Button.js"). */
   readonly modulePath: string;
+  /**
+   * Whether the built module MUST start with the `"use client"` directive.
+   *
+   * Declared here — never derived — because there is nothing else to derive it FROM without
+   * making the check that reads it circular: G6 in `__tests__/emit-gates.test.ts` needs to
+   * compare the built artifact's actual first bytes against an EXPECTATION, and reading those
+   * same bytes for both sides of that comparison would make the gate trivially true. This field
+   * is that expectation. `scripts/build-manifest.js`'s own `isClientOnly` keeps reading the built
+   * module directly for the manifest's `clientOnly` field, on purpose — the manifest reports what
+   * the artifact actually shipped, not what this field predicted it would.
+   */
+  readonly clientOnly: boolean;
 };
 
 // `as const satisfies` (not a type annotation) keeps each entry's literal recipe type intact,
@@ -61,6 +73,7 @@ export const componentRegistry = [
     recipeKey: BUTTON_RECIPE_KEY,
     recipe: buttonRecipe,
     modulePath: "button/Button.js",
+    clientOnly: true,
   },
   // The first multi-part entry, and therefore the first real exercise of the slot branch that
   // `isSlotRecipe` partitions: it lands in `theme.slotRecipes` and reports its slots in the
@@ -70,27 +83,32 @@ export const componentRegistry = [
     recipeKey: INPUT_RECIPE_KEY,
     recipe: inputRecipe,
     modulePath: "input/Input.js",
+    clientOnly: true,
   },
   {
     name: "Dialog",
     recipeKey: DIALOG_RECIPE_KEY,
     recipe: dialogRecipe,
     modulePath: "dialog/Dialog.js",
+    clientOnly: true,
   },
   {
     name: "Menu",
     recipeKey: MENU_RECIPE_KEY,
     recipe: menuRecipe,
     modulePath: "menu/Menu.js",
+    clientOnly: true,
   },
-  // The first server-renderable entry: `Card.tsx` carries no "use client" directive, which the
-  // manifest's `clientOnly` field reports by reading the built module (see build-manifest.js),
-  // never by a flag declared here.
+  // The first server-renderable entry: `Card.tsx` carries no "use client" directive because it
+  // needs no react-aria-components and no hooks (see Card.tsx). `clientOnly: false` here is what
+  // G6 in __tests__/emit-gates.test.ts checks the built module against; the manifest's own
+  // `clientOnly` field keeps reading the built module directly (see build-manifest.js).
   {
     name: "Card",
     recipeKey: CARD_RECIPE_KEY,
     recipe: cardRecipe,
     modulePath: "card/Card.js",
+    clientOnly: false,
   },
   // The second server-renderable entry, and the first single-part (flat) recipe registered after
   // Button: Alert carries no "use client" directive either, for the same reason Card does not —
@@ -100,5 +118,6 @@ export const componentRegistry = [
     recipeKey: ALERT_RECIPE_KEY,
     recipe: alertRecipe,
     modulePath: "alert/Alert.js",
+    clientOnly: false,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
