@@ -3,8 +3,8 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { buttonRecipe } from "../src/button/button.recipe.js";
 import { variantClassName } from "../src/internal/recipe-class.js";
+import { componentRegistry } from "../src/registry.js";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const css = readFileSync(join(packageRoot, "dist", "styles.css"), "utf8");
@@ -162,15 +162,23 @@ describe("G4: every var(--zui-*) reference resolves against @zevaui/tokens", () 
 });
 
 describe("G5: every declared recipe variant renders a matching rule", () => {
-  it("emits the base .zui-button rule", () => {
-    expect(css).toMatch(new RegExp(`\\.${buttonRecipe.className}\\s*\\{`));
+  it("has at least one registered component to gate (sanity check)", () => {
+    expect(componentRegistry.length).toBeGreaterThan(0);
   });
 
-  it("emits a rule for every declared variant value, driven off the recipe itself", () => {
-    for (const [axis, values] of Object.entries(buttonRecipe.variants)) {
-      for (const value of Object.keys(values)) {
-        const selector = variantClassName(buttonRecipe.className, axis, value);
-        expect(css).toMatch(new RegExp(`\\.${selector}\\s*\\{`));
+  it("emits the base rule of every registered recipe", () => {
+    for (const { recipe } of componentRegistry) {
+      expect(css).toMatch(new RegExp(`\\.${recipe.className}\\s*\\{`));
+    }
+  });
+
+  it("emits a rule for every declared variant value, driven off the recipes themselves", () => {
+    for (const { recipe } of componentRegistry) {
+      for (const [axis, values] of Object.entries(recipe.variants)) {
+        for (const value of Object.keys(values)) {
+          const selector = variantClassName(recipe.className, axis, value);
+          expect(css).toMatch(new RegExp(`\\.${selector}\\s*\\{`));
+        }
       }
     }
   });
