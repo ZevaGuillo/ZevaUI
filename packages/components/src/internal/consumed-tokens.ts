@@ -16,6 +16,17 @@ function escapeForRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Matches `className` used as a whole class inside a selector, wherever in the selector it sits.
+ *
+ * Exported because the CSS and manifest gates need exactly this question answered — "is this
+ * class styled?" — and a looser `\.<class>\s*\{` misses any rule Panda collapsed into a shared
+ * comma-separated selector list, while a looser boundary would let `.zui-card` claim
+ * `.zui-card-header`'s rules. Slot class names make both traps easy to fall into.
+ */
+export const classSelectorPattern = (className: string): RegExp =>
+  new RegExp(`\\.${escapeForRegExp(className)}${CLASS_NAME_BOUNDARY}`);
+
 /** `--zuip-x: var(--zui-y)` bridge declarations, wherever the emitted CSS declares them. */
 function bridgeDeclarations(css: string): Map<string, string> {
   const bridge = new Map<string, string>();
@@ -46,9 +57,7 @@ function blockAt(css: string, openBraceIndex: number): string {
  */
 export function consumedTokens(css: string, classNames: readonly string[]): string[] {
   const bridge = bridgeDeclarations(css);
-  const selectorMatchers = classNames.map(
-    (className) => new RegExp(`\\.${escapeForRegExp(className)}${CLASS_NAME_BOUNDARY}`),
-  );
+  const selectorMatchers = classNames.map(classSelectorPattern);
 
   const tokens = new Set<string>();
   for (const match of css.matchAll(/([^{}]*)\{/g)) {

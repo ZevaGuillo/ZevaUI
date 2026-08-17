@@ -1,18 +1,30 @@
-import { defineConfig, type RecipeConfig } from "@pandacss/dev";
-import { componentRegistry } from "./src/registry";
+import { defineConfig, type RecipeConfig, type SlotRecipeConfig } from "@pandacss/dev";
+import { type ComponentRecipe, componentRegistry, isSlotRecipe } from "./src/registry";
 
 // Derived, never a literal list (ADR-0004 D4): a value added to a recipe is emitted on the
-// next build, and gate G5 (see __tests__/css-gates.test.ts) fails if this drifts.
-const allVariantValues = (recipe: RecipeConfig): Record<string, string[]> =>
+// next build, and gate G5 (see __tests__/css-gates.test.ts) fails if this drifts. Both recipe
+// shapes key their variants the same way (axis -> value -> styles), so one reader covers both;
+// only the per-value payload differs, and staticCss never looks at it.
+const allVariantValues = (recipe: ComponentRecipe): Record<string, string[]> =>
   Object.fromEntries(
     Object.entries(recipe.variants ?? {}).map(([axis, values]) => [axis, Object.keys(values)]),
   );
 
-// Both maps come from src/registry.ts, so registering a component is one entry, not three edits.
-const recipes = Object.fromEntries(
-  componentRegistry.map((entry): [string, RecipeConfig] => [entry.recipeKey, entry.recipe]),
-);
+// Panda keeps multi-part components in `theme.slotRecipes`, a map separate from `theme.recipes`;
+// a slot recipe registered under `theme.recipes` emits nothing usable. The registry is therefore
+// partitioned by the recipe's own shape, so registering a component is still one entry, not three
+// edits, and a stream never has to remember which map its component belongs in.
+const recipes: Record<string, RecipeConfig> = {};
+const slotRecipes: Record<string, SlotRecipeConfig> = {};
 
+for (const entry of componentRegistry) {
+  if (isSlotRecipe(entry.recipe)) slotRecipes[entry.recipeKey] = entry.recipe;
+  else recipes[entry.recipeKey] = entry.recipe;
+}
+
+// `staticCss.recipes` covers BOTH maps — verified against real Panda 1.12.0 output, where a slot
+// recipe listed here emits its per-slot rules, and where no `staticCss.slotRecipes` key exists to
+// use instead. So slot recipes are forced through the same single key as single-part ones.
 const staticCssRecipes = Object.fromEntries(
   componentRegistry.map((entry): [string, Array<Record<string, string[]>>] => [
     entry.recipeKey,
@@ -94,6 +106,7 @@ export default defineConfig({
       },
     },
     recipes,
+    slotRecipes,
   },
   staticCss: { recipes: staticCssRecipes },
 });

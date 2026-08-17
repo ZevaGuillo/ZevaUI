@@ -9,9 +9,14 @@ const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const distDir = join(packageRoot, "dist");
 
 // src/registry.ts is the single declaration of what ships; this script never names a component.
-const { componentRegistry } = await import(pathToFileURL(join(distDir, "registry.js")));
+const { componentRegistry, isSlotRecipe } = await import(
+  pathToFileURL(join(distDir, "registry.js"))
+);
 const { variantClassName } = await import(
   pathToFileURL(join(distDir, "internal", "recipe-class.js"))
+);
+const { emittedSlotClassNames } = await import(
+  pathToFileURL(join(distDir, "internal", "slot-recipe-class.js"))
 );
 const { consumedTokens } = await import(
   pathToFileURL(join(distDir, "internal", "consumed-tokens.js"))
@@ -21,7 +26,7 @@ const css = readFileSync(join(distDir, "styles.css"), "utf8");
 
 // Derived from the recipe via variantClassName, mirroring the same convention `recipeClassName`
 // uses at runtime — never a hand-maintained literal list.
-function extractClassNames(recipe) {
+function singlePartClassNames(recipe) {
   const classNames = new Set([recipe.className]);
   for (const [axis, values] of Object.entries(recipe.variants)) {
     for (const value of Object.keys(values)) {
@@ -31,6 +36,21 @@ function extractClassNames(recipe) {
   return [...classNames];
 }
 
+// A slot recipe's classes are per slot, and only for the slots each declaration actually styles
+// — `emittedSlotClassNames` owns that (measured) rule so the manifest lists exactly the classes
+// that have a rule in dist/styles.css, which is what the manifest gate and G5 both check.
+function extractClassNames(recipe) {
+  return isSlotRecipe(recipe) ? emittedSlotClassNames(recipe) : singlePartClassNames(recipe);
+}
+
+// Derived, never declared on the registry entry: a single-part component reports no slots
+// because its recipe has none, not because someone remembered to write an empty array.
+function extractSlots(recipe) {
+  return isSlotRecipe(recipe) ? [...recipe.slots] : [];
+}
+
+// Both recipe shapes key their variants identically (axis -> value -> styles), so the variant
+// contract is read the same way for a slot recipe as for a single-part one.
 function extractVariants(recipe) {
   return Object.entries(recipe.variants).map(([axis, values]) => ({
     axis,
@@ -54,7 +74,7 @@ const manifest = {
       className: entry.recipe.className,
       clientOnly: isClientOnly(entry.modulePath),
       import: "@zevaui/components",
-      slots: [],
+      slots: extractSlots(entry.recipe),
       variants: extractVariants(entry.recipe),
       classNames,
       // Scoped to this component's own rules: reporting what it ACTUALLY consumes rather than
