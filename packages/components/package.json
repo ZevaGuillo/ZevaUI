@@ -24,8 +24,13 @@
   },
   "devDependencies": {
     "@pandacss/dev": "^1.12.0",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@zevaui/tokens": "workspace:*",
+    "jsdom": "^26.1.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
