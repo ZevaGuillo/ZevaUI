@@ -30,6 +30,8 @@
       "space-input-py",
       "space-card-px",
       "space-card-py",
+      "space-button-px",
+      "space-button-py",
       "font-body-size"
     ],
     "shadow": ["shadow-card", "shadow-dropdown", "shadow-modal"],

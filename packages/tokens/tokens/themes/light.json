@@ -65,6 +65,10 @@
     "card": {
       "px": { "$value": "{space.6}", "$type": "dimension" },
       "py": { "$value": "{space.4}", "$type": "dimension" }
+    },
+    "button": {
+      "px": { "$value": "{space.3}", "$type": "dimension" },
+      "py": { "$value": "{space.2}", "$type": "dimension" }
     }
   },
   "radius": {
