@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["vitest/globals"],
+    "paths": {}
+  },
+  "include": [
+    "stories",
+    ".storybook",
+    "scripts",
+    "vitest.config.ts",
+    "vitest.shared.ts",
+    "vitest.a11y-gate.config.ts"
+  ]
+}
