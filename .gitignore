@@ -5,6 +5,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Panda CSS (ejected, generated — never committed, never imported by src)
+styled-system/
+
 # Turbo
 .turbo/
 
