@@ -3,9 +3,10 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { consumedTokens } from "../src/internal/consumed-tokens.js";
+import { classSelectorPattern, consumedTokens } from "../src/internal/consumed-tokens.js";
 import { variantClassName } from "../src/internal/recipe-class.js";
-import { componentRegistry } from "../src/registry.js";
+import { emittedSlotClassNames } from "../src/internal/slot-recipe-class.js";
+import { componentRegistry, isSlotRecipe } from "../src/registry.js";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const distDir = join(packageRoot, "dist");
@@ -32,6 +33,7 @@ type ManifestEntry = {
 
 type RecipeShape = {
   readonly className: string;
+  readonly slots?: readonly string[];
   readonly variants: Record<string, Record<string, unknown>>;
   readonly defaultVariants?: Record<string, string>;
 };
@@ -52,7 +54,10 @@ function expectedVariants(recipe: RecipeShape) {
 }
 
 // The class names a recipe can render, derived through the same convention the runtime uses.
+// A slot recipe's classes are per-slot, and only for the slots each declaration actually styles
+// — see `emittedSlotClassNames`, which is measured against real Panda 1.12.0 output.
 function expectedClassNames(recipe: RecipeShape): string[] {
+  if (isSlotRecipe(recipe)) return emittedSlotClassNames(recipe);
   return [
     recipe.className,
     ...Object.entries(recipe.variants).flatMap(([axis, values]) =>
@@ -60,6 +65,10 @@ function expectedClassNames(recipe: RecipeShape): string[] {
     ),
   ];
 }
+
+// Derived from the recipe, never hand-written into the registry (ADR-0004 D4).
+const expectedSlots = (recipe: RecipeShape): readonly string[] =>
+  isSlotRecipe(recipe) ? recipe.slots : [];
 
 describe("G8: the components manifest mirrors every registered recipe's variant contract", () => {
   it("deep-equals variants derived from the registered recipes, never a literal copy", () => {
@@ -77,12 +86,18 @@ describe("components.manifest.json shape", () => {
     );
   });
 
-  it("names every entry after its registry entry, with the recipe className and no slots", () => {
+  it("names every entry after its registry entry, with the className and derived slots", () => {
     for (const entry of componentRegistry) {
       const manifestEntry = manifestEntryFor(entry.name);
       expect(manifestEntry.name).toBe(entry.name);
       expect(manifestEntry.className).toBe(entry.recipe.className);
-      expect(manifestEntry.slots).toEqual([]);
+      expect(manifestEntry.slots).toEqual(expectedSlots(entry.recipe));
+    }
+  });
+
+  it("derives every entry's classNames from its recipe, never a hand-written list", () => {
+    for (const entry of componentRegistry) {
+      expect(manifestEntryFor(entry.name).classNames).toEqual(expectedClassNames(entry.recipe));
     }
   });
 
@@ -96,12 +111,20 @@ describe("components.manifest.json shape", () => {
     }
   });
 
+  // Panda merges rules with identical declaration blocks into one comma-separated selector list,
+  // so the class need only appear somewhere in a rule's selector — see the matching gate in
+  // __tests__/css-gates.test.ts for why demanding it sit right before the brace is wrong.
+  const isStyled = (className: string): boolean => {
+    const pattern = classSelectorPattern(className);
+    return [...css.matchAll(/([^{}]*)\{/g)].some((match) => pattern.test(match[1]));
+  };
+
   it("lists only classNames that appear as a selector in the emitted dist/styles.css", () => {
     for (const entry of componentRegistry) {
       const manifestEntry = manifestEntryFor(entry.name);
       expect(manifestEntry.classNames.length).toBeGreaterThan(0);
       for (const className of manifestEntry.classNames) {
-        expect(css).toMatch(new RegExp(`\\.${className}\\s*\\{`));
+        expect({ [className]: isStyled(className) }).toEqual({ [className]: true });
       }
     }
   });
@@ -154,5 +177,55 @@ describe("G9: each manifest entry claims only the tokens its own rules consume",
       "--zui-color-accent-default",
       "--zui-shadow-modal",
     ]);
+  });
+
+  // Slot recipes ship a different CSS shape: a nested `@layer recipes.slots { @layer _base }`,
+  // and class names carrying a `__slot` suffix. Both must keep per-component scoping exact.
+  const slotComponentCss = `@layer tokens{
+  :where(:root, :host) {
+    --zuip-colors-accent-default: var(--zui-color-accent-default);
+    --zuip-colors-border-default: var(--zui-color-border-default);
+    --zuip-shadows-modal: var(--zui-shadow-modal);
+}
+}
+
+@layer recipes.slots{
+  @layer _base{
+
+    .zui-x__root {
+      box-shadow: var(--zuip-shadows-modal);
+}
+
+    .zui-x__label {
+      border-color: var(--zuip-colors-border-default);
+}
+
+    .zui-x__labelExtra {
+      box-shadow: var(--zuip-shadows-modal);
+}
+}
+
+  .zui-x__root--visual_solid {
+    background-color: var(--zuip-colors-accent-default);
+}
+}
+`;
+
+  it("reads slot rules through the nested recipes.slots / _base layers", () => {
+    expect(consumedTokens(slotComponentCss, ["zui-x__root", "zui-x__root--visual_solid"])).toEqual([
+      "--zui-color-accent-default",
+      "--zui-shadow-modal",
+    ]);
+  });
+
+  it("never lets a slot class swallow a longer slot name sharing its prefix", () => {
+    expect(consumedTokens(slotComponentCss, ["zui-x__label"])).toEqual([
+      "--zui-color-border-default",
+    ]);
+  });
+
+  // A slot recipe's own top-level className emits no rule; it must not scoop up every slot.
+  it("never lets the bare recipe className match its own __slot rules", () => {
+    expect(consumedTokens(slotComponentCss, ["zui-x"])).toEqual([]);
   });
 });
