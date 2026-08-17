@@ -73,23 +73,31 @@ export default defineConfig({
         },
         text: {
           default: ref("color-text-default"),
+          secondary: ref("color-text-secondary"),
           inverse: ref("color-text-inverse"),
+          danger: ref("color-text-danger"),
         },
         bg: {
           surface: ref("color-bg-surface"),
         },
         border: {
           default: ref("color-border-default"),
+          strong: ref("color-border-strong"),
         },
         focusRing: ref("color-focus-ring"),
       },
       radii: {
         button: ref("radius-button"),
+        input: ref("radius-input"),
       },
       spacing: {
         button: {
           px: ref("space-button-px"),
           py: ref("space-button-py"),
+        },
+        input: {
+          px: ref("space-input-px"),
+          py: ref("space-input-py"),
         },
       },
       fonts: {

@@ -1,5 +1,6 @@
 import type { RecipeConfig, SlotRecipeConfig } from "@pandacss/dev";
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
+import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 
 /**
  * One declaration per component, consumed by everything that used to hardcode "Button":
@@ -56,5 +57,14 @@ export const componentRegistry = [
     recipeKey: BUTTON_RECIPE_KEY,
     recipe: buttonRecipe,
     modulePath: "button/Button.js",
+  },
+  // The first multi-part entry, and therefore the first real exercise of the slot branch that
+  // `isSlotRecipe` partitions: it lands in `theme.slotRecipes` and reports its slots in the
+  // manifest, both derived from the recipe rather than declared here.
+  {
+    name: "Input",
+    recipeKey: INPUT_RECIPE_KEY,
+    recipe: inputRecipe,
+    modulePath: "input/Input.js",
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
