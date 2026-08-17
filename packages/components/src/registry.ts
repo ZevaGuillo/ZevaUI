@@ -1,5 +1,6 @@
 import type { RecipeConfig, SlotRecipeConfig } from "@pandacss/dev";
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
+import { CARD_RECIPE_KEY, cardRecipe } from "./card/card.recipe.js";
 import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
@@ -80,5 +81,14 @@ export const componentRegistry = [
     recipeKey: MENU_RECIPE_KEY,
     recipe: menuRecipe,
     modulePath: "menu/Menu.js",
+  },
+  // The first server-renderable entry: `Card.tsx` carries no "use client" directive, which the
+  // manifest's `clientOnly` field reports by reading the built module (see build-manifest.js),
+  // never by a flag declared here.
+  {
+    name: "Card",
+    recipeKey: CARD_RECIPE_KEY,
+    recipe: cardRecipe,
+    modulePath: "card/Card.js",
   },
 ] as const satisfies readonly ComponentRegistryEntry[];

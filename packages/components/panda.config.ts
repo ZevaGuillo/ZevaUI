@@ -102,13 +102,14 @@ export default defineConfig({
         card: ref("radius-card"),
         input: ref("radius-input"),
       },
-      // New category, not new tokens: `shadow-modal` and `shadow-dropdown` already exist upstream
-      // as semantic tokens in @zevaui/tokens; these are only the Panda-side pointers that let
-      // `boxShadow: "modal"` / `boxShadow: "dropdown"` resolve. Same pure-pointer rule as every
-      // other entry (G1).
+      // New category, not new tokens: `shadow-modal`, `shadow-dropdown` and `shadow-card` already
+      // exist upstream as semantic tokens in @zevaui/tokens; these are only the Panda-side
+      // pointers that let `boxShadow: "modal"` / `"dropdown"` / `"card"` resolve. Same
+      // pure-pointer rule as every other entry (G1).
       shadows: {
         modal: ref("shadow-modal"),
         dropdown: ref("shadow-dropdown"),
+        card: ref("shadow-card"),
       },
       spacing: {
         button: {

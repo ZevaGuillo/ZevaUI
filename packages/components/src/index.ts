@@ -1,5 +1,7 @@
 export { Button } from "./button/Button.js";
 export type { ButtonProps, ButtonSize, ButtonVisual } from "./button/button.types.js";
+export { Card } from "./card/Card.js";
+export type { CardPartProps, CardProps, CardSurface } from "./card/card.types.js";
 export { Dialog } from "./dialog/Dialog.js";
 export type { DialogPlacement, DialogProps, DialogSize } from "./dialog/dialog.types.js";
 export { Input } from "./input/Input.js";

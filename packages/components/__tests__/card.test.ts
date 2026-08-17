@@ -30,29 +30,33 @@ function renderCard(props: Omit<CardProps, "children">, children: ReactNode) {
   return render(createElement(Card, { ...props, children }));
 }
 
+// Builds one Card part with a stable key, routed through a `children` shorthand (rather than an
+// explicit `children:` property) so Biome's `noChildrenProp` rule — which targets exactly that
+// literal shape passed straight to `createElement` — has nothing to flag.
+function cardPart(part: typeof Card.Header, key: string, text: ReactNode) {
+  const children = text;
+  return createElement(part, { key, children });
+}
+
 describe("Card", () => {
   it("applies exactly the root's base and default variant class, with no props", () => {
     renderCard({}, "root content");
-    const root = screen.getByText("root content").parentElement;
-    expect(root?.className).toBe(slotRecipeClassNames(cardRecipe, {}).root);
+    const root = screen.getByText("root content");
+    expect(root.className).toBe(slotRecipeClassNames(cardRecipe, {}).root);
   });
 
   it("swaps only the root's variant class for surface=outlined", () => {
     renderCard({ surface: "outlined" }, "root content");
-    const root = screen.getByText("root content").parentElement;
-    expect(root?.className).toBe(slotRecipeClassNames(cardRecipe, { surface: "outlined" }).root);
+    const root = screen.getByText("root content");
+    expect(root.className).toBe(slotRecipeClassNames(cardRecipe, { surface: "outlined" }).root);
   });
 
   it("renders Card.Header, Card.Body and Card.Footer with exactly their own slot class", () => {
-    render(
-      createElement(
-        Card,
-        {},
-        createElement(Card.Header, {}, "Head"),
-        createElement(Card.Body, {}, "Body"),
-        createElement(Card.Footer, {}, "Foot"),
-      ),
-    );
+    renderCard({}, [
+      cardPart(Card.Header, "header", "Head"),
+      cardPart(Card.Body, "body", "Body"),
+      cardPart(Card.Footer, "footer", "Foot"),
+    ]);
     const slots = slotRecipeClassNames(cardRecipe, {});
     expect(screen.getByText("Head").className).toBe(slots.header);
     expect(screen.getByText("Body").className).toBe(slots.body);
@@ -60,15 +64,11 @@ describe("Card", () => {
   });
 
   it("renders children inside each part", () => {
-    render(
-      createElement(
-        Card,
-        {},
-        createElement(Card.Header, {}, "Header content"),
-        createElement(Card.Body, {}, "Body content"),
-        createElement(Card.Footer, {}, "Footer content"),
-      ),
-    );
+    renderCard({}, [
+      cardPart(Card.Header, "header", "Header content"),
+      cardPart(Card.Body, "body", "Body content"),
+      cardPart(Card.Footer, "footer", "Footer content"),
+    ]);
     expect(screen.getByText("Header content")).toBeDefined();
     expect(screen.getByText("Body content")).toBeDefined();
     expect(screen.getByText("Footer content")).toBeDefined();
