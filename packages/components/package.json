@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     "./styles.css": "./dist/styles.css",
+    "./components.manifest.json": "./dist/components.manifest.json",
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
@@ -35,7 +36,7 @@
     "react-dom": "^19.2.8"
   },
   "scripts": {
-    "build": "tsc && panda cssgen --outfile dist/styles.css",
+    "build": "tsc && panda cssgen --outfile dist/styles.css && node scripts/build-manifest.js",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tools.json",

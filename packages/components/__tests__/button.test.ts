@@ -10,38 +10,45 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Button } from "../src/button/Button.js";
 import { buttonRecipe } from "../src/button/button.recipe.js";
+import type { ButtonProps } from "../src/button/button.types.js";
 import { recipeClassName } from "../src/internal/recipe-class.js";
 
 afterEach(() => {
   cleanup();
 });
 
+// `ButtonProps.children` is required, so it must live on the props object itself for
+// `createElement`'s overload resolution (and the excess-property checks below) to see it.
+function renderButton(props: Omit<ButtonProps, "children">, children: ReactNode) {
+  return render(createElement(Button, { ...props, children }));
+}
+
 describe("Button", () => {
   it('renders a native <button> with type="button" by default', () => {
-    render(createElement(Button, {}, "Click me"));
+    renderButton({}, "Click me");
     const button = screen.getByRole("button", { name: "Click me" });
     expect(button.tagName).toBe("BUTTON");
     expect(button.getAttribute("type")).toBe("button");
   });
 
   it("applies exactly the base and default variant classes with no props", () => {
-    render(createElement(Button, {}, "Default"));
+    renderButton({}, "Default");
     const button = screen.getByRole("button", { name: "Default" });
     expect(button.className).toBe(recipeClassName(buttonRecipe, {}));
   });
 
   it("applies exactly the visual=danger size=lg variant classes and no others", () => {
-    render(createElement(Button, { visual: "danger", size: "lg" }, "Danger"));
+    renderButton({ visual: "danger", size: "lg" }, "Danger");
     const button = screen.getByRole("button", { name: "Danger" });
     expect(button.className).toBe(recipeClassName(buttonRecipe, { visual: "danger", size: "lg" }));
   });
 
   it("marks a disabled button with the disabled attribute and RAC's data-disabled", () => {
-    render(createElement(Button, { isDisabled: true }, "Disabled"));
+    renderButton({ isDisabled: true }, "Disabled");
     const button = screen.getByRole("button", { name: "Disabled" });
     expect(button.hasAttribute("disabled")).toBe(true);
     expect(button.getAttribute("data-disabled")).toBe("true");
@@ -49,7 +56,7 @@ describe("Button", () => {
 
   it("suppresses onPress while disabled", () => {
     const onPress = vi.fn();
-    render(createElement(Button, { isDisabled: true, onPress }, "Disabled"));
+    renderButton({ isDisabled: true, onPress }, "Disabled");
     const button = screen.getByRole("button", { name: "Disabled" });
     fireEvent.click(button);
     expect(onPress).not.toHaveBeenCalled();
@@ -58,7 +65,7 @@ describe("Button", () => {
   it("fires onPress exactly once for Enter", async () => {
     const onPress = vi.fn();
     const user = userEvent.setup();
-    render(createElement(Button, { onPress }, "Press"));
+    renderButton({ onPress }, "Press");
     const button = screen.getByRole("button", { name: "Press" });
     button.focus();
     await user.keyboard("{Enter}");
@@ -68,7 +75,7 @@ describe("Button", () => {
   it("fires onPress exactly once for Space", async () => {
     const onPress = vi.fn();
     const user = userEvent.setup();
-    render(createElement(Button, { onPress }, "Press"));
+    renderButton({ onPress }, "Press");
     const button = screen.getByRole("button", { name: "Press" });
     button.focus();
     await user.keyboard(" ");
@@ -76,7 +83,7 @@ describe("Button", () => {
   });
 
   it("renders children inside the button", () => {
-    render(createElement(Button, {}, "Child text"));
+    renderButton({}, "Child text");
     expect(screen.getByRole("button").textContent).toBe("Child text");
   });
 });
@@ -89,13 +96,20 @@ describe('G6: the emitted Button module ships the "use client" directive', () =>
   });
 });
 
+// Routed through a plain function typed as `ButtonProps` (rather than a direct call to
+// `createElement`) so the excess-property/type checks below still apply to a fresh object
+// literal, without tripping Biome's `noChildrenProp` rule on a raw `createElement` call.
+function buttonElement(props: ButtonProps) {
+  return createElement(Button, props);
+}
+
 describe("Button public API surface (type-level)", () => {
   it("rejects className, style and unknown variant values at compile time", () => {
     // @ts-expect-error className is not part of the public API
-    createElement(Button, { className: "x", children: "x" });
+    buttonElement({ className: "x", children: "x" });
     // @ts-expect-error style is not part of the public API
-    createElement(Button, { style: {}, children: "x" });
+    buttonElement({ style: {}, children: "x" });
     // @ts-expect-error unknown variant value
-    createElement(Button, { visual: "nope", children: "x" });
+    buttonElement({ visual: "nope", children: "x" });
   });
 });

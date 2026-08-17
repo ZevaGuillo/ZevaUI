@@ -1,2 +1,2 @@
-// Placeholder barrel — real exports land in stage 2+.
-export {};
+export { Button } from "./button/Button.js";
+export type { ButtonProps, ButtonSize, ButtonVisual } from "./button/button.types.js";
