@@ -74,11 +74,19 @@ export default defineConfig({
         text: {
           default: ref("color-text-default"),
           secondary: ref("color-text-secondary"),
+          // Menu dims a disabled row with this. @zevaui/constraints validates it against
+          // color-bg-surface at 4.5:1, which is why a disabled row keeps that background.
+          muted: ref("color-text-muted"),
           inverse: ref("color-text-inverse"),
           danger: ref("color-text-danger"),
         },
         bg: {
           surface: ref("color-bg-surface"),
+          // Menu's row hover/focus tint and its pressed tint. Both are existing semantic tokens;
+          // these are only the Panda-side pointers that let `backgroundColor: "bg.subtle"`
+          // resolve.
+          subtle: ref("color-bg-subtle"),
+          muted: ref("color-bg-muted"),
           // Dialog mixes its scrim out of this one with `color-mix`, so the backdrop can be
           // translucent without an `opacity` that would fade the modal inside it.
           inverse: ref("color-bg-inverse"),
@@ -94,11 +102,13 @@ export default defineConfig({
         card: ref("radius-card"),
         input: ref("radius-input"),
       },
-      // New category, not a new token: `shadow-modal` already exists upstream as a semantic token
-      // in @zevaui/tokens; this is only the Panda-side pointer that lets `boxShadow: "modal"`
-      // resolve. Same pure-pointer rule as every other entry (G1).
+      // New category, not new tokens: `shadow-modal` and `shadow-dropdown` already exist upstream
+      // as semantic tokens in @zevaui/tokens; these are only the Panda-side pointers that let
+      // `boxShadow: "modal"` / `boxShadow: "dropdown"` resolve. Same pure-pointer rule as every
+      // other entry (G1).
       shadows: {
         modal: ref("shadow-modal"),
+        dropdown: ref("shadow-dropdown"),
       },
       spacing: {
         button: {

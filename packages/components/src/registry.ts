@@ -2,6 +2,7 @@ import type { RecipeConfig, SlotRecipeConfig } from "@pandacss/dev";
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
 import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
+import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
 
 /**
  * One declaration per component, consumed by everything that used to hardcode "Button":
@@ -73,5 +74,11 @@ export const componentRegistry = [
     recipeKey: DIALOG_RECIPE_KEY,
     recipe: dialogRecipe,
     modulePath: "dialog/Dialog.js",
+  },
+  {
+    name: "Menu",
+    recipeKey: MENU_RECIPE_KEY,
+    recipe: menuRecipe,
+    modulePath: "menu/Menu.js",
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
