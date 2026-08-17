@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -12,9 +12,8 @@ const STYLED_SYSTEM_IMPORT_PATTERN = /from\s+["']styled-system/;
 
 function listFilesRecursive(dir: string, extension: string): string[] {
   if (!existsSync(dir)) return [];
-  return readdirSync(dir, { recursive: true })
-    .filter((entry): entry is string => typeof entry === "string" && entry.endsWith(extension))
-    .map((entry) => join(dir, entry));
+  const entries = readdirSync(dir, { recursive: true }) as string[];
+  return entries.filter((entry) => entry.endsWith(extension)).map((entry) => join(dir, entry));
 }
 
 describe("G7: the built package never re-exposes the ejected Panda output", () => {
@@ -34,10 +33,7 @@ describe("G7: the built package never re-exposes the ejected Panda output", () =
 
 describe("source never imports the generated Panda output", () => {
   it("no file under src imports styled-system", () => {
-    const srcFiles = [
-      ...listFilesRecursive(srcDir, ".ts"),
-      ...listFilesRecursive(srcDir, ".tsx"),
-    ];
+    const srcFiles = [...listFilesRecursive(srcDir, ".ts"), ...listFilesRecursive(srcDir, ".tsx")];
     expect(srcFiles.length).toBeGreaterThan(0);
     for (const file of srcFiles) {
       const content = readFileSync(file, "utf8");

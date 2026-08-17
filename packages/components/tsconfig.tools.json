@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "noEmit": true, "types": ["node"] },
+  "include": ["panda.config.ts", "scripts/**/*.ts", "__tests__/**/*.ts"]
+}
