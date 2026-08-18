@@ -27,6 +27,7 @@ import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 const meta = {
   title: "Menu",
   component: Menu,
+  tags: ["visual"],
   args: {
     label: "Project actions",
     items: [
@@ -88,6 +89,7 @@ export const Closed: Story = {
 // and focus returns to the trigger. `screen` (not `within(canvasElement)`) for anything inside
 // the popover, because it is portalled out of the story root.
 export const OpensNavigatesAndSelects: Story = {
+  tags: ["!visual"],
   args: { defaultOpen: false },
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);

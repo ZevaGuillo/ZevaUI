@@ -6,6 +6,7 @@ import { Alert } from "@zevaui/components";
 const meta = {
   title: "Alert",
   component: Alert,
+  tags: ["visual"],
 } satisfies Meta<typeof Alert>;
 
 export default meta;
