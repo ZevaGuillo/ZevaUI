@@ -43,7 +43,18 @@ export function createStorybookVitestConfig(tags: TagFilter) {
       // performance nicety.
       browser: {
         enabled: true,
-        provider: playwright({}),
+        // Pinned so every capture (normal test run, a11y gate, and the
+        // visual gate that reuses this same shared config) runs against a
+        // deterministic viewport/DPR/motion/theme instead of whatever the
+        // host happens to default to.
+        provider: playwright({
+          contextOptions: {
+            viewport: { width: 1280, height: 720 },
+            deviceScaleFactor: 1,
+            reducedMotion: "reduce", // ADR-0005: overlays honour prefers-reduced-motion
+            colorScheme: "light",
+          },
+        }),
         headless: true,
         instances: [{ browser: "chromium" }],
       },
