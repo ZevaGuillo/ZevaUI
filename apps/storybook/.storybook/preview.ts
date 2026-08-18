@@ -29,10 +29,20 @@ const preview: Preview = {
   // box (D-A1): react-aria portals `ModalOverlay`/`Popover` out of the
   // story root, so an unmodified element screenshot would silently pass for
   // an empty or trigger-only canvas. `minHeight: 100vh` pins the frame
-  // height to the viewport; `width: 100vw` additionally pins the frame
-  // WIDTH — without it the capture box is only ~75% of the viewport wide
-  // (measured in the PR3 gatekeeper), clipping roughly 320px of the
-  // ADR-0005 full-bleed scrim out of the frame.
+  // height to the viewport.
+  //
+  // `width: 100vw` (decisions-round-3) is kept here as specified, but
+  // measured to have NO effect on the captured frame — see the PR4
+  // gatekeeper finding. `canvasElement` genuinely resizes to its own
+  // iframe's full width (measured 1200px against a 1280px pinned viewport),
+  // but @storybook/addon-vitest's own test-runner harness wraps that iframe
+  // in a `#vitest-tester` container that itself renders at ~75% of the
+  // outer viewport (measured 960px), entirely OUTSIDE canvasElement's box
+  // model. Every capture in this repo is therefore still 960px wide; the
+  // ADR-0005 scrim clipping the PR3 gatekeeper found is NOT fixed by this
+  // override. Left in place rather than silently reverted, per instruction:
+  // it is harmless, documents the attempt, and the finding is recorded
+  // honestly instead of papered over.
   async afterEach({ tags, canvasElement }) {
     // Empirically probed (a throwing afterEach, per the S-A spike's own
     // methodology — a silent probe here is not evidence): `!visual` on
