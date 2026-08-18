@@ -21,6 +21,7 @@ import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 const meta = {
   title: "Dialog",
   component: Dialog,
+  tags: ["visual"],
   args: {
     title: "Delete project",
     description: "Every task, file and comment in this project is removed as well.",
@@ -84,6 +85,7 @@ function TriggeredDialog(props: DialogProps) {
 // there across a Tab, then Escape closes it and the trigger is reachable again. `screen` (not
 // `within(canvasElement)`) because the overlay is portalled out of the story root.
 export const OpensTrapsFocusAndClosesOnEscape: Story = {
+  tags: ["!visual"],
   args: { defaultOpen: undefined },
   render: (args) => <TriggeredDialog {...args} />,
   play: async ({ canvasElement }) => {

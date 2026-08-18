@@ -9,6 +9,7 @@ import { expect, userEvent, within } from "storybook/test";
 const meta = {
   title: "Input",
   component: Input,
+  tags: ["visual"],
   args: {
     label: "Email",
   },
@@ -76,6 +77,7 @@ export const InvalidWithDescription: Story = {
 // Tabs onto the field and asserts the `&[data-focus-visible]` outline path in input.recipe.ts is
 // reachable by keyboard, without giving up the accessible name.
 export const Focused: Story = {
+  tags: ["!visual"],
   args: { label: "Email" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -91,6 +93,7 @@ export const Focused: Story = {
 // Proves the error text is announced, not merely painted: the message must be reachable through
 // the input's own aria-describedby chain.
 export const InvalidIsAnnounced: Story = {
+  tags: ["!visual"],
   args: {
     label: "Email",
     isInvalid: true,
@@ -114,6 +117,7 @@ export const InvalidIsAnnounced: Story = {
 };
 
 export const TypingIsReported: Story = {
+  tags: ["!visual"],
   args: { label: "Email" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

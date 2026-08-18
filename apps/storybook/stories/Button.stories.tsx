@@ -9,6 +9,7 @@ import { expect, userEvent, within } from "storybook/test";
 const meta = {
   title: "Button",
   component: Button,
+  tags: ["visual"],
   args: {
     children: "Continue",
   },
@@ -62,6 +63,7 @@ export const Disabled: Story = {
 // (`&[data-focus-visible]` in button.recipe.ts) is reachable by keyboard,
 // without giving up the accessible name.
 export const Focused: Story = {
+  tags: ["!visual"],
   args: { children: "Focus me" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

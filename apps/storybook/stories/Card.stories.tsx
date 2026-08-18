@@ -10,6 +10,7 @@ import { Card } from "@zevaui/components";
 const meta = {
   title: "Card",
   component: Card,
+  tags: ["visual"],
   args: {
     children: "Card content",
   },
