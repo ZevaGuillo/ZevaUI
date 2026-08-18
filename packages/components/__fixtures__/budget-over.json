@@ -1,0 +1,17 @@
+{
+  "entries": {
+    "Card": {
+      "maxGzipBytes": 1,
+      "measuredGzipBytes": 673
+    },
+    "Alert": {
+      "maxGzipBytes": 618,
+      "measuredGzipBytes": 494
+    },
+    "CardAndButton": {
+      "imports": ["Card", "Button"],
+      "maxGzipBytes": 842,
+      "measuredGzipBytes": 673
+    }
+  }
+}
