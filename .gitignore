@@ -17,6 +17,11 @@ coverage/
 # Storybook
 storybook-static/
 
+# Debris written by failing visual runs (@vitest/browser attachments)
+.vitest-attachments/
+# The visual gate fixture seeds its own baselines at run time
+apps/storybook/stories/__gate__/**/__screenshots__/
+
 # Skill registry artifact (local only)
 .atl/
 
