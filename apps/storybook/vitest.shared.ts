@@ -24,16 +24,19 @@ type TagFilter = {
 // automatically. Adding a manual setup file only risks the two provisioning
 // paths conflicting — verified against this project's actual 10.5.8
 // install, which warns exactly that.
-type ConfigOptions = {
-  // A Vite `define` block. Used by vitest.visual-gate.config.ts so the same
-  // BrokenVisual fixture can render two different labels across separate
-  // invocations, without duplicating the story.
-  readonly define?: Record<string, string>;
-};
-
-export function createStorybookVitestConfig(tags: TagFilter, options?: ConfigOptions) {
+export function createStorybookVitestConfig(tags: TagFilter) {
   return defineConfig({
-    ...(options?.define ? { define: options.define } : {}),
+    // Every config here imports every story file under stories/**, including
+    // stories/__gate__/BrokenVisual.stories.tsx, to discover their tags —
+    // regardless of whether any of its own stories match the tag filter
+    // below. This define must therefore be unconditional and defaulted, not
+    // only present on the one config that actually exercises the fixture, or
+    // the file fails to import (and the whole run fails) everywhere else.
+    // See scripts/assert-visual-gate-fails.js for how VISUAL_GATE_LABEL
+    // varies this across separate invocations of this same config.
+    define: {
+      __VISUAL_GATE_LABEL__: JSON.stringify(process.env.VISUAL_GATE_LABEL ?? "Publish"),
+    },
     plugins: [
       storybookTest({
         configDir: path.join(dirname, ".storybook"),
