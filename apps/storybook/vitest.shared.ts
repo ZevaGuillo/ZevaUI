@@ -24,8 +24,16 @@ type TagFilter = {
 // automatically. Adding a manual setup file only risks the two provisioning
 // paths conflicting — verified against this project's actual 10.5.8
 // install, which warns exactly that.
-export function createStorybookVitestConfig(tags: TagFilter) {
+type ConfigOptions = {
+  // A Vite `define` block. Used by vitest.visual-gate.config.ts so the same
+  // BrokenVisual fixture can render two different labels across separate
+  // invocations, without duplicating the story.
+  readonly define?: Record<string, string>;
+};
+
+export function createStorybookVitestConfig(tags: TagFilter, options?: ConfigOptions) {
   return defineConfig({
+    ...(options?.define ? { define: options.define } : {}),
     plugins: [
       storybookTest({
         configDir: path.join(dirname, ".storybook"),
