@@ -18,6 +18,11 @@
       "dependsOn": ["^build", "build"],
       "inputs": ["$TURBO_DEFAULT$", "vitest.config.*"],
       "outputs": []
+    },
+    "size": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "bundle-budget.json"],
+      "outputs": []
     }
   }
 }

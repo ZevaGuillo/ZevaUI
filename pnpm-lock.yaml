@@ -98,6 +98,9 @@ importers:
       '@zevaui/tokens':
         specifier: workspace:*
         version: link:../tokens
+      esbuild:
+        specifier: ^0.25.12
+        version: 0.25.12
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0

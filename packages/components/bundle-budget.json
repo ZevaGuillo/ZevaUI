@@ -1,0 +1,42 @@
+{
+  "measurement": {
+    "bundler": "esbuild",
+    "format": "esm",
+    "minify": true,
+    "external": [
+      "react",
+      "react-dom",
+      "react/jsx-runtime"
+    ],
+    "gzip": {
+      "impl": "node:zlib",
+      "level": 9
+    }
+  },
+  "entries": {
+    "Card": {
+      "measuredGzipBytes": 673,
+      "measuredAtCommit": "98c91a6d48b5cc6001d077d1b5156cb924a5803d",
+      "maxGzipBytes": 842
+    },
+    "Alert": {
+      "measuredGzipBytes": 494,
+      "measuredAtCommit": "98c91a6d48b5cc6001d077d1b5156cb924a5803d",
+      "maxGzipBytes": 618
+    },
+    "Button": {
+      "imports": [
+        "Button"
+      ],
+      "measuredGzipBytes": 13611,
+      "measuredAtCommit": "98c91a6d48b5cc6001d077d1b5156cb924a5803d",
+      "maxGzipBytes": 14973
+    },
+    "barrel": {
+      "imports": "*",
+      "measuredGzipBytes": 56849,
+      "measuredAtCommit": "98c91a6d48b5cc6001d077d1b5156cb924a5803d",
+      "maxGzipBytes": 62534
+    }
+  }
+}
