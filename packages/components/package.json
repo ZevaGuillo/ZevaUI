@@ -42,6 +42,7 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tools.json",
     "test": "vitest run",
-    "size": "node scripts/check-bundle-budget.js"
+    "size": "node scripts/check-bundle-budget.js",
+    "size:gate": "node scripts/assert-budget-fails.js"
   }
 }
