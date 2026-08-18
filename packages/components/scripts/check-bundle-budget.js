@@ -57,9 +57,7 @@ function measureGzipBytes(entry) {
 }
 
 function record(budgetPath, budget, entries, measurements) {
-  const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: packageRoot })
-    .toString()
-    .trim();
+  const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: packageRoot }).toString().trim();
 
   for (const entry of entries) {
     const jsonEntry = budget.entries[entry.name];
