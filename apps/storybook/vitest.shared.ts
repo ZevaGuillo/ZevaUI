@@ -29,13 +29,25 @@ export function createStorybookVitestConfig(tags: TagFilter) {
     // Every config here imports every story file under stories/**, including
     // stories/__gate__/BrokenVisual.stories.tsx, to discover their tags —
     // regardless of whether any of its own stories match the tag filter
-    // below. This define must therefore be unconditional and defaulted, not
-    // only present on the one config that actually exercises the fixture, or
-    // the file fails to import (and the whole run fails) everywhere else.
-    // See scripts/assert-visual-gate-fails.js for how VISUAL_GATE_LABEL
-    // varies this across separate invocations of this same config.
+    // below. __VISUAL_GATE_LABEL__ must therefore be unconditional and
+    // defaulted, not only present on the one config that actually exercises
+    // the fixture, or the file fails to import (and the whole run fails)
+    // everywhere else. See scripts/assert-visual-gate-fails.js for how
+    // VISUAL_GATE_LABEL varies this across separate invocations of this
+    // same config.
+    //
+    // __VISUAL_CAPTURE__ gates preview.ts's screenshot afterEach on the RUN
+    // (this config's own tags.include), not on a story's own tags: `visual`
+    // and `test` are not mutually exclusive — the 6 real story files carry
+    // BOTH — so a story-level tag can never tell the hook which config is
+    // executing it. Resolved once here, at config-load time, so the normal
+    // `test` run and the a11y gate both bake in `false` and the hook is a
+    // true no-op there regardless of which tags an individual story has.
     define: {
       __VISUAL_GATE_LABEL__: JSON.stringify(process.env.VISUAL_GATE_LABEL ?? "Publish"),
+      __VISUAL_CAPTURE__: JSON.stringify(
+        tags.include.includes("visual") || tags.include.includes("visual-negative"),
+      ),
     },
     plugins: [
       storybookTest({
