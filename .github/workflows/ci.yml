@@ -55,3 +55,19 @@ jobs:
         working-directory: packages/constraints
       - run: pnpm --filter @zevaui/storybook run test:a11y-gate
       - run: pnpm --filter @zevaui/components run size:gate
+      # The two visual gates are negative fixtures: each seeds its own
+      # baseline at run time, so both are self-contained and need nothing
+      # committed to the repo. The first proves the comparison catches a
+      # change on a normally-rendered component; the second proves it on the
+      # portalled path, where an unmodified capture would pass while
+      # asserting nothing.
+      - run: pnpm --filter @zevaui/storybook run test:visual-gate
+      - run: pnpm --filter @zevaui/storybook run test:visual-overlay-gate
+      # DELIBERATELY NOT WIRED YET — `run test:visual`, the positive gate over
+      # the 38 real baselines, lands in the same commit as the generated
+      # Linux baselines themselves, not before. Adding it here today would
+      # make every run red until someone dispatches visual-baselines.yml, and
+      # this project already rejected exactly that trade once: the PR4
+      # gatekeeper called a "CI goes red until a later phase lands" window a
+      # hard blocker requiring a fix, not documentation. A gate that cries
+      # wolf between merges is a gate people learn to ignore.
