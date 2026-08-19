@@ -1,0 +1,143 @@
+name: Visual baselines
+
+# Regenerates the committed screenshot baselines on Linux and pushes them back
+# to the branch this run was dispatched against.
+#
+# `workflow_dispatch` ONLY, deliberately. This job must NEVER run
+# automatically in response to a failing visual gate: re-baselining on red
+# deletes the very gate it exists to serve. There is no `push`, no `schedule`,
+# no `workflow_run` and no `repository_dispatch` trigger here, and adding one
+# is the change to argue hardest against.
+#
+# Why the baselines are Linux-only by construction: @vitest/browser resolves
+# the reference filename with a platform suffix (`-chromium-linux` on this
+# runner, `-chromium-win32` on a Windows contributor's machine), so a locally
+# authored PNG is invisible to CI rather than conflicting with it, and CI then
+# fails on a missing reference. Inter is named in the tokens but never
+# embedded (no @font-face or woff anywhere in the repo), so another OS
+# re-rasterises every glyph — far beyond the 38px a real one-letter regression
+# costs, which is why no threshold can paper over the difference. See
+# ADR-0008.
+#
+# Authorisation is GitHub-native: dispatching requires repo write, so this
+# grants nobody authority they did not already have, and there is no stored
+# credential to manage.
+#
+# Forks: a fork PR's head branch lives in the fork, where this repo's
+# GITHUB_TOKEN cannot write and `ref` cannot address it. A maintainer lands
+# regenerated baselines as a follow-up commit instead. Self-hosting Inter is
+# the structural fix that would eventually relieve this; it is deferred.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch to regenerate baselines on and push back to.
+        required: true
+        type: string
+
+# Least privilege: the baseline commit is the only write this job performs.
+permissions:
+  contents: write
+
+concurrency:
+  group: visual-baselines-${{ inputs.ref }}
+  # Never cancel a run mid-push.
+  cancel-in-progress: false
+
+jobs:
+  baselines:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          # The push at the end reuses GITHUB_TOKEN.
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Same cache key as ci.yml, so both workflows share one Chromium
+      # download instead of paying ~300MB twice.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm turbo run build
+
+      # Actions sets CI=true on every step, and under CI=true a missing
+      # reference fails and writes nothing — so `--update` alone would not
+      # seed anything on a first run. The variable has to be cleared for this
+      # one step, and only this one.
+      - name: Generate baselines
+        run: pnpm --filter @zevaui/storybook run test:visual:update
+        env:
+          CI: ""
+
+      # Load-bearing, and it runs BEFORE the commit. A push made with
+      # GITHUB_TOKEN does not re-trigger `on: push` or `on: pull_request`, so
+      # without this step the baselines would land completely unverified and
+      # the next unrelated PR would silently inherit them. Verifying here
+      # proves the exact property CI depends on — that the references hold
+      # under CI=true — on the exact runner that produced them. If it fails,
+      # the job fails and nothing is pushed.
+      - name: Verify the generated baselines hold
+        run: pnpm --filter @zevaui/storybook run test:visual
+        env:
+          CI: "true"
+
+      - name: Commit and push if the baselines changed
+        # `ref` reaches the shell through the environment, never through
+        # ${{ }} interpolation into a command string, so a crafted branch name
+        # is data here and not script.
+        env:
+          TARGET_REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+
+          # The checkout resolved `ref` once; nothing since should have moved
+          # HEAD. Asserted rather than assumed, so this job can never build a
+          # commit on one ref and push it as another.
+          actual_ref="$(git rev-parse --abbrev-ref HEAD)"
+          if [ "$actual_ref" != "$TARGET_REF" ]; then
+            echo "::error::HEAD is on '$actual_ref' but this run was dispatched for '$TARGET_REF'."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Scoped to the baseline PNGs only — never `commit -a`, so nothing
+          # else the build happened to touch can ride along. The gate
+          # fixtures' own seeded screenshots are gitignored and stay out.
+          #
+          # The literal directory, not a `**/__screenshots__` glob: measured
+          # against a real seeded run, both the plain and the `:(glob)` form
+          # match ZERO files, because git's `**/` requires at least one
+          # intervening path component and @vitest/browser writes the
+          # directory flat beside the story files
+          # (stories/__screenshots__/<Story>.stories.tsx/*.png). If a story
+          # ever moves into a subfolder this pathspec stops matching, git add
+          # exits nonzero, and `set -e` fails the job — loudly, which is the
+          # right direction: a silently empty commit would look like
+          # "baselines already current".
+          git add -- "apps/storybook/stories/__screenshots__"
+
+          # A run that changes nothing is a valid, successful outcome: it
+          # means the committed baselines were already current.
+          if git diff --cached --quiet; then
+            echo "Baselines unchanged; nothing to commit."
+            exit 0
+          fi
+
+          git commit -m "chore(visual): update screenshot baselines"
+
+          # Explicit refspec, never --force. If the branch moved while this
+          # job ran, the push is rejected, the job fails, and the maintainer
+          # re-dispatches — a force push here would silently discard whatever
+          # landed in between.
+          git push origin "HEAD:refs/heads/$TARGET_REF"
