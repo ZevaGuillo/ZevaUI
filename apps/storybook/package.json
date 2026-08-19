@@ -27,7 +27,6 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
-    "playwright:browsers": "playwright install --with-deps chromium",
     "test": "vitest run",
     "test:a11y-gate": "node scripts/assert-gate-fails.js",
     "test:visual": "vitest run --config vitest.visual.config.ts",
