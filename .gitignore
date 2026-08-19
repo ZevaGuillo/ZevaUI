@@ -21,6 +21,13 @@ storybook-static/
 .vitest-attachments/
 # The visual gate fixture seeds its own baselines at run time
 apps/storybook/stories/__gate__/**/__screenshots__/
+# The REAL baselines under stories/__screenshots__/ are tracked, but only the
+# Linux ones CI resolves. @vitest/browser suffixes the reference filename per
+# platform, so a contributor running test:visual locally writes -chromium-win32
+# or -chromium-darwin copies alongside them. Those are local debris: CI never
+# reads them, and committing them would quietly bloat the baseline set.
+apps/storybook/stories/__screenshots__/**/*-chromium-win32.png
+apps/storybook/stories/__screenshots__/**/*-chromium-darwin.png
 
 # Skill registry artifact (local only)
 .atl/
