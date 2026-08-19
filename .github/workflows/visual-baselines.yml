@@ -66,7 +66,10 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      - run: pnpm exec playwright install --with-deps chromium
+      # `--filter`, matching ci.yml: playwright is a devDependency of
+      # apps/storybook, not of the workspace root, so a bare `pnpm exec` from the
+      # root cannot find its bin under pnpm-isolated node_modules.
+      - run: pnpm --filter @zevaui/storybook exec playwright install --with-deps chromium
       - run: pnpm turbo run build
 
       # Actions sets CI=true on every step, and under CI=true a missing
