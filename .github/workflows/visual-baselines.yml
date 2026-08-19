@@ -70,11 +70,26 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      # One command, one home: apps/storybook is the package that declares
-      # playwright, so the browser install is its script and both this workflow
-      # and ci.yml call it. `--filter` is still required — under pnpm's
-      # isolated node_modules the workspace root has no `playwright` bin.
-      - run: pnpm --filter @zevaui/storybook run playwright:browsers
+      # `--filter`, matching ci.yml: playwright is a devDependency of
+      # apps/storybook, not of the workspace root, so a bare `pnpm exec` from the
+      # root cannot find its bin under pnpm-isolated node_modules.
+      #
+      # SonarCloud flags this line under githubactions:S6505, "Omitting
+      # --ignore-scripts allows lifecycle scripts to run during package
+      # installation". It is a false positive: `playwright install` downloads
+      # browser binaries, and the real `pnpm install` ten lines up already
+      # carries --ignore-scripts. It is handled by marking the issue
+      # false-positive in SonarCloud, not by working around it here.
+      #
+      # Measured, so nobody pays for it twice: moving this command into an
+      # apps/storybook package script and calling it with `pnpm run` DOES
+      # clear the rule — and it also hung this step inside `apt-get update`
+      # for 37 and 17 minutes across two consecutive runs, against a 3m27s
+      # baseline for the line as written. Reverted. The mechanism was never
+      # established; the logs pointed at an unreachable Ubuntu mirror, which
+      # does not explain why only the `pnpm run` form ever hung. If you try it
+      # again, watch the runner, not just the scanner.
+      - run: pnpm --filter @zevaui/storybook exec playwright install --with-deps chromium
       - run: pnpm turbo run build
 
       # Actions sets CI=true on every step, and under CI=true a missing
