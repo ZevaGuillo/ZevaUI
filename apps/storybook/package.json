@@ -28,6 +28,10 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:a11y-gate": "node scripts/assert-gate-fails.js"
+    "test:a11y-gate": "node scripts/assert-gate-fails.js",
+    "test:visual": "vitest run --config vitest.visual.config.ts",
+    "test:visual:update": "vitest run --config vitest.visual.config.ts --update",
+    "test:visual-gate": "node scripts/assert-visual-gate-fails.js",
+    "test:visual-overlay-gate": "node scripts/assert-visual-overlay-fails.js"
   }
 }
