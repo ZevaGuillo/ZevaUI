@@ -42,14 +42,18 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      # --with-deps installs OS packages, which the cache cannot carry, so it runs
-      # every time; the browser download itself is what the cache skips.
-      # `--filter`, not a bare `pnpm exec`: playwright is a devDependency of
-      # apps/storybook, not of the workspace root, so under pnpm's isolated
-      # node_modules the root has no `playwright` bin to run. Every CI run since
-      # this step landed died here with ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL,
-      # which means the suite below it has never actually executed in CI.
-      - run: pnpm --filter @zevaui/storybook exec playwright install --with-deps chromium
+      # The command lives in apps/storybook's package.json, the package that
+      # actually declares playwright — same shape as the test:a11y-gate call
+      # below, and one home for a line both workflows need.
+      #
+      # `--filter` is still required: under pnpm's isolated node_modules the
+      # workspace root has no `playwright` bin at all. Every CI run before that
+      # was fixed died here with ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL, which
+      # means the suite below it never executed.
+      #
+      # The OS packages --with-deps pulls cannot be cached, so that part runs
+      # every time; the browser download is what the cache above skips.
+      - run: pnpm --filter @zevaui/storybook run playwright:browsers
       - run: pnpm turbo run lint typecheck test size
       - run: node -e "import('@zevaui/constraints').then(m => { if (typeof m.validateTheme !== 'function') process.exit(1) })"
         working-directory: packages/constraints
