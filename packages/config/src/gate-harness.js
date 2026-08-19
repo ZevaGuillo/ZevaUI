@@ -22,7 +22,7 @@
 // specificity is what makes a red gate actionable at 3am. Only the mechanics
 // are common.
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -108,4 +108,125 @@ export function reportCrash(label, result, step) {
 export function readPngSize(pngPath) {
   const buffer = readFileSync(pngPath);
   return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+}
+
+/**
+ * The four-step choreography every screenshot gate runs. Both visual gates
+ * plant the same kind of defect — render one value, then re-render a
+ * different one and require the comparison to notice — so the sequence is
+ * identical and only the fixture and the meaning of a failure differ:
+ *
+ *   1. SEED       `--update` with CI cleared. Actions sets CI=true on every
+ *                 step and a missing reference fails-and-writes-nothing under
+ *                 CI, so seeding must be unambiguously outside that mode.
+ *   2. STRUCTURAL The written PNG must exist and be the full expected frame.
+ *                 A collapsed or narrowed capture box is caught dimensionally
+ *                 here, before step 3 has to infer it from behaviour.
+ *   3. MISMATCH   Re-run under CI with a different value. This MUST fail; a
+ *                 pass means the comparison never ran or matched falsely.
+ *                 This is the step each gate exists for, so its message is
+ *                 the caller's.
+ *   4. MISSING    Delete the references and re-run under CI. Must fail, and
+ *                 must not quietly write a new baseline back.
+ *
+ * `messages.notCaught` and `messages.passed` are the caller's: they name the
+ * specific fixture and what its failure would mean. The rest are mechanical
+ * and stay here.
+ */
+export function runScreenshotGate({
+  label,
+  packageRoot,
+  vitestBin,
+  configPath,
+  screenshotsDir,
+  envVar,
+  seedValue,
+  mismatchValue,
+  expectedFrame,
+  messages,
+}) {
+  const run = ({ value, update, ci }) => {
+    const args = [vitestBin, "run", "--config", configPath];
+    if (update) args.push("--update");
+
+    const env = { ...process.env, [envVar]: value };
+    if (ci) {
+      env.CI = "true";
+    } else {
+      // Explicitly unset, in case the ambient shell already has it — the seed
+      // step must be unambiguous evidence of the seeding path, independent of
+      // whatever environment this script happens to run in.
+      delete env.CI;
+    }
+
+    return runNode({ args, cwd: packageRoot, env });
+  };
+
+  const listPngs = () =>
+    existsSync(screenshotsDir)
+      ? readdirSync(screenshotsDir)
+          .filter((name) => name.endsWith(".png"))
+          .map((name) => path.join(screenshotsDir, name))
+      : [];
+
+  const seed = run({ value: seedValue, update: true, ci: false });
+  if (isCrash(seed)) return reportCrash(label, seed, "seed");
+
+  const seeded = listPngs();
+  if (seeded.length === 0) {
+    console.error(
+      `\n[${label}] FAILED: the seed run wrote no screenshot at ${screenshotsDir}. ` +
+        "No screenshot assertion ran at all, so the gate cannot have teeth.",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  for (const pngPath of seeded) {
+    const { width, height } = readPngSize(pngPath);
+    if (width !== expectedFrame.width || height !== expectedFrame.height) {
+      console.error(
+        `\n[${label}] FAILED: ${path.basename(pngPath)} is ${width}x${height}, expected ` +
+          `${expectedFrame.width}x${expectedFrame.height}. The capture box did not take ` +
+          "effect, so content may be clipped out of the frame.",
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
+
+  const mismatch = run({ value: mismatchValue, update: false, ci: true });
+  if (isCrash(mismatch)) return reportCrash(label, mismatch, "mismatch");
+
+  if (mismatch.status === 0) {
+    console.error(`\n[${label}] FAILED: ${messages.notCaught}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  for (const pngPath of seeded) rmSync(pngPath);
+
+  const missing = run({ value: seedValue, update: false, ci: true });
+  if (isCrash(missing)) return reportCrash(label, missing, "missing-reference");
+
+  if (missing.status === 0) {
+    console.error(
+      `\n[${label}] FAILED: the screenshot comparison passed with no reference present. ` +
+        "A missing baseline must fail, not silently succeed.",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (listPngs().length > 0) {
+    console.error(
+      `\n[${label}] FAILED: a CI run with a missing reference wrote a new screenshot ` +
+        "instead of failing cleanly. That would let a missing baseline slip through.",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`\n[${label}] PASSED: ${messages.passed}`);
+  process.exitCode = 0;
 }
