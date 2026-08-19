@@ -43,11 +43,18 @@ export function createStorybookVitestConfig(tags: TagFilter) {
     // executing it. Resolved once here, at config-load time, so the normal
     // `test` run and the a11y gate both bake in `false` and the hook is a
     // true no-op there regardless of which tags an individual story has.
+    //
+    // The prefix test is deliberate, not lazy matching. An exact list would
+    // have to be extended by hand for every new visual partition, and the
+    // cost of forgetting is asymmetric: a visual config that resolves
+    // `false` here runs its stories with NO screenshot assertion at all and
+    // exits 0 — a silent false PASS, the exact failure this whole design
+    // exists to prevent. Prefixing fails closed in the safe direction (a
+    // new `visual*` partition captures by default), while `test` and
+    // `a11y-negative` still resolve `false`.
     define: {
       __VISUAL_GATE_LABEL__: JSON.stringify(process.env.VISUAL_GATE_LABEL ?? "Publish"),
-      __VISUAL_CAPTURE__: JSON.stringify(
-        tags.include.includes("visual") || tags.include.includes("visual-negative"),
-      ),
+      __VISUAL_CAPTURE__: JSON.stringify(tags.include.some((tag) => tag.startsWith("visual"))),
     },
     plugins: [
       storybookTest({
