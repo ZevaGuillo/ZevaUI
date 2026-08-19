@@ -9,5 +9,8 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "test": "echo \"stage 1: no tests\""
+  },
+  "exports": {
+    "./gate-harness": "./src/gate-harness.js"
   }
 }

@@ -30,6 +30,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@zevaui/config": "workspace:*",
     "@zevaui/tokens": "workspace:*",
     "esbuild": "^0.25.12",
     "jsdom": "^26.1.0",

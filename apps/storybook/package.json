@@ -15,6 +15,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitest/browser": "^4.1.10",
     "@vitest/browser-playwright": "^4.1.10",
+    "@zevaui/config": "workspace:*",
     "playwright": "^1.62.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
