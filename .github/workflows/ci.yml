@@ -49,7 +49,19 @@ jobs:
       # node_modules the root has no `playwright` bin to run. Every CI run since
       # this step landed died here with ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL,
       # which means the suite below it has never actually executed in CI.
-      - run: pnpm --filter @zevaui/storybook exec playwright install --with-deps chromium
+      #
+      # timeout-minutes bounds a step that HANGS rather than fails: it reaches
+      # the Ubuntu apt mirrors, and when one stalls it simply sits there. Every
+      # legitimate run measured finished within 3m27s; two stalled ones sat at
+      # 37 and 17 minutes before a human cancelled them. Without a step timeout
+      # the job runs to GitHub's 360-minute default instead.
+      #
+      # 10 is ~3x that slowest legitimate run. Safe for the cache above:
+      # actions/cache has no `save-always` here, so it does not write on job
+      # failure, and a timeout mid-download cannot persist a half-written
+      # Chromium under the lockfile key.
+      - timeout-minutes: 10
+        run: pnpm --filter @zevaui/storybook exec playwright install --with-deps chromium
       - run: pnpm turbo run lint typecheck test size
       - run: node -e "import('@zevaui/constraints').then(m => { if (typeof m.validateTheme !== 'function') process.exit(1) })"
         working-directory: packages/constraints

@@ -89,7 +89,14 @@ jobs:
       # established; the logs pointed at an unreachable Ubuntu mirror, which
       # does not explain why only the `pnpm run` form ever hung. If you try it
       # again, watch the runner, not just the scanner.
-      - run: pnpm --filter @zevaui/storybook exec playwright install --with-deps chromium
+      #
+      # timeout-minutes: 10 matches ci.yml, where the measurements behind the
+      # number live — kept in one place rather than restated here. What is
+      # specific to THIS workflow: it matters more. A dispatch is something a
+      # maintainer kicks off and walks away from, so when this step stalls
+      # there is nobody watching the tab to cancel it.
+      - timeout-minutes: 10
+        run: pnpm --filter @zevaui/storybook exec playwright install --with-deps chromium
       - run: pnpm turbo run build
 
       # Actions sets CI=true on every step, and under CI=true a missing
