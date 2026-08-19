@@ -59,7 +59,11 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      # --ignore-scripts matches ci.yml: pnpm 10 already blocks dependency
+      # lifecycle scripts absent an onlyBuiltDependencies allowlist, this repo
+      # declares none, and no workspace package has an install hook. It closes
+      # the finding without changing what runs.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       # Same cache key as ci.yml, so both workflows share one Chromium
       # download instead of paying ~300MB twice.
       - uses: actions/cache@v4
