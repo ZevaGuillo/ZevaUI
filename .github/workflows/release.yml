@@ -23,7 +23,11 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      # --ignore-scripts is belt-and-braces here, not a behaviour change: pnpm 10
+      # already blocks dependency lifecycle scripts unless allowlisted via
+      # onlyBuiltDependencies, this repo declares no such allowlist, and no
+      # workspace package has an install/prepare hook. Verified before adding.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Create or update Version Packages PR
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1 (branch tip, frozen)
         with:

@@ -30,7 +30,11 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      # --ignore-scripts is belt-and-braces here, not a behaviour change: pnpm 10
+      # already blocks dependency lifecycle scripts unless allowlisted via
+      # onlyBuiltDependencies, this repo declares no such allowlist, and no
+      # workspace package has an install/prepare hook. Verified before adding.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       # Chromium is ~300MB. Key the cache on the lockfile so it is reused until
       # the resolved Playwright version actually changes.
       - uses: actions/cache@v4
