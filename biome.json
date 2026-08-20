@@ -10,7 +10,8 @@
       "!**/.atl",
       "!**/node_modules",
       "!**/storybook-static",
-      "!**/styled-system"
+      "!**/styled-system",
+      "!packages/audit/__fixtures__"
     ]
   },
   "formatter": {
