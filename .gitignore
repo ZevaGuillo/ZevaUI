@@ -29,6 +29,14 @@ apps/storybook/stories/__gate__/**/__screenshots__/
 apps/storybook/stories/__screenshots__/**/*-chromium-win32.png
 apps/storybook/stories/__screenshots__/**/*-chromium-darwin.png
 
+# SonarQube for IDE. connectedMode.json is the shared binding and is tracked on
+# purpose: this repo's folder is `design-system` while the Sonar project is
+# `ZevaGuillo_ZevaUI`, so the extension's name-based auto-match cannot find it
+# and every contributor would otherwise have to bind by hand. Everything else
+# under .sonarlint/ is a local analyser cache.
+.sonarlint/*
+!.sonarlint/connectedMode.json
+
 # Skill registry artifact (local only)
 .atl/
 
