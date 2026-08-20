@@ -3,14 +3,10 @@ name: CI
 on:
   pull_request:
     # An explicit allowlist of BASE branches, not every PR. The filter matches
-    # a PR's target, so while the visual-gate work is delivered as a stack,
-    # only the bottom PR targets `main` — the other four target each other and
-    # would get no `ci` check at all. The qvb globs exist for exactly that
-    # window and should be dropped once the chain lands.
+    # a PR's target; every change in this repo now lands sequential-to-main
+    # (each slice targets `main` directly), so `main` is the only entry.
     branches:
       - main
-      - "feat/qvb-**"
-      - "docs/qvb-**"
   push:
     # Only main. A stack branch's own pushes are already covered by its pull
     # request run; triggering on both just pays for a second Chromium install.

@@ -16,7 +16,12 @@
     "build": "echo \"stage 1: build deferred (no dist)\"",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "typecheck": "tsc --noEmit",
-    "test": "echo \"stage 1: no tests\""
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tools.json",
+    "test": "vitest run",
+    "audit": "node scripts/audit-usage.js",
+    "audit:gate": "node scripts/assert-usage-report.js"
+  },
+  "devDependencies": {
+    "@zevaui/config": "workspace:*"
   }
 }
