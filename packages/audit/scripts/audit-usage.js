@@ -1,14 +1,11 @@
 // Runnable entry (design #156, D3/D10). Walks a consumer's source tree,
-// scans it with scan-source.js, resolves dsVersion via build-report.js's D8
-// cascade, and prints the report as the ONLY line on stdout — the gate
-// (assert-usage-report.js) parses that stdout as JSON, so diagnostics below
-// go to stderr and the step summary, never to stdout.
+// scans it, resolves dsVersion via build-report.js's D8 cascade, and prints
+// the report as the ONLY line on stdout — the gate (assert-usage-report.js)
+// parses stdout as JSON, so diagnostics go to stderr and the step summary.
 //
-// Inputs arrive as env vars (AUDIT_APP, AUDIT_WORKING_DIRECTORY) rather than
-// argv: the reusable workflow (PR2) invokes this with a plain `node <path>`
-// step, and passing `workflow_call` inputs through as step-level `env:` is
-// the same idiom check-bundle-budget.js's GITHUB_STEP_SUMMARY handling
-// already uses for CI-provided values in this repo.
+// Inputs arrive as env vars (AUDIT_APP, AUDIT_WORKING_DIRECTORY), not argv:
+// the reusable workflow (PR2) invokes this with a plain `node <path>` step,
+// passing workflow_call inputs through as step-level `env:`.
 import { appendFileSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { buildReport, resolveDsVersion } from "./build-report.js";
@@ -34,11 +31,9 @@ function fail(message) {
   process.exit(1);
 }
 
-// Pruned-dir walk, symlink-averse, extension-allowlisted, size- and
-// count-capped (D10): one exotic file must not deny the whole report, but a
-// silent skip is a lie, so skips are always counted and named. A repo too
-// large to finish scanning exits 1 rather than reporting a partial truth as
-// a whole one.
+// Pruned-dir walk, symlink-averse, extension-allowlisted, size/count-capped
+// (D10): a silent skip is a lie, so skips are counted and named; a repo too
+// large to finish exits 1 rather than reporting a partial truth as a whole.
 function walkAndScan(consumerRoot) {
   const imports = [];
   const skipped = [];
@@ -117,10 +112,8 @@ function main() {
     );
   }
 
-  // D3 fail-closed rule: the default identity (github.repository) is only
-  // safe for the single-app case. The one configuration where it is LIKELY
-  // wrong — a non-default working-directory with no explicit app — is the
-  // one configuration refused.
+  // D3: the default identity (github.repository) is only safe for the
+  // single-app case; refuse the one configuration where it is LIKELY wrong.
   if (workingDirectoryInput !== "." && !appInput) {
     fail(
       'working-directory is set to something other than "." but no app was provided — the ' +
