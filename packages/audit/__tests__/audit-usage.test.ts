@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -98,5 +98,39 @@ describe("audit-usage.js entry", () => {
     expect(webReport.app).toBe("web");
     expect(adminReport.app).toBe("admin");
     expect(webReport.app).not.toBe(adminReport.app);
+  });
+});
+
+describe("step summary rendering", () => {
+  // dsVersion comes from the CONSUMER's package.json and app from a workflow
+  // input: both are arbitrary text this repo does not control. Unescaped,
+  // a `|` or newline in either corrupts the table and can fabricate a row.
+  it("escapes pipes and newlines so a hostile dsVersion cannot forge a table row", () => {
+    const workspaceRoot = makeWorkspace();
+    mkdirSync(path.join(workspaceRoot, "src"), { recursive: true });
+    writeFileSync(
+      path.join(workspaceRoot, "package.json"),
+      JSON.stringify({
+        dependencies: { "@zevaui/components": "1.0.0 | INJECTED |\n| fake | row |" },
+      }),
+    );
+    writeFileSync(
+      path.join(workspaceRoot, "src", "a.tsx"),
+      'import { Button } from "@zevaui/components";\n',
+    );
+    const summaryPath = path.join(workspaceRoot, "summary.md");
+    writeFileSync(summaryPath, "");
+
+    const result = runEntry(workspaceRoot, {
+      AUDIT_APP: "web",
+      GITHUB_STEP_SUMMARY: summaryPath,
+    });
+    expect(result.status).toBe(0);
+
+    const summary = readFileSync(summaryPath, "utf8");
+    const rows = summary.split("\n").filter((line) => line.startsWith("|"));
+    // Header, separator, and exactly five data rows — no forged sixth.
+    expect(rows).toHaveLength(7);
+    expect(summary).not.toContain("| fake | row |");
   });
 });

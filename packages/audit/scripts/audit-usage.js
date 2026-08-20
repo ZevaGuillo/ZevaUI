@@ -85,15 +85,27 @@ function walkAndScan(consumerRoot) {
   return { imports, skipped };
 }
 
+// The table is the one place consumer-controlled text reaches rendered
+// output: `dsVersion` is copied from THEIR package.json and `app` from a
+// workflow input, so both are free text this repo never validates. An
+// unescaped `|` closes the cell early and a newline forges an entire extra
+// row — measured, see the "escapes pipes and newlines" test. Component
+// names need no escaping (scan-source.js already constrains them to
+// /^[A-Za-z_$][\w$]*$/), but escaping them costs nothing and means nobody
+// has to re-derive which cells are safe.
+function cell(value) {
+  return String(value).replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
+}
+
 function renderStepSummary(report, skipped) {
   const componentsCell = report.components.length === 0 ? "_none_" : report.components.join(", ");
   return (
     "\n### DS usage audit\n\n" +
     "| Field | Value |\n|---|---|\n" +
-    `| app | ${report.app} |\n` +
-    `| dsVersion | ${report.dsVersion} (${report.dsVersionSource}) |\n` +
-    `| components | ${componentsCell} |\n` +
-    `| generatedAt | ${report.generatedAt} |\n` +
+    `| app | ${cell(report.app)} |\n` +
+    `| dsVersion | ${cell(report.dsVersion)} (${cell(report.dsVersionSource)}) |\n` +
+    `| components | ${cell(componentsCell)} |\n` +
+    `| generatedAt | ${cell(report.generatedAt)} |\n` +
     `| skipped files | ${skipped.length} |\n`
   );
 }
