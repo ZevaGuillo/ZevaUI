@@ -1,0 +1,10 @@
+{
+  "name": "zevaui-fixture-consumer",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Not a pnpm workspace member (pnpm-workspace.yaml globs are apps/*, packages/*, one level deep). Evidence fixture for RF-UAW11 — a consumer with a known-correct answer, so the gate checks content, not just exit code.",
+  "dependencies": {
+    "@zevaui/components": "^1.2.0",
+    "@zevaui/tokens": "^0.9.0"
+  }
+}
