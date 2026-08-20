@@ -74,6 +74,9 @@ importers:
 
   packages/audit:
     devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
       '@zevaui/config':
         specifier: workspace:*
         version: link:../config

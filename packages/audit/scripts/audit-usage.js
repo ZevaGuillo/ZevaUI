@@ -1,0 +1,169 @@
+// Runnable entry (design #156, D3/D10). Walks a consumer's source tree,
+// scans it with scan-source.js, resolves dsVersion via build-report.js's D8
+// cascade, and prints the report as the ONLY line on stdout — the gate
+// (assert-usage-report.js) parses that stdout as JSON, so diagnostics below
+// go to stderr and the step summary, never to stdout.
+//
+// Inputs arrive as env vars (AUDIT_APP, AUDIT_WORKING_DIRECTORY) rather than
+// argv: the reusable workflow (PR2) invokes this with a plain `node <path>`
+// step, and passing `workflow_call` inputs through as step-level `env:` is
+// the same idiom check-bundle-budget.js's GITHUB_STEP_SUMMARY handling
+// already uses for CI-provided values in this repo.
+import { appendFileSync, readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+import { buildReport, resolveDsVersion } from "./build-report.js";
+import { scanSource } from "./scan-source.js";
+
+const PRUNED_DIRS = new Set([
+  "node_modules",
+  ".git",
+  "dist",
+  ".next",
+  "build",
+  "out",
+  "coverage",
+  ".turbo",
+  "storybook-static",
+]);
+const ALLOWED_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts"]);
+const MAX_FILE_BYTES = 1 * 1024 * 1024;
+const MAX_SCANNED_FILES = 20000;
+
+function fail(message) {
+  console.error(`[audit-usage] FAIL: ${message}`);
+  process.exit(1);
+}
+
+// Pruned-dir walk, symlink-averse, extension-allowlisted, size- and
+// count-capped (D10): one exotic file must not deny the whole report, but a
+// silent skip is a lie, so skips are always counted and named. A repo too
+// large to finish scanning exits 1 rather than reporting a partial truth as
+// a whole one.
+function walkAndScan(consumerRoot) {
+  const imports = [];
+  const skipped = [];
+  let scannedCount = 0;
+  const stack = [consumerRoot];
+
+  while (stack.length > 0) {
+    const dir = stack.pop();
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) continue;
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        if (!PRUNED_DIRS.has(entry.name)) stack.push(fullPath);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      if (!ALLOWED_EXTENSIONS.has(path.extname(entry.name))) continue;
+
+      scannedCount += 1;
+      if (scannedCount > MAX_SCANNED_FILES) {
+        fail(
+          `scanned more than ${MAX_SCANNED_FILES} files without finishing — refusing to report ` +
+            "a partial truth as a whole one",
+        );
+      }
+
+      const relativePath = path.relative(consumerRoot, fullPath);
+      try {
+        if (statSync(fullPath).size > MAX_FILE_BYTES) {
+          skipped.push(relativePath);
+          continue;
+        }
+        const contents = readFileSync(fullPath, "utf8");
+        imports.push(...scanSource(contents));
+      } catch {
+        skipped.push(relativePath);
+      }
+    }
+  }
+
+  return { imports, skipped };
+}
+
+function renderStepSummary(report, skipped) {
+  const componentsCell = report.components.length === 0 ? "_none_" : report.components.join(", ");
+  return (
+    "\n### DS usage audit\n\n" +
+    "| Field | Value |\n|---|---|\n" +
+    `| app | ${report.app} |\n` +
+    `| dsVersion | ${report.dsVersion} (${report.dsVersionSource}) |\n` +
+    `| components | ${componentsCell} |\n` +
+    `| generatedAt | ${report.generatedAt} |\n` +
+    `| skipped files | ${skipped.length} |\n`
+  );
+}
+
+function main() {
+  const workspaceRoot = path.resolve(process.env.GITHUB_WORKSPACE ?? process.cwd());
+  const workingDirectoryInput = process.env.AUDIT_WORKING_DIRECTORY ?? ".";
+  const appInput = process.env.AUDIT_APP ?? process.env.GITHUB_REPOSITORY;
+
+  const consumerRoot = path.resolve(workspaceRoot, workingDirectoryInput);
+  const relativeToWorkspace = path.relative(workspaceRoot, consumerRoot);
+  if (relativeToWorkspace.startsWith("..") || path.isAbsolute(relativeToWorkspace)) {
+    fail(
+      `working-directory "${workingDirectoryInput}" resolves outside GITHUB_WORKSPACE ` +
+        `(${workspaceRoot}) — refusing to scan outside the checked-out workspace`,
+    );
+  }
+
+  // D3 fail-closed rule: the default identity (github.repository) is only
+  // safe for the single-app case. The one configuration where it is LIKELY
+  // wrong — a non-default working-directory with no explicit app — is the
+  // one configuration refused.
+  if (workingDirectoryInput !== "." && !appInput) {
+    fail(
+      'working-directory is set to something other than "." but no app was provided — the ' +
+        "default (github.repository) would silently mislabel this report",
+    );
+  }
+  if (!appInput) {
+    fail("no app identity resolved — set the app input or GITHUB_REPOSITORY");
+  }
+
+  const versionResult = resolveDsVersion({ consumerRoot });
+  if (!versionResult) {
+    fail(
+      "@zevaui/components is not installed under node_modules and not declared in " +
+        "package.json (dependencies/devDependencies/peerDependencies) — a report with no " +
+        "dsVersion would be a false audit signal, not a degraded one",
+    );
+  }
+
+  const { imports, skipped } = walkAndScan(consumerRoot);
+
+  const report = buildReport({
+    app: appInput,
+    importsBySpecifier: imports,
+    dsVersion: versionResult.version,
+    dsVersionSource: versionResult.source,
+    generatedAt: new Date().toISOString(),
+  });
+
+  console.log(JSON.stringify(report, null, 2));
+
+  if (skipped.length > 0) {
+    console.error(
+      `[audit-usage] skipped ${skipped.length} file(s) (unreadable or over the 1MB cap): ` +
+        skipped.join(", "),
+    );
+  }
+
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    appendFileSync(process.env.GITHUB_STEP_SUMMARY, renderStepSummary(report, skipped), {
+      flag: "a",
+    });
+  }
+}
+
+main();
