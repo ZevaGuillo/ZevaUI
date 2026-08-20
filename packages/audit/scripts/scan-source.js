@@ -1,24 +1,18 @@
 // Two-stage import scanner (design #156 D2). Stage 1 (blankSource) blanks
-// comments, string/template literals (including nested `${}`) and regex
-// literals in place, offset-preserving — a decoy import hidden inside one of
-// those is gone before stage 2 ever looks, not filtered, structurally
-// invisible. Stage 2 (scanSource) then locates genuine `import` keywords in
-// the sanitized text and re-parses each declaration from the ORIGINAL source
-// at that same offset: the declaration's own specifier string is real code,
-// not a decoy, so reading it from the original text is correct.
+// comments/strings/template literals/regex literals in place,
+// offset-preserving, so a decoy import hidden inside one is structurally
+// gone before stage 2 looks. Stage 2 (scanSource) locates genuine `import`
+// keywords in the sanitized text and re-parses each declaration from the
+// ORIGINAL source at that offset — the specifier string is real code there.
 //
-// Specifier matching is exact equality, never a prefix: `@zevaui/components`
-// exposes `./styles.css` and `./components.manifest.json` as real, resolvable
-// subpath exports carrying zero components (packages/components/package.json
-// exports map, verified) — a `startsWith` filter would emit a phantom entry
-// for each.
+// Specifier match is exact equality, never a prefix: `@zevaui/components`
+// exposes `./styles.css`/`./components.manifest.json` as real subpath
+// exports carrying zero components (verified) — `startsWith` would phantom.
 export const TRACKED_SPECIFIERS = new Set(["@zevaui/components", "@zevaui/tokens"]);
 
-// Keywords after which a following `/` starts a regex literal, not a
-// division. Not exhaustive — this is the standard previous-significant-token
-// heuristic every hand-rolled tokenizer uses; its residual ambiguity (e.g.
-// after `)` or `}`) is exactly what spike S-B measures against real,
-// unplanned source rather than only this package's fixture.
+// Keywords after which `/` opens a regex, not a division — the standard
+// previous-significant-token heuristic. Residual ambiguity (e.g. after `)`
+// or `}`) is what spike S-B measures against real, unplanned source.
 const REGEX_CONTEXT_KEYWORDS = new Set([
   "return",
   "typeof",
@@ -51,10 +45,9 @@ export function blankSource(source) {
     for (let k = from; k < to; k += 1) if (out[k] !== "\n") out[k] = " ";
   };
 
-  // Stack of open `${ }` template interpolations: "template" means we are
-  // currently consuming template-literal TEXT (not inside `${ }`); a number
-  // is an open expression's own unmatched-brace depth, needed so a nested
-  // object literal's braces inside `${ }` don't close it early.
+  // Stack of open `${ }` interpolations: "template" = consuming literal
+  // TEXT; a number = an open expression's own unmatched-brace depth (so a
+  // nested object literal's braces don't close the `${ }` early).
   const stack = [];
   let prevToken = "";
   let i = 0;
@@ -171,12 +164,10 @@ export function blankSource(source) {
   return out.join("");
 }
 
-// Parses one `import` declaration starting at `start` in the ORIGINAL
-// source. Bounded to a 4000-char lookahead and to the first `;` within it —
-// a real import statement is always short and always terminates there, and
-// bounding the search this way is what keeps a dynamic `import(...)` call
-// (no declaration, no terminating `from`) from accidentally matching a
-// LATER, unrelated import's `from` clause inside the lookahead window.
+// Parses one `import` declaration at `start` in the ORIGINAL source,
+// bounded to the first `;` within a 4000-char lookahead — this is what
+// keeps a dynamic `import(...)` call (no `from`) from accidentally matching
+// a LATER, unrelated import's `from` clause inside the lookahead window.
 function parseImportDeclaration(source, start) {
   const window = source.slice(start, start + 4000);
   const afterImport = window.slice("import".length);

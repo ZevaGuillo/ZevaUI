@@ -1,15 +1,9 @@
 // Proves the fixture's report deep-equals the committed expected report
 // (RF-UAW12). Plants a decoy DS import inside `node_modules` first — a
-// directory the real entry MUST prune — so a RED drill (temporarily
-// removing "node_modules" from audit-usage.js's pruned-dir list) has
-// something real to catch. The decoy cannot be committed (`.gitignore:2` is
-// `node_modules/`), so it is planted here at run time and removed in a
-// `finally`, matching the visual gates' self-seeding pattern.
-//
-// The exit-code reading, the child-process runner and the crash branch live
-// in @zevaui/config/gate-harness, shared with the bundle-budget and visual
-// gates. What stays here is what only this gate can say: which fixture is
-// planted, and what a failure to catch it would mean.
+// directory the real entry MUST prune — at run time (`.gitignore:2` blocks
+// committing it), removed in a `finally`, matching the visual gates'
+// self-seeding pattern. Exit-code reading and the crash branch live in
+// @zevaui/config/gate-harness, shared with the other gates in this repo.
 import { deepStrictEqual } from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -27,9 +21,8 @@ const expectedReportPath = path.join(packageRoot, "__fixtures__", "expected-repo
 const phantomNodeModules = path.join(fixtureRoot, "node_modules");
 const phantomDir = path.join(phantomNodeModules, "@zevaui", "components", "src");
 const phantomFile = path.join(phantomDir, "phantom.tsx");
-// A name absent from every must-find (Alert, Button, Card, Dialog): if it
-// leaked into the report the diff would be silent noise if it happened to
-// collide with a real must-find, since components[] is deduplicated.
+// Absent from every must-find — a leaked collision would be silently
+// swallowed by components[]'s dedup (measured, see git history: 5.3).
 const PHANTOM_CONTENTS =
   'import { PhantomMenu } from "@zevaui/components";\nexport const Phantom = PhantomMenu;\n';
 
