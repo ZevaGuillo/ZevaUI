@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
 import { isCrash, runNode } from "@zevaui/config/gate-harness";
+import { afterEach, describe, expect, it } from "vitest";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const entryScriptPath = path.join(scriptDir, "..", "scripts", "audit-usage.js");
@@ -40,7 +40,7 @@ describe("audit-usage.js entry", () => {
     expect(result.status).toBe(1);
   });
 
-  it('(b) exits 1 with a containment error when working-directory resolves outside GITHUB_WORKSPACE', () => {
+  it("(b) exits 1 with a containment error when working-directory resolves outside GITHUB_WORKSPACE", () => {
     const workspaceRoot = makeWorkspace();
     writeFileSync(
       path.join(workspaceRoot, "package.json"),

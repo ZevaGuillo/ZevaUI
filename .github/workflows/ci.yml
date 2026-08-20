@@ -63,6 +63,11 @@ jobs:
         working-directory: packages/constraints
       - run: pnpm --filter @zevaui/storybook run test:a11y-gate
       - run: pnpm --filter @zevaui/components run size:gate
+      # A raw step, not a turbo task: the gate mutates the fixture tree at
+      # runtime (plants and removes a decoy under __fixtures__/consumer/
+      # node_modules), and that side effect must never be memoised by
+      # turbo's cache (RF-UAW12).
+      - run: pnpm --filter @zevaui/audit run audit:gate
       # The two visual gates are negative fixtures: each seeds its own
       # baseline at run time, so both are self-contained and need nothing
       # committed to the repo. The first proves the comparison catches a

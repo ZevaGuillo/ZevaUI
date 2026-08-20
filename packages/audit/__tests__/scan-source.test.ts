@@ -18,14 +18,13 @@ describe("blankSource", () => {
   });
 
   it("blanks a string literal containing an import-shaped decoy", () => {
-    const source = 'const s = \'import { Ghost } from "@zevaui/components";\';';
+    const source = "const s = 'import { Ghost } from \"@zevaui/components\";';";
     const blanked = blankSource(source);
     expect(blanked).not.toContain("import");
   });
 
   it("blanks a template literal, including a nested ${} interpolation", () => {
-    const source =
-      "const s = `outer ${`inner import { Ghost } from \"@zevaui/components\"`} end`;";
+    const source = 'const s = `outer ${`inner import { Ghost } from "@zevaui/components"`} end`;';
     const blanked = blankSource(source);
     expect(blanked).not.toContain("import");
   });
@@ -92,7 +91,7 @@ describe("scanSource", () => {
   });
 
   it("ignores an import-shaped string literal", () => {
-    const source = 'const s = \'import { Ghost } from "@zevaui/components";\';';
+    const source = "const s = 'import { Ghost } from \"@zevaui/components\";';";
     expect(scanSource(source)).toEqual([]);
   });
 
