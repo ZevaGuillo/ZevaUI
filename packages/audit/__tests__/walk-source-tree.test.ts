@@ -132,6 +132,33 @@ describe("walkAndScan", () => {
     expect(skipped).toEqual([]);
   });
 
+  // The reusable workflow checks the design system out INTO the consumer's
+  // workspace, so with working-directory "." the walk would otherwise descend
+  // into it and report the DS's own storybook imports as the consumer's.
+  // Measured before this was pruned: a consumer using only Button got back
+  // Alert, Button, Dialog.
+  it("prunes the reusable workflow's own design-system checkout", () => {
+    const io = fakeIo({
+      "/repo": [
+        { name: ".zevaui-audit", kind: "dir" },
+        { name: "app.tsx", kind: "file", contents: IMPORT_LINE, size: 40 },
+      ],
+      "/repo/.zevaui-audit": [
+        {
+          name: "Dialog.stories.tsx",
+          kind: "file",
+          contents: 'import { Dialog } from "@zevaui/components";\n',
+          size: 40,
+        },
+      ],
+    });
+
+    const { imports, skipped } = walkAndScan("/repo", io);
+
+    expect(imports.flatMap((entry) => entry.names)).toEqual(["Button"]);
+    expect(skipped).toEqual([]);
+  });
+
   it("names a file that is over the size cap", () => {
     const io = fakeIo({
       "/repo": [{ name: "huge.tsx", kind: "file", contents: IMPORT_LINE, size: 5 * 1024 * 1024 }],

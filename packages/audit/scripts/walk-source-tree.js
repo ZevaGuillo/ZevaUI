@@ -19,6 +19,15 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { scanSource } from "./scan-source.js";
 
+// The directory the reusable workflow checks THIS design system out into,
+// inside the consumer's own workspace. The name is a contract between
+// `.github/workflows/audit-ds-usage.yml` and this list, and it is load-bearing
+// in both directions: change it in one place and a consumer scanning with
+// working-directory "." walks straight into the DS checkout and reports our
+// storybook's imports as theirs. Measured before it was pruned — a consumer
+// using only Button got back Alert, Button, Dialog.
+export const WORKFLOW_DS_CHECKOUT_DIR = ".zevaui-audit";
+
 const PRUNED_DIRS = new Set([
   "node_modules",
   ".git",
@@ -29,6 +38,7 @@ const PRUNED_DIRS = new Set([
   "coverage",
   ".turbo",
   "storybook-static",
+  WORKFLOW_DS_CHECKOUT_DIR,
 ]);
 const ALLOWED_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts"]);
 

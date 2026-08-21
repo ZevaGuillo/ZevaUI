@@ -1,0 +1,115 @@
+# RF-11 Mecanismo A: the reusable workflow a CONSUMER repository calls to
+# report which design-system components it uses, and at which version.
+#
+#   jobs:
+#     ds-usage:
+#       uses: ZevaGuillo/ZevaUI/.github/workflows/audit-ds-usage.yml@v1
+#       with:
+#         ds-ref: v1
+#
+# `workflow_call` only. There is no `push`/`pull_request`/`workflow_dispatch`
+# trigger on purpose: this file exists to be invoked BY other repositories, and
+# a trigger here would make it run against this repository on every event with
+# no caller and no meaning. This repo audits itself through the `audit-self`
+# job in ci.yml, which calls this same workflow.
+name: DS usage audit
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: >-
+          Identity this report is labelled with. Defaults to the CALLER's
+          github.repository, which is only correct when the repository holds a
+          single app — so leaving it empty while pointing working-directory at
+          a subdirectory is refused rather than silently mislabelled (D3).
+        required: false
+        type: string
+        default: ""
+      working-directory:
+        description: >-
+          Subdirectory of the caller's checkout to scan. Defaults to the whole
+          repository. Anything resolving outside the checkout is refused.
+        required: false
+        type: string
+        default: "."
+      ds-ref:
+        description: >-
+          The design-system revision whose scanner runs. REQUIRED, and
+          deliberately has no default: the report says which DS version the
+          consumer uses, but not which scanner produced it, so an unpinned
+          scanner would silently change what a report means between two runs
+          that look identical. Pin it the same way you pin this workflow.
+        required: true
+        type: string
+
+# Read-only, and nothing else. This workflow reads a consumer's source and
+# emits a report; it never needs to write to their repository, and a token that
+# cannot write is the only durable proof of that.
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      # The CALLER's repository, at the root of the workspace. This is the tree
+      # that gets scanned.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # The design system, alongside it. `.zevaui-audit` sits INSIDE the
+      # consumer's workspace, which means a scan with working-directory "."
+      # walks right into it — and this repository's own storybook imports
+      # Alert, Button, Card, Dialog and more. Measured: a consumer using only
+      # Button got back Alert, Button, Dialog.
+      #
+      # So this path is not cosmetic. It must stay identical to
+      # WORKFLOW_DS_CHECKOUT_DIR in packages/audit/scripts/walk-source-tree.js,
+      # which is what prunes it. Change one without the other and every
+      # consumer's report silently gains our components.
+      - uses: actions/checkout@v4
+        with:
+          repository: ZevaGuillo/ZevaUI
+          ref: ${{ inputs.ds-ref }}
+          path: .zevaui-audit
+          persist-credentials: false
+
+      # Explicit version, not `node-version-file`. The caller's repository is
+      # what sits at the workspace root, so an `.nvmrc` found there would be
+      # THEIRS — and the scanner's runtime is our contract, not theirs. Ours
+      # lives at `.zevaui-audit/.nvmrc` and reads `22`; this tracks it.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No `pnpm install`. The scanner is four dependency-free Node modules
+      # that import nothing outside `node:` and each other, so a checkout is
+      # the whole install. That is a property worth keeping: it is why this
+      # workflow cannot execute a consumer's lockfile.
+      - name: Audit design-system usage
+        env:
+          AUDIT_APP: ${{ inputs.app }}
+          AUDIT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        run: node .zevaui-audit/packages/audit/scripts/audit-usage.js > ds-usage-report.json
+
+      # Inputs reach the shell through `env:`, never through `${{ }}` inside a
+      # `run:` body. An input is caller-controlled text; interpolated into the
+      # script it would be executed, not quoted. `tr -c` then reduces it to the
+      # character set artifact names allow, so a nested path cannot smuggle a
+      # separator into the name either.
+      - id: name
+        name: Derive a collision-free artifact name
+        env:
+          WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        run: |
+          slug=$(printf '%s' "$WORKING_DIRECTORY" | tr -c 'A-Za-z0-9._-' '-')
+          [ "$slug" = "-" ] && slug=root
+          printf 'value=ds-usage-report-%s\n' "$slug" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.name.outputs.value }}
+          path: ds-usage-report.json
+          if-no-files-found: error
