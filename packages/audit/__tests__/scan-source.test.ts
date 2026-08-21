@@ -200,6 +200,26 @@ describe("scanSource", () => {
     ]);
   });
 
+  // RF-UAW05's bar is "asserted absent", not "structurally argued absent".
+  // The scanner only ever anchors on the `import` keyword, so `export ... from`
+  // cannot match today — and these tests are the tripwire that notices the day
+  // that stops being true, so the ceiling can be re-documented instead of
+  // silently shifting under consumers pinned to a moving `ds-ref`.
+  it("does not detect a barrel re-export", () => {
+    expect(scanSource('export { Button } from "@zevaui/components";')).toEqual([]);
+  });
+
+  it("does not detect a star re-export, with or without a semicolon", () => {
+    const source = 'export * from "@zevaui/components";\nexport * from "@zevaui/tokens"\n';
+    expect(scanSource(source)).toEqual([]);
+  });
+
+  it("still finds a real import that follows a barrel re-export", () => {
+    const source =
+      'export { Menu } from "@zevaui/components";\nimport { Button } from "@zevaui/components";';
+    expect(scanSource(source)).toEqual([{ specifier: "@zevaui/components", names: ["Button"] }]);
+  });
+
   it("exposes the tracked specifier set for reuse", () => {
     expect(TRACKED_SPECIFIERS.has("@zevaui/components")).toBe(true);
     expect(TRACKED_SPECIFIERS.has("@zevaui/tokens")).toBe(true);
