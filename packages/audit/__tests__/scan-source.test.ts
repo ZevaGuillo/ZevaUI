@@ -42,6 +42,11 @@ describe("blankSource", () => {
     expect(blanked).not.toContain("pattern = /a");
     expect(blanked).toContain("width / height");
   });
+
+  it("treats a slash after a closing brace as division, not as a regex opener", () => {
+    const source = "const ratio = {a:1} / days / 7;";
+    expect(blankSource(source)).toBe(source);
+  });
 });
 
 describe("scanSource", () => {
@@ -115,6 +120,52 @@ describe("scanSource", () => {
     expect(scanSource('import "@zevaui/components";')).toEqual([
       { specifier: "@zevaui/components", names: [] },
     ]);
+  });
+
+  it("finds a named import written with no terminating semicolon (ASI)", () => {
+    expect(scanSource('import { Button } from "@zevaui/components"')).toEqual([
+      { specifier: "@zevaui/components", names: ["Button"] },
+    ]);
+  });
+
+  it("finds a semicolon-free import followed by more semicolon-free code", () => {
+    const source =
+      'import { Button } from "@zevaui/components"' + "\n\nexport const App = () => Button\n";
+    expect(scanSource(source)).toEqual([{ specifier: "@zevaui/components", names: ["Button"] }]);
+  });
+
+  it("finds every declaration form in a wholly semicolon-free file", () => {
+    const source =
+      'import { Button } from "@zevaui/components"\n' +
+      'import { spacingScale } from "@zevaui/tokens"\n' +
+      'import Zui from "@zevaui/components"\n' +
+      'import * as All from "@zevaui/components"\n' +
+      'import Default, { Card } from "@zevaui/components"\n';
+    expect(scanSource(source)).toEqual([
+      { specifier: "@zevaui/components", names: ["Button"] },
+      { specifier: "@zevaui/tokens", names: ["spacingScale"] },
+      { specifier: "@zevaui/components", names: [] },
+      { specifier: "@zevaui/components", names: [] },
+      { specifier: "@zevaui/components", names: ["Card"] },
+    ]);
+  });
+
+  it("finds a multi-line named import with no terminating semicolon", () => {
+    const source = 'import {\n  Button,\n  Card,\n} from "@zevaui/components"\n';
+    expect(scanSource(source)).toEqual([
+      { specifier: "@zevaui/components", names: ["Button", "Card"] },
+    ]);
+  });
+
+  it("drops a semicolon-free type-only declaration entirely", () => {
+    const source = 'import type { ButtonProps } from "@zevaui/components"';
+    expect(scanSource(source)).toEqual([{ specifier: "@zevaui/components", names: [] }]);
+  });
+
+  it("does not let a non-declaration import reach forward into a later from clause", () => {
+    const source =
+      "const here = import.meta.url\n" + 'import { Button } from "@zevaui/components"\n';
+    expect(scanSource(source)).toEqual([{ specifier: "@zevaui/components", names: ["Button"] }]);
   });
 
   it("exposes the tracked specifier set for reuse", () => {

@@ -99,6 +99,19 @@ describe("audit-usage.js entry", () => {
     expect(adminReport.app).toBe("admin");
     expect(webReport.app).not.toBe(adminReport.app);
   });
+
+  it("(e) reports a corrupt consumer package.json through fail(), not as a raw crash", () => {
+    const workspaceRoot = makeWorkspace();
+    writeFileSync(path.join(workspaceRoot, "package.json"), '{ "dependencies": ');
+
+    const result = runEntry(workspaceRoot, { AUDIT_APP: "web" });
+
+    expect(isCrash(result)).toBe(false);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("[audit-usage] FAIL:");
+    // A raw stack trace means the deliberate failure path was bypassed.
+    expect(result.stderr).not.toMatch(/^\s+at /m);
+  });
 });
 
 describe("step summary rendering", () => {
@@ -132,5 +145,35 @@ describe("step summary rendering", () => {
     // Header, separator, and exactly five data rows — no forged sixth.
     expect(rows).toHaveLength(7);
     expect(summary).not.toContain("| fake | row |");
+  });
+
+  // A lone CR is a line terminator too — old-Mac line endings, and what a
+  // CRLF value degrades to once only the LF is stripped. Escaping \r\n and \n
+  // but not \r leaves the one form that still renders as a break.
+  it("neutralizes a lone carriage return, not just LF and CRLF", () => {
+    const workspaceRoot = makeWorkspace();
+    mkdirSync(path.join(workspaceRoot, "src"), { recursive: true });
+    writeFileSync(
+      path.join(workspaceRoot, "package.json"),
+      JSON.stringify({
+        dependencies: { "@zevaui/components": "1.0.0\r| fake | row |" },
+      }),
+    );
+    writeFileSync(
+      path.join(workspaceRoot, "src", "a.tsx"),
+      'import { Button } from "@zevaui/components";\n',
+    );
+    const summaryPath = path.join(workspaceRoot, "summary.md");
+    writeFileSync(summaryPath, "");
+
+    const result = runEntry(workspaceRoot, {
+      AUDIT_APP: "web",
+      GITHUB_STEP_SUMMARY: summaryPath,
+    });
+    expect(result.status).toBe(0);
+
+    const summary = readFileSync(summaryPath, "utf8");
+    expect(summary).not.toContain("\r");
+    expect(summary.split(/\r\n|\r|\n/).filter((line) => line.startsWith("|"))).toHaveLength(7);
   });
 });
