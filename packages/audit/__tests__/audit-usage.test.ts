@@ -57,6 +57,12 @@ describe("audit-usage.js entry", () => {
     expect(result.stderr).toMatch(/outside/i);
   });
 
+  // GITHUB_REPOSITORY is set explicitly because GitHub Actions ALWAYS sets it,
+  // and that is the only environment this guard exists for. Without it the test
+  // passes on a developer machine for the wrong reason — the fallback is simply
+  // unavailable — while in CI the fallback resolves, the guard never fires, and
+  // a subdirectory's report gets labelled with the whole repository's name.
+  // Which is the exact outcome D3 exists to refuse.
   it('(c) exits 1 (D3 fail-closed) when working-directory != "." and no app is given', () => {
     const workspaceRoot = makeWorkspace();
     mkdirSync(path.join(workspaceRoot, "app"), { recursive: true });
@@ -65,7 +71,10 @@ describe("audit-usage.js entry", () => {
       JSON.stringify({ dependencies: { "@zevaui/components": "^1.0.0" } }),
     );
 
-    const result = runEntry(workspaceRoot, { AUDIT_WORKING_DIRECTORY: "app" });
+    const result = runEntry(workspaceRoot, {
+      AUDIT_WORKING_DIRECTORY: "app",
+      GITHUB_REPOSITORY: "acme/web",
+    });
 
     expect(isCrash(result)).toBe(false);
     expect(result.status).toBe(1);
@@ -111,6 +120,78 @@ describe("audit-usage.js entry", () => {
     expect(result.stderr).toContain("[audit-usage] FAIL:");
     // A raw stack trace means the deliberate failure path was bypassed.
     expect(result.stderr).not.toMatch(/^\s+at /m);
+  });
+
+  // The other side of (c): the fallback still has to WORK when the caller
+  // legitimately did not name an app and is scanning the whole repository.
+  it("(f) falls back to GITHUB_REPOSITORY when no app is given and the scan is repo-wide", () => {
+    const workspaceRoot = makeWorkspace();
+    writeFileSync(
+      path.join(workspaceRoot, "package.json"),
+      JSON.stringify({ dependencies: { "@zevaui/components": "^1.0.0" } }),
+    );
+
+    const result = runEntry(workspaceRoot, { GITHUB_REPOSITORY: "acme/web" });
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout).app).toBe("acme/web");
+  });
+
+  // GitHub Actions passes an omitted `workflow_call` input through as an EMPTY
+  // STRING, never as an unset variable. `??` does not fall back on "", so an
+  // empty AUDIT_APP would resolve to "" and be reported as a missing identity
+  // even when GITHUB_REPOSITORY is perfectly available.
+  it("(g) treats an empty AUDIT_APP as absent, not as an identity", () => {
+    const workspaceRoot = makeWorkspace();
+    writeFileSync(
+      path.join(workspaceRoot, "package.json"),
+      JSON.stringify({ dependencies: { "@zevaui/components": "^1.0.0" } }),
+    );
+
+    const result = runEntry(workspaceRoot, {
+      AUDIT_APP: "",
+      GITHUB_REPOSITORY: "acme/web",
+    });
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout).app).toBe("acme/web");
+  });
+
+  // And the dangerous half: treating blank as absent must NOT let the fallback
+  // satisfy D3. An empty app is still "no app was provided".
+  it('(h) still fails closed when AUDIT_APP is empty and working-directory is not "."', () => {
+    const workspaceRoot = makeWorkspace();
+    mkdirSync(path.join(workspaceRoot, "app"), { recursive: true });
+    writeFileSync(
+      path.join(workspaceRoot, "app", "package.json"),
+      JSON.stringify({ dependencies: { "@zevaui/components": "^1.0.0" } }),
+    );
+
+    const result = runEntry(workspaceRoot, {
+      AUDIT_APP: "",
+      AUDIT_WORKING_DIRECTORY: "app",
+      GITHUB_REPOSITORY: "acme/web",
+    });
+
+    expect(isCrash(result)).toBe(false);
+    expect(result.status).toBe(1);
+  });
+
+  it('(i) treats an empty AUDIT_WORKING_DIRECTORY as "."', () => {
+    const workspaceRoot = makeWorkspace();
+    writeFileSync(
+      path.join(workspaceRoot, "package.json"),
+      JSON.stringify({ dependencies: { "@zevaui/components": "^1.0.0" } }),
+    );
+
+    const result = runEntry(workspaceRoot, {
+      AUDIT_APP: "web",
+      AUDIT_WORKING_DIRECTORY: "",
+      GITHUB_REPOSITORY: "acme/web",
+    });
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout).app).toBe("web");
   });
 });
 
