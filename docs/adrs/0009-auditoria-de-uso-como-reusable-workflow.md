@@ -181,22 +181,50 @@ El texto controlado por el consumidor (`dsVersion` viene de SU `package.json`,
 tres formas de terminador de línea antes de entrar a la tabla. Los inputs
 llegan al shell por `env:`, nunca interpolados dentro de un `run:`.
 
-## Hueco residual — RF-UAW14, nombrado y no cubierto
+## RF-UAW14 — cerrado con evidencia (2026-08-21)
 
-**La auto-invocación `workflow_call` dentro de este mismo repositorio NO prueba
-la resolución cross-repository de `uses: zevaui/design-system/...@v1`, ni el
-camino de publicación del tag.**
+Este hueco nació nombrado: la auto-invocación `workflow_call` same-repo no
+probaba la resolución cross-repository de `uses: ...@v1` ni el camino de
+publicación del tag. El disparador definido para cerrarlo era un consumidor
+externo real. Ocurrió, y su corrida fue inspeccionada — no solo su tilde.
 
-El job `audit-self` de `ci.yml` prueba los inputs, la subida del artefacto y la
-salida del step summary, todo por la ruta local `./.github/workflows/...`. Eso
-es evidencia real sobre el workflow, y no es evidencia sobre lo único que un
-consumidor externo hace distinto: resolver el `uses:` contra otro repositorio,
-en un tag publicado, con los permisos de ESE repositorio.
+**El consumidor**: `ZevaGuillo/zevaui-consumer-probe`, un repositorio externo
+mínimo cuyo workflow es deliberadamente la forma más corta que el README
+promete — `uses: ZevaGuillo/ZevaUI/.github/workflows/audit-ds-usage.yml@v1`
+**sin ningún `with:`**, de modo que la corrida ejercita todos los defaults de
+verdad, no una configuración amable.
 
-Se suma una segunda limitación medida en el mismo lugar: `audit-self` pasa
-`github.event.pull_request.head.sha` como `ds-ref`, que es una rama del mismo
-repositorio. Un PR desde un fork no encontraría ese ref en el repo base.
+**La evidencia** (corrida `32449519175` de ese repositorio, artefacto
+descargado y leído, no inferido del estado del job):
 
-**Disparador para cerrarlo**: un consumidor externo real invocando el workflow
-publicado (D1). Hasta que eso ocurra y su corrida se inspeccione, este camino
-está sin probar y así queda registrado — no implicado como cubierto.
+```json
+{
+  "app": "ZevaGuillo/zevaui-consumer-probe",
+  "dsVersion": "^0.1.0",
+  "dsVersionSource": "declared",
+  "components": ["Badge", "Button", "Card"]
+}
+```
+
+Cada campo prueba una decisión de este ADR operando fuera de este repo: `app`
+es el default `github.repository` atravesando la normalización de inputs
+vacíos (D7); `dsVersion` es la cascada (D8) cayendo honestamente al rango
+declarado, sin `node_modules`; `Badge` entró por un import SIN punto y coma —
+el defecto ASI que el review encontró, arreglado y ahora verificado en un
+consumidor real; el decoy comentado del fixture no aparece; el tag `v1`
+resolvió cross-repo con `ds-ref` en su default `main` (D3).
+
+El camino de publicación del tag también quedó cubierto: `v1` existe como tag
+anotado que versiona el contrato del workflow (no los paquetes), con su
+política de movimiento escrita en el propio mensaje del tag.
+
+## Limitación restante — fork PRs contra ESTE repo, documentada
+
+Una limitación distinta sigue abierta y no la cubre el consumidor externo:
+`audit-self` en `ci.yml` pasa `github.event.pull_request.head.sha` como
+`ds-ref`, que en un PR desde un fork es un ref que el repo base no puede
+resolver — ese job fallaría. Afecta solo a la CI interna de este repositorio
+ante contribuciones de forks, no a ningún consumidor. Se documenta como límite
+conocido; si algún día este repo recibe fork PRs con regularidad, la salida
+probable es resolver el merge ref del PR en el repo base en vez del head del
+fork.
