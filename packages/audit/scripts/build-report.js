@@ -33,7 +33,19 @@ export function resolveDsVersion({ consumerRoot }) {
 
   const consumerPackageJsonPath = path.join(consumerRoot, "package.json");
   if (existsSync(consumerPackageJsonPath)) {
-    const consumerPackageJson = JSON.parse(readFileSync(consumerPackageJsonPath, "utf8"));
+    let consumerPackageJson;
+    try {
+      consumerPackageJson = JSON.parse(readFileSync(consumerPackageJsonPath, "utf8"));
+    } catch (error) {
+      // Not the same call as the installed branch above. There, falling
+      // through is honest: an unreadable node_modules copy is not proof the
+      // package is absent, and the declared range is still to come. Here
+      // there is no successor, so falling through would return null and the
+      // caller would report "not installed and not declared" — a specific
+      // claim about the consumer's manifest that this code just failed to
+      // read. Naming the unreadable file is the only truthful answer.
+      throw new Error(`${consumerPackageJsonPath} is not valid JSON: ${error.message}`);
+    }
     for (const field of DECLARED_FIELDS) {
       const declared = consumerPackageJson[field]?.[DS_PACKAGE_NAME];
       if (typeof declared === "string" && declared.length > 0) {

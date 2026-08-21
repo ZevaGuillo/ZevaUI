@@ -94,7 +94,11 @@ function walkAndScan(consumerRoot) {
 // /^[A-Za-z_$][\w$]*$/), but escaping them costs nothing and means nobody
 // has to re-derive which cells are safe.
 function cell(value) {
-  return String(value).replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
+  // All three line-terminator forms, not just LF and CRLF: a lone CR still
+  // breaks the line wherever it is honoured, and `\r?\n` walks straight past it.
+  return String(value)
+    .replace(/\r\n?|\n/g, " ")
+    .replace(/\|/g, "\\|");
 }
 
 function renderStepSummary(report, skipped) {
@@ -136,7 +140,16 @@ function main() {
     fail("no app identity resolved — set the app input or GITHUB_REPOSITORY");
   }
 
-  const versionResult = resolveDsVersion({ consumerRoot });
+  // resolveDsVersion throws only when the consumer's package.json exists but
+  // cannot be parsed. That is a real, nameable failure and belongs on the
+  // deliberate fail() path — uncaught, it would exit with a raw stack trace
+  // that says nothing about which file is malformed.
+  let versionResult;
+  try {
+    versionResult = resolveDsVersion({ consumerRoot });
+  } catch (error) {
+    fail(error.message);
+  }
   if (!versionResult) {
     fail(
       "@zevaui/components is not installed under node_modules and not declared in " +

@@ -13,6 +13,15 @@ export const TRACKED_SPECIFIERS = new Set(["@zevaui/components", "@zevaui/tokens
 // Keywords after which `/` opens a regex, not a division — the standard
 // previous-significant-token heuristic. Residual ambiguity (e.g. after `)`
 // or `}`) is what spike S-B measures against real, unplanned source.
+//
+// `}` is excluded, so `const ratio = {a:1} / days / 7` stays division. That
+// call is deliberately asymmetric: a real regex opening a statement after a
+// block `}` now goes un-blanked, but the two mistakes do not cost the same.
+// Blanking real code deletes a genuine import and the audit reports success
+// with a shorter list — silent, and the exact failure this whole design
+// exists to prevent. Leaving a regex un-blanked can at worst surface a
+// decoy import as a phantom component, which is wrong out loud and gets
+// noticed. When the heuristic must guess, it guesses toward the loud error.
 const REGEX_CONTEXT_KEYWORDS = new Set([
   "return",
   "typeof",
@@ -35,7 +44,7 @@ function regexAllowed(prevToken) {
   if (prevToken === "") return true;
   if (/^[A-Za-z_$][\w$]*$/.test(prevToken)) return REGEX_CONTEXT_KEYWORDS.has(prevToken);
   if (/^[0-9]/.test(prevToken)) return false;
-  return ![")", "]", '"', "'", "`", "/"].includes(prevToken);
+  return ![")", "]", "}", '"', "'", "`", "/"].includes(prevToken);
 }
 
 export function blankSource(source) {
@@ -164,10 +173,29 @@ export function blankSource(source) {
   return out.join("");
 }
 
-// Parses one `import` declaration at `start` in the ORIGINAL source,
-// bounded to the first `;` within a 4000-char lookahead — this is what
-// keeps a dynamic `import(...)` call (no `from`) from accidentally matching
-// a LATER, unrelated import's `from` clause inside the lookahead window.
+// The whole import clause, anchored at the `import` keyword and ending at
+// the specifier's closing quote — which is where an import declaration
+// actually ends. Group 1 is the named list's contents when there is one,
+// group 3 the specifier.
+//
+//   [default ,] ( { … } | * as ns | default )  from  "specifier"
+//
+// The alternation's members carry their own trailing separator because only
+// `}` may abut `from` with no space (`import {a}from "x"` is legal).
+const IMPORT_DECLARATION =
+  /^\s*(?:[A-Za-z_$][\w$]*\s*,\s*)?(?:\{([^}]*)\}\s*|\*\s*as\s+[A-Za-z_$][\w$]*\s+|[A-Za-z_$][\w$]*\s+)from\s*(["'])([^"']*)\2/;
+
+// Parses one `import` declaration at `start` in the ORIGINAL source, within
+// a 4000-char lookahead.
+//
+// This used to bound the declaration at the first `;`, which silently
+// dropped every import written without one — ASI style, what Prettier with
+// `semi: false` and Standard both emit. That is worse than reporting
+// nothing: the consumer gets an empty `components[]`, exit 0, and no
+// warning. Matching the clause shape is what delimits the declaration now,
+// and anchoring at `^` is what replaces the `;` as a forward bound: a
+// non-declaration `import` (`import.meta.url`, a dynamic `import(...)`)
+// fails at the first token and cannot reach a LATER import's `from` clause.
 function parseImportDeclaration(source, start) {
   const window = source.slice(start, start + 4000);
   const afterImport = window.slice("import".length);
@@ -179,18 +207,16 @@ function parseImportDeclaration(source, start) {
   const rest = afterImport.slice(typeOnly ? typeOnly[0].length : 0);
   if (rest.trimStart().startsWith("(")) return null; // dynamic import(), not a declaration
 
-  const statementEnd = rest.indexOf(";");
-  if (statementEnd === -1) return null;
-  const statement = rest.slice(0, statementEnd).trimEnd();
+  const declaration = IMPORT_DECLARATION.exec(rest);
+  if (!declaration) return null;
 
-  const from = /from\s*(["'])([^"']*)\1$/.exec(statement);
-  if (!from) return null;
-  if (typeOnly) return { specifier: from[2], names: [] }; // RF-UAW05: whole import is type-only
+  const specifier = declaration[3];
+  if (typeOnly) return { specifier, names: [] }; // RF-UAW05: whole import is type-only
 
-  const namedList = /\{([^}]*)\}/.exec(statement.slice(0, from.index));
-  if (!namedList) return { specifier: from[2], names: [] }; // default or namespace: no static names
+  const namedList = declaration[1];
+  if (namedList === undefined) return { specifier, names: [] }; // default or namespace
 
-  const names = namedList[1]
+  const names = namedList
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0 && !/^type\s/.test(entry))
@@ -200,7 +226,7 @@ function parseImportDeclaration(source, start) {
     })
     .filter((name) => /^[A-Za-z_$][\w$]*$/.test(name));
 
-  return { specifier: from[2], names };
+  return { specifier, names };
 }
 
 export function scanSource(source) {
