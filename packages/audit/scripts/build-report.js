@@ -57,6 +57,17 @@ export function resolveDsVersion({ consumerRoot }) {
   return null;
 }
 
+// UTF-16 code-unit order, explicit. The default sort() happens to produce the
+// same order for strings, but as an accident of coercion rather than a stated
+// contract (Sonar S2871). NOT localeCompare: this array is deep-equalled
+// against a committed expected report, and localeCompare without an explicit
+// locale follows the runner's ICU — two honest runs could sort differently.
+function byCodeUnit(a, b) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
 // Exact 5-key shape (D8): no deprecation field, not even as `null` (D3).
 export function buildReport({ app, importsBySpecifier, dsVersion, dsVersionSource, generatedAt }) {
   const componentNames = new Set();
@@ -69,7 +80,7 @@ export function buildReport({ app, importsBySpecifier, dsVersion, dsVersionSourc
     app,
     dsVersion,
     dsVersionSource,
-    components: [...componentNames].sort(),
+    components: [...componentNames].sort(byCodeUnit),
     generatedAt,
   };
 }

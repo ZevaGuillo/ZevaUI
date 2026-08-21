@@ -74,5 +74,13 @@ export function consumedTokens(css: string, classNames: readonly string[]): stri
       tokens.add(reference[1]);
     }
   }
-  return [...tokens].sort();
+  // UTF-16 code-unit order, explicit (Sonar S2871) — same defect class as the
+  // audit report's component sort, fixed the same way. Not localeCompare:
+  // token lists feed assertions against committed expectations, and an
+  // ICU-dependent order would let two honest environments disagree.
+  return [...tokens].sort((a, b) => {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+  });
 }
