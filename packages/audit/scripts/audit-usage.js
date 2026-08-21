@@ -6,83 +6,14 @@
 // Inputs arrive as env vars (AUDIT_APP, AUDIT_WORKING_DIRECTORY), not argv:
 // the reusable workflow (PR2) invokes this with a plain `node <path>` step,
 // passing workflow_call inputs through as step-level `env:`.
-import { appendFileSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { appendFileSync } from "node:fs";
 import path from "node:path";
 import { buildReport, resolveDsVersion } from "./build-report.js";
-import { scanSource } from "./scan-source.js";
-
-const PRUNED_DIRS = new Set([
-  "node_modules",
-  ".git",
-  "dist",
-  ".next",
-  "build",
-  "out",
-  "coverage",
-  ".turbo",
-  "storybook-static",
-]);
-const ALLOWED_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts"]);
-const MAX_FILE_BYTES = 1 * 1024 * 1024;
-const MAX_SCANNED_FILES = 20000;
+import { MAX_SCANNED_FILES, walkAndScan } from "./walk-source-tree.js";
 
 function fail(message) {
   console.error(`[audit-usage] FAIL: ${message}`);
   process.exit(1);
-}
-
-// Pruned-dir walk, symlink-averse, extension-allowlisted, size/count-capped
-// (D10): a silent skip is a lie, so skips are counted and named; a repo too
-// large to finish exits 1 rather than reporting a partial truth as a whole.
-function walkAndScan(consumerRoot) {
-  const imports = [];
-  const skipped = [];
-  let scannedCount = 0;
-  const stack = [consumerRoot];
-
-  while (stack.length > 0) {
-    const dir = stack.pop();
-    let entries;
-    try {
-      entries = readdirSync(dir, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-
-    for (const entry of entries) {
-      if (entry.isSymbolicLink()) continue;
-      const fullPath = path.join(dir, entry.name);
-
-      if (entry.isDirectory()) {
-        if (!PRUNED_DIRS.has(entry.name)) stack.push(fullPath);
-        continue;
-      }
-      if (!entry.isFile()) continue;
-      if (!ALLOWED_EXTENSIONS.has(path.extname(entry.name))) continue;
-
-      scannedCount += 1;
-      if (scannedCount > MAX_SCANNED_FILES) {
-        fail(
-          `scanned more than ${MAX_SCANNED_FILES} files without finishing — refusing to report ` +
-            "a partial truth as a whole one",
-        );
-      }
-
-      const relativePath = path.relative(consumerRoot, fullPath);
-      try {
-        if (statSync(fullPath).size > MAX_FILE_BYTES) {
-          skipped.push(relativePath);
-          continue;
-        }
-        const contents = readFileSync(fullPath, "utf8");
-        imports.push(...scanSource(contents));
-      } catch {
-        skipped.push(relativePath);
-      }
-    }
-  }
-
-  return { imports, skipped };
 }
 
 // The table is the one place consumer-controlled text reaches rendered
@@ -158,7 +89,15 @@ function main() {
     );
   }
 
-  const { imports, skipped } = walkAndScan(consumerRoot);
+  // D10: a repo too large to finish exits 1 rather than reporting a partial
+  // truth as a whole one. The walk signals it; the message belongs here.
+  const { imports, skipped, overflowed } = walkAndScan(consumerRoot);
+  if (overflowed) {
+    fail(
+      `scanned more than ${MAX_SCANNED_FILES} files without finishing — refusing to report ` +
+        "a partial truth as a whole one",
+    );
+  }
 
   const report = buildReport({
     app: appInput,

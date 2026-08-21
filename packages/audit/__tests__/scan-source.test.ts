@@ -168,6 +168,38 @@ describe("scanSource", () => {
     expect(scanSource(source)).toEqual([{ specifier: "@zevaui/components", names: ["Button"] }]);
   });
 
+  // A comment inside a named list is ordinary code that people write. The
+  // list is captured from the ORIGINAL source, where an unblanked comment
+  // rides in the same comma-separated chunk as the name after it — and takes
+  // that name down with it. Silent undercount, exit 0, nobody the wiser.
+  it("keeps every name when a line comment trails a comma inside the list", () => {
+    const source = 'import {\n  Button, // the button\n  Card,\n} from "@zevaui/components";';
+    expect(scanSource(source)).toEqual([
+      { specifier: "@zevaui/components", names: ["Button", "Card"] },
+    ]);
+  });
+
+  it("keeps every name when a line comment sits on its own line inside the list", () => {
+    const source = 'import {\n  // the button\n  Button,\n  Card,\n} from "@zevaui/components";';
+    expect(scanSource(source)).toEqual([
+      { specifier: "@zevaui/components", names: ["Button", "Card"] },
+    ]);
+  });
+
+  it("keeps every name when a block comment sits between two names", () => {
+    const source = 'import { Button, /* why */ Card } from "@zevaui/components";';
+    expect(scanSource(source)).toEqual([
+      { specifier: "@zevaui/components", names: ["Button", "Card"] },
+    ]);
+  });
+
+  it("keeps every name when a comment sits inside a semicolon-free list", () => {
+    const source = 'import {\n  Button, // the button\n  Card,\n} from "@zevaui/components"\n';
+    expect(scanSource(source)).toEqual([
+      { specifier: "@zevaui/components", names: ["Button", "Card"] },
+    ]);
+  });
+
   it("exposes the tracked specifier set for reuse", () => {
     expect(TRACKED_SPECIFIERS.has("@zevaui/components")).toBe(true);
     expect(TRACKED_SPECIFIERS.has("@zevaui/tokens")).toBe(true);
