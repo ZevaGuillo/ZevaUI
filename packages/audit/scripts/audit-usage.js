@@ -45,10 +45,27 @@ function renderStepSummary(report, skipped) {
   );
 }
 
+// GitHub Actions passes an omitted `workflow_call` input through as an EMPTY
+// STRING, never as an unset variable, so `??` never fires on one.
+function provided(value) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function main() {
   const workspaceRoot = path.resolve(process.env.GITHUB_WORKSPACE ?? process.cwd());
-  const workingDirectoryInput = process.env.AUDIT_WORKING_DIRECTORY ?? ".";
-  const appInput = process.env.AUDIT_APP ?? process.env.GITHUB_REPOSITORY;
+  const workingDirectoryInput = provided(process.env.AUDIT_WORKING_DIRECTORY) ?? ".";
+  // Two different questions, deliberately kept apart. `explicitApp` answers
+  // "did the caller name this app?", which is what D3 below asks. `appInput`
+  // answers "what do we label the report with?".
+  //
+  // Collapsing them is not a style choice, it is the bug that shipped: with
+  // one value, GITHUB_REPOSITORY — which Actions ALWAYS sets — satisfied D3's
+  // check, so the guard never fired in the only environment it exists for, and
+  // a subdirectory's report was labelled with the whole repository's name.
+  // Measured, and it is exactly the outcome D3 exists to refuse.
+  const explicitApp = provided(process.env.AUDIT_APP);
+  const appInput = explicitApp ?? provided(process.env.GITHUB_REPOSITORY);
 
   const consumerRoot = path.resolve(workspaceRoot, workingDirectoryInput);
   const relativeToWorkspace = path.relative(workspaceRoot, consumerRoot);
@@ -61,7 +78,7 @@ function main() {
 
   // D3: the default identity (github.repository) is only safe for the
   // single-app case; refuse the one configuration where it is LIKELY wrong.
-  if (workingDirectoryInput !== "." && !appInput) {
+  if (workingDirectoryInput !== "." && !explicitApp) {
     fail(
       'working-directory is set to something other than "." but no app was provided — the ' +
         "default (github.repository) would silently mislabel this report",
