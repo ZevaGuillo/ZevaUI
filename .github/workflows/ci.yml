@@ -99,3 +99,29 @@ jobs:
       # at red needs to know is which workflow regenerates the baselines.
       - name: "Visual regression vs the committed baselines (to refresh them: dispatch visual-baselines.yml)"
         run: pnpm --filter @zevaui/storybook run test:visual
+
+  # RF-UAW13: this repository is the first consumer of its own reusable
+  # workflow. `audit:gate` above already proves the SCANNER produces the right
+  # report — but it runs the script directly, so it proves nothing about the
+  # workflow that consumers actually invoke: the double checkout, the pinned
+  # Node, the env wiring, the artifact upload. This job is the only place those
+  # are exercised, and it fails the same way a consumer's would.
+  #
+  # It targets the committed fixture consumer rather than this repo's own
+  # source, so the artifact has a known-correct answer to be checked against
+  # (expected-report.json) instead of a number nobody can verify by eye.
+  #
+  # Runs in parallel with `ci`, not after it: it is independent evidence about
+  # the workflow, and gating it behind the whole suite would only delay the
+  # signal without making it more trustworthy.
+  audit-self:
+    uses: ./.github/workflows/audit-ds-usage.yml
+    with:
+      app: zevaui-fixture-consumer
+      working-directory: packages/audit/__fixtures__/consumer
+      # The branch head, not `github.sha`: on a pull_request event the latter
+      # is the ephemeral merge commit, which the DS checkout inside the called
+      # workflow cannot resolve by SHA. Same-repo branches only — a fork PR
+      # would not find this ref in the base repository, and that limitation is
+      # named in ADR-0009 rather than papered over here.
+      ds-ref: ${{ github.event.pull_request.head.sha || github.sha }}
