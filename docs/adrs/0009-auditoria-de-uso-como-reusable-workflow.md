@@ -28,7 +28,21 @@ mirarlo dos veces. Todo lo que sigue está ordenado alrededor de eso.
 
 ## Decisión
 
-### D1 — Reusable workflow, no acción publicada
+Los `D#` de abajo están acotados a este ADR, como en `ADR-0002` y `ADR-0008`.
+**No son los mismos números que las decisiones vinculantes del cambio SDD**
+`usage-audit-workflow`, que ya venían numeradas aparte y cuyo D8 —la cascada de
+`dsVersion`— coincide en significado con el D8 de acá por casualidad y no por
+diseño. Cuando un `D#` de este ADR reformula una decisión ya tomada, lo dice.
+
+| Decisión de este ADR | Procedencia |
+|---|---|
+| D1, D2 | Reformulan decisiones vinculantes ya tomadas del cambio (sin red, lógica inline sin publicar) |
+| D3 | **Tomada al aceptar este ADR.** Ver abajo |
+| D4, D6, D7 | Originadas acá: son la forma que tomaron tres defectos medidos durante la implementación, no elecciones de producto |
+| D5 | Reformula el techo del parser ya especificado (RF-UAW05), más un hueco nuevo que encontró el review |
+| D8 | Reformula la cascada de `dsVersion` ya decidida, que enmienda RF-UAW07 |
+
+### D1. Reusable workflow, no acción publicada
 
 `.github/workflows/audit-ds-usage.yml` con `on: workflow_call` únicamente, sin
 `push` ni `pull_request` ni `workflow_dispatch`. Este archivo existe para ser
@@ -40,7 +54,7 @@ cuatro módulos Node sin dependencias que solo importan `node:` y entre sí, as�
 que un checkout ES la instalación completa. Esa propiedad se defiende: es lo
 que impide que este workflow ejecute el lockfile de un consumidor.
 
-### D2 — Sin red (RF-UAW09)
+### D2. Sin red (RF-UAW09)
 
 El reporte se publica por `actions/upload-artifact` y `$GITHUB_STEP_SUMMARY`.
 Ninguna llamada HTTP saliente. `permissions: contents: read` y nada más: este
@@ -48,14 +62,30 @@ workflow lee fuente ajena y emite un reporte, nunca necesita escribir en el
 repositorio del consumidor, y un token que no puede escribir es la única
 prueba durable de eso.
 
-### D3 — El `ds-ref` es obligatorio y sin default
+### D3. El `ds-ref` es opcional, con default `main`
 
-El reporte dice qué versión del DS usa el consumidor, pero **no dice qué
-escáner lo produjo**. Un `ds-ref` sin pin haría que dos corridas idénticas
-significaran cosas distintas sin que nada cambie a la vista. Se pina igual que
-se pina el workflow.
+Adoptar la auditoría cuesta un bloque y ninguna decisión. Ese es el objetivo:
+una herramienta de gobernanza que nadie adopta no gobierna nada, y exigir un
+pin en el primer contacto es fricción justo en el momento de menor motivación.
 
-### D4 — `.zevaui-audit` es un contrato entre el YAML y el escáner
+**El costo, registrado y no escondido**: el reporte dice qué versión del DS usa
+el consumidor, pero **no dice qué escáner lo produjo**. Sobre el default, el
+escáner se mueve con `main`, así que dos corridas que se ven idénticas pueden
+significar cosas distintas sin que nada cambie a la vista del consumidor.
+Concretamente: si el techo del parser (D5) se corre —por ejemplo el día que se
+soporte re-export de barril— un consumidor sobre `main` va a ver crecer su
+`components[]` sin haber tocado una línea, y no va a tener forma de saber si
+empezó a usar componentes nuevos o si el escáner empezó a verlos.
+
+Quien necesite reportes comparables en el tiempo pina un tag. La descripción
+del input lo dice, y el README lo muestra en el ejemplo de monorepo, que es
+donde la comparabilidad importa de verdad.
+
+Alternativa considerada y descartada: hacerlo obligatorio sin default. Cierra
+el agujero de comparabilidad pero le pone el costo a todos, incluido el
+consumidor que solo quiere saber qué usa hoy.
+
+### D4. `.zevaui-audit` es un contrato entre el YAML y el escáner
 
 El workflow checkoutea este design system DENTRO del workspace del consumidor.
 Con `working-directory: "."` el walk entra ahí y reporta como propios los
@@ -69,7 +99,7 @@ segundo checkout tienen que ser idénticos. Cambiar uno sin el otro suma
 nuestros componentes al reporte de cada consumidor, en silencio. Está cubierto
 por test unitario.
 
-### D5 — Techo del parser, declarado y asertado ausente (RF-UAW05)
+### D5. Techo del parser, declarado y asertado ausente (RF-UAW05)
 
 El escáner es un lexer de dos etapas, no un parser de TypeScript. La etapa 1
 blanquea comentarios, strings, template literals y regex preservando offsets;
@@ -93,7 +123,7 @@ adivinar, se adivina hacia el error ruidoso.
 Spike S-B corrido contra 32 archivos reales y no planificados de este repo:
 cero crashes, cero desajustes de longitud, cero falsos positivos.
 
-### D6 — Todo salto no leído se NOMBRA
+### D6. Todo salto no leído se NOMBRA
 
 `skipped[]` nombra todo lo que el walk no pudo leer: symlinks (nunca se
 siguen), directorios ilegibles, entradas que no son archivo, archivos sobre el
@@ -109,7 +139,7 @@ producir de forma portable —Windows rechaza `symlinkSync` con EPERM, y un
 directorio ilegible no tiene receta portable— así que sin esa costura las dos
 rutas quedaban sin test en las máquinas donde se desarrolla este repo.
 
-### D7 — Inputs vacíos, no ausentes
+### D7. Inputs vacíos, no ausentes
 
 GitHub Actions pasa un input omitido de `workflow_call` como **string vacío**,
 nunca como variable sin definir. `??` no cae al default con `""`, así que cada
@@ -121,7 +151,7 @@ identidad) y "¿con qué etiquetamos el reporte?". Colapsarlas dejaría que el
 fallback a `github.repository` satisficiera el guardia y etiquetara el reporte
 de un subdirectorio con el nombre del repositorio entero.
 
-### D8 — `dsVersion` en cascada, con procedencia declarada
+### D8. `dsVersion` en cascada, con procedencia declarada
 
 Enmienda RF-UAW07. Se prefiere la versión instalada exacta
 (`node_modules/@zevaui/components/package.json#version`); si no hay

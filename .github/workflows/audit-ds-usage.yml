@@ -35,13 +35,17 @@ on:
         default: "."
       ds-ref:
         description: >-
-          The design-system revision whose scanner runs. REQUIRED, and
-          deliberately has no default: the report says which DS version the
-          consumer uses, but not which scanner produced it, so an unpinned
-          scanner would silently change what a report means between two runs
-          that look identical. Pin it the same way you pin this workflow.
-        required: true
+          The design-system revision whose scanner runs. Defaults to `main` so
+          adding this workflow costs one block and no decisions.
+
+          Pin it to a tag when a report has to be comparable over time: the
+          report records which DS version the consumer uses, not which scanner
+          produced it, so on the default two identical-looking runs can mean
+          different things once the scanner on `main` moves. That trade is
+          recorded in ADR-0009 D3.
+        required: false
         type: string
+        default: main
 
 # Read-only, and nothing else. This workflow reads a consumer's source and
 # emits a report; it never needs to write to their repository, and a token that
