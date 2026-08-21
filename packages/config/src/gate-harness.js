@@ -43,6 +43,7 @@ import { fileURLToPath } from "node:url";
  * workspace root, which is precisely the accident that let a broken
  * `pnpm exec playwright` sit unnoticed in CI.
  */
+/** @param {(specifier: string) => string} resolve the CALLER's import.meta.resolve */
 export function resolveVitestBin(resolve) {
   const packageJsonUrl = resolve("vitest/package.json");
   const packageJsonPath = fileURLToPath(packageJsonUrl);
@@ -59,6 +60,13 @@ export function resolveVitestBin(resolve) {
  * `shell: false` with an argument array, never a composed command string:
  * these scripts pass file paths and, in the visual gates, values that vary
  * per invocation.
+ */
+/**
+ * @param {object} options
+ * @param {string[]} options.args
+ * @param {string} options.cwd
+ * @param {NodeJS.ProcessEnv} [options.env]
+ * @returns {import("node:child_process").SpawnSyncReturns<string>}
  */
 export function runNode({ args, cwd, env }) {
   const result = spawnSync(process.execPath, args, {
@@ -79,6 +87,7 @@ export function runNode({ args, cwd, env }) {
  * from "completed and reported success", which is a gate failure of a
  * completely different kind.
  */
+/** @param {import("node:child_process").SpawnSyncReturns<string>} result */
 export function isCrash(result) {
   return result.status === null || result.status >= 126;
 }
@@ -87,6 +96,11 @@ export function isCrash(result) {
  * Reports the crash branch and marks the process failed. `label` is the gate's
  * own tag (`a11y-gate`, `visual-overlay-gate`, …) and `step` optionally names
  * which invocation crashed, for the multi-step visual gates.
+ */
+/**
+ * @param {string} label
+ * @param {import("node:child_process").SpawnSyncReturns<string>} result
+ * @param {string} [step]
  */
 export function reportCrash(label, result, step) {
   const during = step ? ` during "${step}"` : "";
@@ -105,6 +119,7 @@ export function reportCrash(label, result, step) {
  * (offset 20), both big-endian. No PNG-parsing dependency needed for two
  * integers, matching this repo's no-new-tooling script convention.
  */
+/** @param {string} pngPath */
 export function readPngSize(pngPath) {
   const buffer = readFileSync(pngPath);
   return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
@@ -133,6 +148,19 @@ export function readPngSize(pngPath) {
  * specific fixture and what its failure would mean. The rest are mechanical
  * and stay here.
  */
+/**
+ * @param {object} options
+ * @param {string} options.label
+ * @param {string} options.packageRoot
+ * @param {string} options.vitestBin
+ * @param {string} options.configPath
+ * @param {string} options.screenshotsDir
+ * @param {string} options.envVar
+ * @param {string} options.seedValue
+ * @param {string} options.mismatchValue
+ * @param {{ width: number, height: number }} options.expectedFrame
+ * @param {{ notCaught: string, passed: string }} options.messages
+ */
 export function runScreenshotGate({
   label,
   packageRoot,
@@ -145,6 +173,7 @@ export function runScreenshotGate({
   expectedFrame,
   messages,
 }) {
+  /** @type {(step: { value: string, update: boolean, ci: boolean }) => import("node:child_process").SpawnSyncReturns<string>} */
   const run = ({ value, update, ci }) => {
     const args = [vitestBin, "run", "--config", configPath];
     if (update) args.push("--update");

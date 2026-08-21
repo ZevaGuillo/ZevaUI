@@ -37,6 +37,7 @@ function fail(message) {
 // names need no escaping (scan-source.js already constrains them to
 // /^[A-Za-z_$][\w$]*$/), but escaping them costs nothing and means nobody
 // has to re-derive which cells are safe.
+/** @param {unknown} value */
 function cell(value) {
   // All three line-terminator forms, not just LF and CRLF: a lone CR still
   // breaks the line wherever it is honoured, and `\r?\n` walks straight past it.
@@ -45,6 +46,10 @@ function cell(value) {
     .replace(/\|/g, "\\|");
 }
 
+/**
+ * @param {import("./build-report.js").UsageReport} report
+ * @param {string[]} skipped
+ */
 function renderStepSummary(report, skipped) {
   const componentsCell = report.components.length === 0 ? "_none_" : report.components.join(", ");
   return (
@@ -60,6 +65,7 @@ function renderStepSummary(report, skipped) {
 
 // GitHub Actions passes an omitted `workflow_call` input through as an EMPTY
 // STRING, never as an unset variable, so `??` never fires on one.
+/** @type {(value: string | undefined) => string | undefined} */
 function provided(value) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
@@ -109,7 +115,7 @@ function main() {
   try {
     versionResult = resolveDsVersion({ consumerRoot });
   } catch (error) {
-    fail(error.message);
+    fail(error instanceof Error ? error.message : String(error));
   }
   if (!versionResult) {
     fail(
