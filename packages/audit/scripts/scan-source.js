@@ -182,8 +182,12 @@ export function blankSource(source) {
 //
 // The alternation's members carry their own trailing separator because only
 // `}` may abut `from` with no space (`import {a}from "x"` is legal).
+//
+// The `d` flag is load-bearing, not decoration: `indices[1]` is what lets the
+// named list be re-read from the SANITIZED text at the same offsets. See
+// parseImportDeclaration.
 const IMPORT_DECLARATION =
-  /^\s*(?:[A-Za-z_$][\w$]*\s*,\s*)?(?:\{([^}]*)\}\s*|\*\s*as\s+[A-Za-z_$][\w$]*\s+|[A-Za-z_$][\w$]*\s+)from\s*(["'])([^"']*)\2/;
+  /^\s*(?:[A-Za-z_$][\w$]*\s*,\s*)?(?:\{([^}]*)\}\s*|\*\s*as\s+[A-Za-z_$][\w$]*\s+|[A-Za-z_$][\w$]*\s+)from\s*(["'])([^"']*)\2/d;
 
 // Parses one `import` declaration at `start` in the ORIGINAL source, within
 // a 4000-char lookahead.
@@ -196,7 +200,7 @@ const IMPORT_DECLARATION =
 // and anchoring at `^` is what replaces the `;` as a forward bound: a
 // non-declaration `import` (`import.meta.url`, a dynamic `import(...)`)
 // fails at the first token and cannot reach a LATER import's `from` clause.
-function parseImportDeclaration(source, start) {
+function parseImportDeclaration(source, sanitized, start) {
   const window = source.slice(start, start + 4000);
   const afterImport = window.slice("import".length);
 
@@ -205,6 +209,7 @@ function parseImportDeclaration(source, start) {
 
   const typeOnly = /^\s+type\s/.exec(afterImport);
   const rest = afterImport.slice(typeOnly ? typeOnly[0].length : 0);
+  const restOffset = start + "import".length + (typeOnly ? typeOnly[0].length : 0);
   if (rest.trimStart().startsWith("(")) return null; // dynamic import(), not a declaration
 
   const declaration = IMPORT_DECLARATION.exec(rest);
@@ -213,10 +218,18 @@ function parseImportDeclaration(source, start) {
   const specifier = declaration[3];
   if (typeOnly) return { specifier, names: [] }; // RF-UAW05: whole import is type-only
 
-  const namedList = declaration[1];
-  if (namedList === undefined) return { specifier, names: [] }; // default or namespace
+  const namedListRange = declaration.indices[1];
+  if (namedListRange === undefined) return { specifier, names: [] }; // default or namespace
 
-  const names = namedList
+  // Read the list back out of the SANITIZED text at the very same offsets.
+  // Stage 1 preserves offsets precisely so this is possible, and this is the
+  // one place it has to be used: a comment inside the list is already blanked
+  // there, whereas in the ORIGINAL it rides in the same comma-separated chunk
+  // as the name that follows it and drags that name out of the report. The
+  // specifier still comes from the original, because stage 1 blanks the
+  // quotes too and there is nothing left to read there.
+  const names = sanitized
+    .slice(restOffset + namedListRange[0], restOffset + namedListRange[1])
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0 && !/^type\s/.test(entry))
@@ -235,7 +248,7 @@ export function scanSource(source) {
   const results = [];
   let match = importKeyword.exec(sanitized);
   while (match) {
-    const parsed = parseImportDeclaration(source, match.index);
+    const parsed = parseImportDeclaration(source, sanitized, match.index);
     if (parsed && TRACKED_SPECIFIERS.has(parsed.specifier)) results.push(parsed);
     match = importKeyword.exec(sanitized);
   }
