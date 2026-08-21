@@ -40,6 +40,7 @@ const REGEX_CONTEXT_KEYWORDS = new Set([
   "default",
 ]);
 
+/** @param {string} prevToken */
 function regexAllowed(prevToken) {
   if (prevToken === "") return true;
   if (/^[A-Za-z_$][\w$]*$/.test(prevToken)) return REGEX_CONTEXT_KEYWORDS.has(prevToken);
@@ -47,9 +48,14 @@ function regexAllowed(prevToken) {
   return ![")", "]", "}", '"', "'", "`", "/"].includes(prevToken);
 }
 
+/**
+ * @param {string} source
+ * @returns {string} same length and line count, literals blanked in place
+ */
 export function blankSource(source) {
   const n = source.length;
   const out = source.split("");
+  /** @type {(from: number, to: number) => void} */
   const blank = (from, to) => {
     for (let k = from; k < to; k += 1) if (out[k] !== "\n") out[k] = " ";
   };
@@ -57,6 +63,7 @@ export function blankSource(source) {
   // Stack of open `${ }` interpolations: "template" = consuming literal
   // TEXT; a number = an open expression's own unmatched-brace depth (so a
   // nested object literal's braces don't close the `${ }` early).
+  /** @type {Array<"template" | number>} */
   const stack = [];
   let prevToken = "";
   let i = 0;
@@ -148,11 +155,12 @@ export function blankSource(source) {
       // through and treat this `/` as an ordinary (division) character.
     }
 
-    if (typeof stack[stack.length - 1] === "number") {
-      if (ch === "{") stack[stack.length - 1] += 1;
+    const openExpressionDepth = stack[stack.length - 1];
+    if (typeof openExpressionDepth === "number") {
+      if (ch === "{") stack[stack.length - 1] = openExpressionDepth + 1;
       else if (ch === "}") {
-        if (stack[stack.length - 1] === 0) stack.pop();
-        else stack[stack.length - 1] -= 1;
+        if (openExpressionDepth === 0) stack.pop();
+        else stack[stack.length - 1] = openExpressionDepth - 1;
       }
     }
 
@@ -200,6 +208,16 @@ const IMPORT_DECLARATION =
 // and anchoring at `^` is what replaces the `;` as a forward bound: a
 // non-declaration `import` (`import.meta.url`, a dynamic `import(...)`)
 // fails at the first token and cannot reach a LATER import's `from` clause.
+/**
+ * @typedef {{ specifier: string, names: string[] }} ScannedImport
+ */
+
+/**
+ * @param {string} source
+ * @param {string} sanitized
+ * @param {number} start
+ * @returns {ScannedImport | null}
+ */
 function parseImportDeclaration(source, sanitized, start) {
   const window = source.slice(start, start + 4000);
   const afterImport = window.slice("import".length);
@@ -218,6 +236,13 @@ function parseImportDeclaration(source, sanitized, start) {
   const specifier = declaration[3];
   if (typeOnly) return { specifier, names: [] }; // RF-UAW05: whole import is type-only
 
+  if (declaration.indices === undefined) {
+    // Impossible while IMPORT_DECLARATION carries its `d` flag — indices is
+    // what that flag produces. A guard that quietly fell back would classify
+    // every named import as default-shaped and silently undercount, so this
+    // tripwire is loud on purpose: it fires only if someone drops the flag.
+    throw new Error("IMPORT_DECLARATION lost its `d` flag; named-list offsets are gone");
+  }
   const namedListRange = declaration.indices[1];
   if (namedListRange === undefined) return { specifier, names: [] }; // default or namespace
 
@@ -242,6 +267,10 @@ function parseImportDeclaration(source, sanitized, start) {
   return { specifier, names };
 }
 
+/**
+ * @param {string} source
+ * @returns {ScannedImport[]}
+ */
 export function scanSource(source) {
   const sanitized = blankSource(source);
   const importKeyword = /\bimport\b/g;

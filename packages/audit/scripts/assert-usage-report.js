@@ -35,6 +35,7 @@ function removePhantomImport() {
   rmSync(phantomNodeModules, { recursive: true, force: true });
 }
 
+/** @param {string} stepSummaryPath */
 function runEntry(stepSummaryPath) {
   return runNode({
     args: [entryScriptPath],
@@ -73,7 +74,9 @@ function main() {
       actual = JSON.parse(result.stdout);
     } catch (error) {
       console.error(
-        `\n[${LABEL}] FAILED: audit-usage.js's stdout was not valid JSON: ${error.message}`,
+        `\n[${LABEL}] FAILED: audit-usage.js's stdout was not valid JSON: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
       process.exitCode = 1;
       return;
@@ -100,7 +103,7 @@ function main() {
     } catch (error) {
       console.error(
         `\n[${LABEL}] FAILED: the fixture's report does not match ` +
-          `__fixtures__/expected-report.json.\n${error.message}`,
+          `__fixtures__/expected-report.json.\n${error instanceof Error ? error.message : String(error)}`,
       );
       process.exitCode = 1;
       return;

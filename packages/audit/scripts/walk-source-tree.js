@@ -84,7 +84,9 @@ const nodeIo = { readdirSync, statSync, readFileSync };
  * @param {SourceTreeIo} [io]
  */
 export function walkAndScan(consumerRoot, io = nodeIo) {
+  /** @type {import("./scan-source.js").ScannedImport[]} */
   const imports = [];
+  /** @type {string[]} */
   const skipped = [];
   let scannedCount = 0;
   let overflowed = false;
@@ -92,6 +94,10 @@ export function walkAndScan(consumerRoot, io = nodeIo) {
 
   while (stack.length > 0 && !overflowed) {
     const dir = stack.pop();
+    // The loop condition guarantees a non-empty stack; the checker cannot
+    // see across the two statements, and a bare assertion would hide a real
+    // future bug if the condition ever changed. Break is equivalent and honest.
+    if (dir === undefined) break;
     let entries;
     try {
       entries = io.readdirSync(dir, { withFileTypes: true });

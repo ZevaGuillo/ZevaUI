@@ -12,6 +12,14 @@ import path from "node:path";
 const DECLARED_FIELDS = ["dependencies", "devDependencies", "peerDependencies"];
 const DS_PACKAGE_NAME = "@zevaui/components";
 
+/**
+ * @typedef {{ version: string, source: "installed" | "declared" }} ResolvedDsVersion
+ */
+
+/**
+ * @param {{ consumerRoot: string }} options
+ * @returns {ResolvedDsVersion | null} null only when neither an installed nor a declared version exists
+ */
 export function resolveDsVersion({ consumerRoot }) {
   const installedPackageJsonPath = path.join(
     consumerRoot,
@@ -44,7 +52,8 @@ export function resolveDsVersion({ consumerRoot }) {
       // caller would report "not installed and not declared" — a specific
       // claim about the consumer's manifest that this code just failed to
       // read. Naming the unreadable file is the only truthful answer.
-      throw new Error(`${consumerPackageJsonPath} is not valid JSON: ${error.message}`);
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error(`${consumerPackageJsonPath} is not valid JSON: ${reason}`);
     }
     for (const field of DECLARED_FIELDS) {
       const declared = consumerPackageJson[field]?.[DS_PACKAGE_NAME];
@@ -62,6 +71,7 @@ export function resolveDsVersion({ consumerRoot }) {
 // contract (Sonar S2871). NOT localeCompare: this array is deep-equalled
 // against a committed expected report, and localeCompare without an explicit
 // locale follows the runner's ICU — two honest runs could sort differently.
+/** @type {(a: string, b: string) => number} */
 function byCodeUnit(a, b) {
   if (a < b) return -1;
   if (a > b) return 1;
@@ -69,6 +79,24 @@ function byCodeUnit(a, b) {
 }
 
 // Exact 5-key shape (D8): no deprecation field, not even as `null` (D3).
+/**
+ * @typedef {object} UsageReport
+ * @property {string} app
+ * @property {string} dsVersion
+ * @property {"installed" | "declared"} dsVersionSource
+ * @property {string[]} components
+ * @property {string} generatedAt
+ */
+
+/**
+ * @param {object} input
+ * @param {string} input.app
+ * @param {import("./scan-source.js").ScannedImport[]} input.importsBySpecifier
+ * @param {string} input.dsVersion
+ * @param {"installed" | "declared"} input.dsVersionSource
+ * @param {string} input.generatedAt
+ * @returns {UsageReport}
+ */
 export function buildReport({ app, importsBySpecifier, dsVersion, dsVersionSource, generatedAt }) {
   const componentNames = new Set();
   for (const { specifier, names } of importsBySpecifier) {
