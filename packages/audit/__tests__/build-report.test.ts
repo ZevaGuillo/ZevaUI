@@ -47,6 +47,25 @@ describe("buildReport", () => {
     });
     expect(report.components).toEqual(["Button", "Card"]);
   });
+
+  // The order is UTF-16 code-unit order, stated as a contract rather than
+  // inherited from sort()'s default. It has to be byte-for-byte reproducible
+  // on any runner, because the gate deep-equals this array against a committed
+  // expected report — which is exactly why the comparator must NOT be
+  // localeCompare: without an explicit locale that varies with the
+  // environment's ICU, and two honest runs could sort differently.
+  it("sorts components in deterministic code-unit order, uppercase before lowercase", () => {
+    const report = buildReport({
+      app: "web",
+      importsBySpecifier: [
+        { specifier: "@zevaui/components", names: ["iButton", "Zebra", "Alpha"] },
+      ],
+      dsVersion: "1.2.3",
+      dsVersionSource: "installed",
+      generatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    expect(report.components).toEqual(["Alpha", "Zebra", "iButton"]);
+  });
 });
 
 describe("resolveDsVersion (D8 cascade)", () => {
