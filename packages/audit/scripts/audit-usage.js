@@ -11,6 +11,19 @@ import path from "node:path";
 import { buildReport, resolveDsVersion } from "./build-report.js";
 import { MAX_SCANNED_FILES, walkAndScan } from "./walk-source-tree.js";
 
+/**
+ * Terminal: this never returns.
+ *
+ * The annotation is load-bearing. Without it nothing in the signature says so,
+ * and every guard below reads as if execution might continue past it — which
+ * is how `versionResult` came to be dereferenced on a path an analyzer can
+ * prove is nullable. If anyone ever makes this function return, that invariant
+ * breaks silently at every call site; declaring it here is what turns that into
+ * a checkable claim instead of a habit.
+ *
+ * @param {string} message
+ * @returns {never}
+ */
 function fail(message) {
   console.error(`[audit-usage] FAIL: ${message}`);
   process.exit(1);
