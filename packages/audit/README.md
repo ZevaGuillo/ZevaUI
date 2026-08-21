@@ -18,20 +18,34 @@ on:
 jobs:
   audit:
     uses: ZevaGuillo/ZevaUI/.github/workflows/audit-ds-usage.yml@v1
-    with:
-      ds-ref: v1
 ```
 
 That produces a `ds-usage-report-*` artifact and a table in the run's step
-summary. No install step, no token, no network call.
+summary. No install step, no token, no network call, no inputs to decide.
 
 ### Inputs
 
 | Input | Required | Default | What it does |
 |---|---|---|---|
-| `ds-ref` | yes | — | The design-system revision whose scanner runs. No default on purpose: the report says which DS version you use, but not which scanner produced it, so an unpinned scanner would silently change what a report means between two runs that look identical. |
 | `app` | no | the caller's `github.repository` | The identity the report is labelled with. |
 | `working-directory` | no | `.` | Subdirectory of your checkout to scan. |
+| `ds-ref` | no | `main` | The design-system revision whose scanner runs. |
+
+### When to pin `ds-ref`
+
+The report records which DS version **you** use. It does not record which
+scanner produced it. On the default the scanner moves with `main`, so pin a tag
+whenever a report has to be comparable over time:
+
+```yaml
+    with:
+      ds-ref: v1
+```
+
+Without a pin, a change to the scanner's ceiling — the day barrel re-exports
+start being detected, say — grows your `components[]` without you touching a
+line, and nothing in the report distinguishes that from you adopting new
+components. The trade is recorded in ADR-0009 D3.
 
 ### Monorepo consumers
 

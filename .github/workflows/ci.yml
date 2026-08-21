@@ -119,6 +119,11 @@ jobs:
     with:
       app: zevaui-fixture-consumer
       working-directory: packages/audit/__fixtures__/consumer
+      # Passed explicitly even though `ds-ref` now defaults to `main`
+      # (ADR-0009 D3), and that is the whole point: on the default this job
+      # would audit MAIN's scanner while claiming to test the one in this pull
+      # request. The change under review has to be the change that runs.
+      #
       # The branch head, not `github.sha`: on a pull_request event the latter
       # is the ephemeral merge commit, which the DS checkout inside the called
       # workflow cannot resolve by SHA. Same-repo branches only — a fork PR
