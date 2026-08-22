@@ -22,11 +22,11 @@ describe("validateThemeRequest / candidate mode", () => {
     );
   });
 
-  it("reports exactly 13 missing-token violations for an empty candidate", () => {
+  it("reports exactly 17 missing-token violations for an empty candidate", () => {
     const result = validateThemeRequest({ theme: "light", colors: {} });
 
     expect(result.pass).toBe(false);
-    expect(result.violations.filter((v) => v.rule === "missing-token")).toHaveLength(13);
+    expect(result.violations.filter((v) => v.rule === "missing-token")).toHaveLength(17);
   });
 
   it("reports an invalid-color violation for an unparseable value", () => {
@@ -34,5 +34,28 @@ describe("validateThemeRequest / candidate mode", () => {
     const result = validateThemeRequest({ theme: "light", colors });
 
     expect(result.violations.some((v) => v.rule === "invalid-color")).toBe(true);
+  });
+
+  it("reports a low-contrast violation at the 3.0 non-text floor for a weak border pair", () => {
+    // gray.400 (oklch(0.707 0.022 261.325)) is the pre-repoint light
+    // border-strong primitive, measured at ~2.49:1 against bg-canvas — well
+    // under the flat 3.0 non-text floor. Proves the tier reaches MCP through
+    // the same requiredTokens/nonTextContrastPairs plumbing as the text tier,
+    // independent of whichever primitive the live theme currently ships.
+    const colors = {
+      ...themeFor("light").colors,
+      "color-border-strong": "oklch(0.707 0.022 261.325)",
+    };
+    const result = validateThemeRequest({ theme: "light", colors });
+
+    expect(result.pass).toBe(false);
+    expect(
+      result.violations.some(
+        (v) =>
+          v.rule === "low-contrast" &&
+          v.expected === "3.0" &&
+          v.tokens.includes("color-border-strong"),
+      ),
+    ).toBe(true);
   });
 });

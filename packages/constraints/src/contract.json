@@ -24,7 +24,13 @@
     { "foreground": "color-text-default", "background": "color-success-subtle" },
     { "foreground": "color-text-default", "background": "color-warning-subtle" }
   ],
-  "nonTextContrastPairs": [],
+  "nonTextContrastPairs": [
+    { "foreground": "color-border-strong", "background": "color-bg-canvas" },
+    { "foreground": "color-border-strong", "background": "color-bg-surface" },
+    { "foreground": "color-danger-default", "background": "color-danger-subtle" },
+    { "foreground": "color-success-default", "background": "color-success-subtle" },
+    { "foreground": "color-warning-default", "background": "color-warning-subtle" }
+  ],
   "nonTextMinContrastRatio": 3.0,
   "tokenTypes": {
     "dimension": [
