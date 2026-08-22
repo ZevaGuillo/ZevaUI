@@ -254,8 +254,11 @@ describe("the scrim is translucent without fading the modal content", () => {
     expect(declarationsOf(modalBaseRule)).toMatch(/box-shadow:\s*var\(--zuip-shadows-modal\)/);
   });
 
-  // color-border-strong measurably fails WCAG 1.4.11 non-text contrast in both base themes
-  // (2.49:1 light, 2.66:1 dark, against a 3.0 floor) — see packages/constraints/README.md.
+  // color-border-strong now clears WCAG 1.4.11 non-text contrast in both base themes
+  // (4.63:1 light, 4.16:1 dark, against a 3.0 floor, since the PR2 token repoint) — see
+  // packages/constraints/README.md. Dialog still separates the modal from the page with
+  // shadow-modal rather than a border; that is an independent visual design choice, not
+  // a contrast workaround, and this negative assertion guards it either way.
   it("never uses color-border-strong as a boundary", () => {
     expect(declarationsOf(anyDialogRule)).not.toMatch(/border-strong/);
   });

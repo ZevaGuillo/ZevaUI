@@ -13,9 +13,15 @@ describe("contract / contrastPairs", () => {
   });
 });
 
-describe("contract / nonTextContrastPairs (PR1: inert)", () => {
-  it("declares the sibling array empty, awaiting PR2 population", () => {
-    expect(contract.nonTextContrastPairs).toEqual([]);
+describe("contract / nonTextContrastPairs", () => {
+  it("declares exactly 5 non-text pairs (PR2: border + tone-default/tone-subtle)", () => {
+    expect(contract.nonTextContrastPairs).toEqual([
+      { foreground: "color-border-strong", background: "color-bg-canvas" },
+      { foreground: "color-border-strong", background: "color-bg-surface" },
+      { foreground: "color-danger-default", background: "color-danger-subtle" },
+      { foreground: "color-success-default", background: "color-success-subtle" },
+      { foreground: "color-warning-default", background: "color-warning-subtle" },
+    ]);
   });
 
   it("declares a flat 3.0 non-text floor, distinct from the per-theme text floors", () => {
@@ -45,7 +51,7 @@ describe("contract / declared-but-unconsumed blocks", () => {
 });
 
 describe("contract / requiredTokens", () => {
-  it("derives exactly 13 tokens, in first-appearance order", () => {
+  it("derives exactly 17 tokens, in first-appearance order", () => {
     expect(requiredTokens).toEqual([
       "color-text-default",
       "color-bg-canvas",
@@ -60,6 +66,10 @@ describe("contract / requiredTokens", () => {
       "color-danger-subtle",
       "color-success-subtle",
       "color-warning-subtle",
+      "color-border-strong",
+      "color-danger-default",
+      "color-success-default",
+      "color-warning-default",
     ]);
   });
 

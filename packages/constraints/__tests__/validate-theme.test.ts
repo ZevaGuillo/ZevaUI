@@ -10,8 +10,10 @@ const BLACK = "oklch(0 0 0)";
 
 // Black text on white surfaces, white text on a black inverse pair: every one
 // of the 16 declared text pairs sits at a ratio of 21, far above any threshold.
-// The 3 tone-`-subtle` tokens are included so the union of contrastPairs +
-// nonTextContrastPairs (still empty in PR1) resolves without missing-token noise.
+// The 3 tone-`-subtle` tokens plus `border-strong` and the 3 tone-`-default`
+// tokens are included so the union of contrastPairs + nonTextContrastPairs
+// (5 entries as of PR2) resolves without missing-token noise; BLACK-on-WHITE
+// clears both the 4.5 text floor and the flat 3.0 non-text floor.
 function compliantColors(): Record<string, string> {
   return {
     "color-text-default": BLACK,
@@ -27,6 +29,10 @@ function compliantColors(): Record<string, string> {
     "color-danger-subtle": WHITE,
     "color-success-subtle": WHITE,
     "color-warning-subtle": WHITE,
+    "color-border-strong": BLACK,
+    "color-danger-default": BLACK,
+    "color-success-default": BLACK,
+    "color-warning-default": BLACK,
   };
 }
 

@@ -279,10 +279,11 @@ const itemRule = (selectorText: string) =>
   classSelectorPattern("zui-menu__item").test(selectorText);
 
 // The separation decision, asserted against the real emitted stylesheet rather than the recipe
-// source. `color-border-strong` measurably fails WCAG 1.4.11 non-text contrast (2.49:1 light,
-// 2.66:1 dark, against a 3.0 floor — see packages/constraints/README.md), so the dropdown is
-// separated from the page by `shadow-dropdown` over an opaque `color-bg-surface`, exactly as
-// Dialog separates its modal with `shadow-modal`.
+// source. `color-border-strong` now clears WCAG 1.4.11 non-text contrast (4.63:1 light, 4.16:1
+// dark, against a 3.0 floor, since the PR2 token repoint — see packages/constraints/README.md),
+// but the dropdown is still separated from the page by `shadow-dropdown` over an opaque
+// `color-bg-surface`, exactly as Dialog separates its modal with `shadow-modal`: an independent
+// visual design choice, not a contrast workaround.
 describe("the dropdown surface is separated by a shadow, never by a weak border", () => {
   it("emits menu rules at all (sanity check)", () => {
     expect(ruleBodies(anyMenuRule).length).toBeGreaterThan(0);

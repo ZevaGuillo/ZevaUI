@@ -68,8 +68,11 @@ function registerValidateThemeTool(server: McpServer): void {
       description:
         "Validates a set of theme tokens against the design system's contrast contract. " +
         `Valid theme ids: ${themeIds.join(", ")}. The "high-contrast" theme requires a ` +
-        '7.0:1 minimum contrast ratio; "light" and "dark" require 4.5:1. Omit ' +
-        "`colors` to self-check the built-in palette for `theme`.",
+        '7.0:1 minimum contrast ratio; "light" and "dark" require 4.5:1 for text. ' +
+        "Non-text pairs (borders, and tone-default against their own tone-subtle fill) " +
+        "are additionally checked against a flat 3.0:1 floor (WCAG 1.4.11), the same " +
+        "across every theme including high-contrast. Omit `colors` to self-check the " +
+        "built-in palette for `theme`.",
       inputSchema: validateThemeInputSchema,
       outputSchema: validateThemeOutputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
