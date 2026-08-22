@@ -7,7 +7,7 @@
 // `@ts-expect-error` assertions below rely on, without that extra dependency.
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement, type ReactNode } from "react";
+import { createElement, isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Button } from "../src/button/Button.js";
 import { buttonRecipe } from "../src/button/button.recipe.js";
@@ -97,11 +97,18 @@ function buttonElement(props: ButtonProps) {
 
 describe("Button public API surface (type-level)", () => {
   it("rejects className, style and unknown variant values at compile time", () => {
-    // @ts-expect-error className is not part of the public API
-    buttonElement({ className: "x", children: "x" });
-    // @ts-expect-error style is not part of the public API
-    buttonElement({ style: {}, children: "x" });
-    // @ts-expect-error unknown variant value
-    buttonElement({ visual: "nope", children: "x" });
+    // tsc asserts the rejection itself: each @ts-expect-error fails the
+    // typecheck the moment its error disappears. What runs here is the
+    // runtime half of the contract — a rejected prop still constructs a
+    // valid element rather than throwing.
+    const constructed = [
+      // @ts-expect-error className is not part of the public API
+      buttonElement({ className: "x", children: "x" }),
+      // @ts-expect-error style is not part of the public API
+      buttonElement({ style: {}, children: "x" }),
+      // @ts-expect-error unknown variant value
+      buttonElement({ visual: "nope", children: "x" }),
+    ];
+    expect(constructed.every(isValidElement)).toBe(true);
   });
 });

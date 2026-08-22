@@ -6,7 +6,7 @@
 // `@ts-expect-error` assertions at the bottom depend on.
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, isValidElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Input } from "../src/input/Input.js";
 import { inputRecipe } from "../src/input/input.recipe.js";
@@ -179,13 +179,20 @@ function inputElement(props: InputProps) {
 
 describe("Input public API surface (type-level)", () => {
   it("rejects className, style, unknown variant values and a missing label at compile time", () => {
-    // @ts-expect-error className is not part of the public API
-    inputElement({ label: "Email", className: "x" });
-    // @ts-expect-error style is not part of the public API
-    inputElement({ label: "Email", style: {} });
-    // @ts-expect-error unknown size value
-    inputElement({ label: "Email", size: "nope" });
-    // @ts-expect-error an unlabelled field is not constructible
-    inputElement({});
+    // tsc asserts the rejection itself: each @ts-expect-error fails the
+    // typecheck the moment its error disappears. What runs here is the
+    // runtime half of the contract — a rejected prop still constructs a
+    // valid element rather than throwing.
+    const constructed = [
+      // @ts-expect-error className is not part of the public API
+      inputElement({ label: "Email", className: "x" }),
+      // @ts-expect-error style is not part of the public API
+      inputElement({ label: "Email", style: {} }),
+      // @ts-expect-error unknown size value
+      inputElement({ label: "Email", size: "nope" }),
+      // @ts-expect-error an unlabelled field is not constructible
+      inputElement({}),
+    ];
+    expect(constructed.every(isValidElement)).toBe(true);
   });
 });

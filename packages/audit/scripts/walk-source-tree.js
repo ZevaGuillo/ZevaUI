@@ -66,6 +66,102 @@ export const MAX_SCANNED_FILES = 20000;
 const nodeIo = { readdirSync, statSync, readFileSync };
 
 /**
+ * The walk's shared state, threaded through the per-directory and per-entry
+ * helpers below (split out per Sonar S3776; the walk itself is unchanged).
+ *
+ * @typedef {object} WalkState
+ * @property {import("./scan-source.js").ScannedImport[]} imports
+ * @property {string[]} skipped
+ * @property {string[]} stack
+ * @property {number} scannedCount
+ * @property {boolean} overflowed
+ */
+
+/**
+ * Scans one allowlisted file into `state.imports`, or names it in
+ * `state.skipped` when it is oversized or throws on stat/read.
+ *
+ * @param {SourceTreeIo} io
+ * @param {string} fullPath
+ * @param {string} relativePath
+ * @param {WalkState} state
+ */
+function scanFileOrSkip(io, fullPath, relativePath, state) {
+  try {
+    if (io.statSync(fullPath).size > MAX_FILE_BYTES) {
+      state.skipped.push(relativePath);
+      return;
+    }
+    state.imports.push(...scanSource(io.readFileSync(fullPath, "utf8")));
+  } catch {
+    state.skipped.push(relativePath);
+  }
+}
+
+/**
+ * Classifies one directory entry: skiplisted, descended into, ignored, or
+ * scanned — flipping `state.overflowed` at the file cap.
+ *
+ * @param {SourceTreeIo} io
+ * @param {string} consumerRoot
+ * @param {string} fullPath
+ * @param {{ name: string, isSymbolicLink(): boolean, isDirectory(): boolean, isFile(): boolean }} entry
+ * @param {WalkState} state
+ */
+function visitEntry(io, consumerRoot, fullPath, entry, state) {
+  const relativePath = path.relative(consumerRoot, fullPath);
+
+  // Checked before isDirectory(): a symlinked directory is an unscanned
+  // subtree and has to be named, not quietly stepped over.
+  if (entry.isSymbolicLink()) {
+    state.skipped.push(relativePath);
+    return;
+  }
+  if (entry.isDirectory()) {
+    if (!PRUNED_DIRS.has(entry.name)) state.stack.push(fullPath);
+    return;
+  }
+  if (!entry.isFile()) {
+    state.skipped.push(relativePath);
+    return;
+  }
+  if (!ALLOWED_EXTENSIONS.has(path.extname(entry.name))) return;
+
+  state.scannedCount += 1;
+  if (state.scannedCount > MAX_SCANNED_FILES) {
+    state.overflowed = true;
+    return;
+  }
+
+  scanFileOrSkip(io, fullPath, relativePath, state);
+}
+
+/**
+ * Reads one directory and visits its entries, stopping early on overflow.
+ *
+ * @param {SourceTreeIo} io
+ * @param {string} consumerRoot
+ * @param {string} dir
+ * @param {WalkState} state
+ */
+function visitDirectory(io, consumerRoot, dir, state) {
+  let entries;
+  try {
+    entries = io.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    // An unreadable directory is an unscanned subtree, not a non-existent
+    // one. The root itself relativises to "", so name it explicitly.
+    state.skipped.push(path.relative(consumerRoot, dir) || ".");
+    return;
+  }
+
+  for (const entry of entries) {
+    visitEntry(io, consumerRoot, path.join(dir, entry.name), entry, state);
+    if (state.overflowed) return;
+  }
+}
+
+/**
  * Walks `consumerRoot` and scans every allowlisted source file.
  *
  * Returns `{ imports, skipped, overflowed }`.
@@ -84,67 +180,23 @@ const nodeIo = { readdirSync, statSync, readFileSync };
  * @param {SourceTreeIo} [io]
  */
 export function walkAndScan(consumerRoot, io = nodeIo) {
-  /** @type {import("./scan-source.js").ScannedImport[]} */
-  const imports = [];
-  /** @type {string[]} */
-  const skipped = [];
-  let scannedCount = 0;
-  let overflowed = false;
-  const stack = [consumerRoot];
+  /** @type {WalkState} */
+  const state = {
+    imports: [],
+    skipped: [],
+    stack: [consumerRoot],
+    scannedCount: 0,
+    overflowed: false,
+  };
 
-  while (stack.length > 0 && !overflowed) {
-    const dir = stack.pop();
+  while (state.stack.length > 0 && !state.overflowed) {
+    const dir = state.stack.pop();
     // The loop condition guarantees a non-empty stack; the checker cannot
     // see across the two statements, and a bare assertion would hide a real
     // future bug if the condition ever changed. Break is equivalent and honest.
     if (dir === undefined) break;
-    let entries;
-    try {
-      entries = io.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      // An unreadable directory is an unscanned subtree, not a non-existent
-      // one. The root itself relativises to "", so name it explicitly.
-      skipped.push(path.relative(consumerRoot, dir) || ".");
-      continue;
-    }
-
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-      const relativePath = path.relative(consumerRoot, fullPath);
-
-      // Checked before isDirectory(): a symlinked directory is an unscanned
-      // subtree and has to be named, not quietly stepped over.
-      if (entry.isSymbolicLink()) {
-        skipped.push(relativePath);
-        continue;
-      }
-      if (entry.isDirectory()) {
-        if (!PRUNED_DIRS.has(entry.name)) stack.push(fullPath);
-        continue;
-      }
-      if (!entry.isFile()) {
-        skipped.push(relativePath);
-        continue;
-      }
-      if (!ALLOWED_EXTENSIONS.has(path.extname(entry.name))) continue;
-
-      scannedCount += 1;
-      if (scannedCount > MAX_SCANNED_FILES) {
-        overflowed = true;
-        break;
-      }
-
-      try {
-        if (io.statSync(fullPath).size > MAX_FILE_BYTES) {
-          skipped.push(relativePath);
-          continue;
-        }
-        imports.push(...scanSource(io.readFileSync(fullPath, "utf8")));
-      } catch {
-        skipped.push(relativePath);
-      }
-    }
+    visitDirectory(io, consumerRoot, dir, state);
   }
 
-  return { imports, skipped, overflowed };
+  return { imports: state.imports, skipped: state.skipped, overflowed: state.overflowed };
 }

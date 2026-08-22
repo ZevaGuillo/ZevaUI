@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cleanup, render, screen } from "@testing-library/react";
-import { createElement } from "react";
+import { createElement, isValidElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Alert } from "../src/alert/Alert.js";
 import { alertRecipe } from "../src/alert/alert.recipe.js";
@@ -82,14 +82,21 @@ function alertElement(props: AlertProps) {
 
 describe("Alert public API surface (type-level)", () => {
   it("rejects className, style, an unknown tone, and a missing tone at compile time", () => {
-    // @ts-expect-error className is not part of the public API
-    alertElement({ tone: "danger", className: "x", children: "x" });
-    // @ts-expect-error style is not part of the public API
-    alertElement({ tone: "danger", style: {}, children: "x" });
-    // @ts-expect-error unknown tone value
-    alertElement({ tone: "info", children: "x" });
-    // @ts-expect-error tone is required, not optional
-    alertElement({ children: "x" } as Omit<AlertProps, "tone">);
+    // tsc asserts the rejection itself: each @ts-expect-error fails the
+    // typecheck the moment its error disappears. What runs here is the
+    // runtime half of the contract — a rejected prop still constructs a
+    // valid element rather than throwing.
+    const constructed = [
+      // @ts-expect-error className is not part of the public API
+      alertElement({ tone: "danger", className: "x", children: "x" }),
+      // @ts-expect-error style is not part of the public API
+      alertElement({ tone: "danger", style: {}, children: "x" }),
+      // @ts-expect-error unknown tone value
+      alertElement({ tone: "info", children: "x" }),
+      // @ts-expect-error tone is required, not optional
+      alertElement({ children: "x" } as Omit<AlertProps, "tone">),
+    ];
+    expect(constructed.every(isValidElement)).toBe(true);
   });
 });
 

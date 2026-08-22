@@ -179,6 +179,19 @@ describe("G9: each manifest entry claims only the tokens its own rules consume",
     ]);
   });
 
+  // Panda can emit one huge brace-free rule body (a base64 data: URI, a long
+  // font stack). Selector extraction has to stay linear in that body's size:
+  // the old /([^{}]*)\{/g scan rescanned the body once per character in it
+  // (Sonar S8786) — 64 KiB cost ~3 s on a dev machine, and a 1 MiB stylesheet
+  // would sit in the minutes. The bound below is ~300× above the linear
+  // scan's measured cost and ~3× below the quadratic one's.
+  it("extracts tokens in linear time from a stylesheet with one huge rule body", () => {
+    const withHugeBody = `.zui-decoy {${"x".repeat(64_000)}}\n${twoComponentCss}`;
+    const started = performance.now();
+    expect(consumedTokens(withHugeBody, ["zui-beta"])).toEqual(["--zui-shadow-modal"]);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
   // Slot recipes ship a different CSS shape: a nested `@layer recipes.slots { @layer _base }`,
   // and class names carrying a `__slot` suffix. Both must keep per-component scoping exact.
   const slotComponentCss = `@layer tokens{

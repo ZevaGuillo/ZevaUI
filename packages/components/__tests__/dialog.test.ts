@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement, type ReactNode } from "react";
+import { createElement, isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Dialog } from "../src/dialog/Dialog.js";
 import { dialogRecipe } from "../src/dialog/dialog.recipe.js";
@@ -277,13 +277,20 @@ function dialogElement(props: DialogProps) {
 
 describe("Dialog public API surface (type-level)", () => {
   it("rejects className, style and unknown variant values at compile time", () => {
-    // @ts-expect-error className is not part of the public API
-    dialogElement({ className: "x", title: "t", children: "x" });
-    // @ts-expect-error style is not part of the public API
-    dialogElement({ style: {}, title: "t", children: "x" });
-    // @ts-expect-error unknown size value
-    dialogElement({ size: "nope", title: "t", children: "x" });
-    // @ts-expect-error unknown placement value
-    dialogElement({ placement: "nope", title: "t", children: "x" });
+    // tsc asserts the rejection itself: each @ts-expect-error fails the
+    // typecheck the moment its error disappears. What runs here is the
+    // runtime half of the contract — a rejected prop still constructs a
+    // valid element rather than throwing.
+    const constructed = [
+      // @ts-expect-error className is not part of the public API
+      dialogElement({ className: "x", title: "t", children: "x" }),
+      // @ts-expect-error style is not part of the public API
+      dialogElement({ style: {}, title: "t", children: "x" }),
+      // @ts-expect-error unknown size value
+      dialogElement({ size: "nope", title: "t", children: "x" }),
+      // @ts-expect-error unknown placement value
+      dialogElement({ placement: "nope", title: "t", children: "x" }),
+    ];
+    expect(constructed.every(isValidElement)).toBe(true);
   });
 });

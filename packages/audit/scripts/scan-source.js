@@ -48,6 +48,211 @@ function regexAllowed(prevToken) {
   return ![")", "]", "}", '"', "'", "`", "/"].includes(prevToken);
 }
 
+// The lexer below is one deliberate state machine, split so each lexical
+// construct owns a named consumer (Sonar S3776 counted the original single
+// function at 85/15). Every consume* helper blanks exactly what it consumed
+// in `out` and returns the index just past it; the shared conventions are:
+// `out` is the source split into characters, and blanking preserves offsets
+// and newlines so stage 2 can re-read the original at the same positions.
+
+/**
+ * @param {string[]} out
+ * @param {number} from
+ * @param {number} to
+ */
+function blankRange(out, from, to) {
+  for (let k = from; k < to; k += 1) if (out[k] !== "\n") out[k] = " ";
+}
+
+/**
+ * Stack of open `${ }` interpolations: "template" = consuming literal
+ * TEXT; a number = an open expression's own unmatched-brace depth (so a
+ * nested object literal's braces don't close the `${ }` early).
+ *
+ * @typedef {Array<"template" | number>} TemplateStack
+ */
+
+/**
+ * Consumes template-literal TEXT until the closing backtick, an opening
+ * `${` (pushing a fresh expression depth), or end of input.
+ *
+ * @param {string} source
+ * @param {string[]} out
+ * @param {number} i
+ * @param {TemplateStack} stack
+ * @returns {number}
+ */
+function consumeTemplateText(source, out, i, stack) {
+  const n = source.length;
+  while (i < n) {
+    const ch = source[i];
+    if (ch === "\\") {
+      blankRange(out, i, i + 2);
+      i += 2;
+      continue;
+    }
+    if (ch === "`") {
+      blankRange(out, i, i + 1);
+      stack.pop();
+      return i + 1;
+    }
+    if (ch === "$" && source[i + 1] === "{") {
+      blankRange(out, i, i + 2);
+      stack.push(0);
+      return i + 2;
+    }
+    blankRange(out, i, i + 1);
+    i += 1;
+  }
+  return i;
+}
+
+/**
+ * Consumes the line or block comment opening at `i`, or returns -1 if `i`
+ * does not open one.
+ *
+ * @param {string} source
+ * @param {string[]} out
+ * @param {number} i
+ * @returns {number}
+ */
+function consumeComment(source, out, i) {
+  if (source[i] !== "/") return -1;
+  const n = source.length;
+  if (source[i + 1] === "/") {
+    let end = i;
+    while (end < n && source[end] !== "\n") end += 1;
+    blankRange(out, i, end);
+    return end;
+  }
+  if (source[i + 1] === "*") {
+    let end = i + 2;
+    while (end < n && !(source[end] === "*" && source[end + 1] === "/")) end += 1;
+    end = Math.min(end + 2, n);
+    blankRange(out, i, end);
+    return end;
+  }
+  return -1;
+}
+
+/**
+ * Consumes the quoted string opening at `i` (its quote character is
+ * `source[i]`), through the matching close or end of input.
+ *
+ * @param {string} source
+ * @param {string[]} out
+ * @param {number} i
+ * @returns {number}
+ */
+function consumeQuotedString(source, out, i) {
+  const n = source.length;
+  const quote = source[i];
+  let end = i + 1;
+  while (end < n && source[end] !== quote) end += source[end] === "\\" ? 2 : 1;
+  end = Math.min(end + 1, n);
+  blankRange(out, i, end);
+  return end;
+}
+
+/**
+ * Consumes the regex literal opening at `i`, flags included — or returns -1
+ * when the line ends with no closing `/`, meaning this was never a regex
+ * and the caller must treat the `/` as an ordinary (division) character.
+ *
+ * @param {string} source
+ * @param {string[]} out
+ * @param {number} i
+ * @returns {number}
+ */
+function consumeRegexLiteral(source, out, i) {
+  const n = source.length;
+  let j = i + 1;
+  let inClass = false;
+  while (j < n && source[j] !== "\n") {
+    if (source[j] === "\\") {
+      j += 2;
+      continue;
+    }
+    if (source[j] === "[") inClass = true;
+    else if (source[j] === "]") inClass = false;
+    else if (source[j] === "/" && !inClass) {
+      let end = j + 1;
+      while (end < n && /[a-z]/i.test(source[end])) end += 1; // flags
+      blankRange(out, i, end);
+      return end;
+    }
+    j += 1;
+  }
+  return -1;
+}
+
+/**
+ * Tracks `{`/`}` against the innermost open `${ }` expression, popping the
+ * stack when its own brace depth closes. A no-op while no expression is open.
+ *
+ * @param {TemplateStack} stack
+ * @param {string} ch
+ */
+function trackExpressionDepth(stack, ch) {
+  const openExpressionDepth = stack[stack.length - 1];
+  if (typeof openExpressionDepth !== "number") return;
+  if (ch === "{") stack[stack.length - 1] = openExpressionDepth + 1;
+  else if (ch === "}") {
+    if (openExpressionDepth === 0) stack.pop();
+    else stack[stack.length - 1] = openExpressionDepth - 1;
+  }
+}
+
+/**
+ * @param {string} source
+ * @param {number} i
+ * @returns {number} index just past the identifier/number word at `i`, or `i` itself
+ */
+function endOfWord(source, i) {
+  let end = i;
+  while (end < source.length && /[A-Za-z0-9_$]/.test(source[end])) end += 1;
+  return end;
+}
+
+/**
+ * Consumes one token of ordinary (non-template-text) code at `i`: a comment,
+ * string, template open, regex literal, or plain character — updating
+ * `prevToken`, the regex-vs-division context the next `/` will be judged by.
+ *
+ * @param {string} source
+ * @param {string[]} out
+ * @param {number} i
+ * @param {TemplateStack} stack
+ * @param {string} prevToken
+ * @returns {{ next: number, prevToken: string }}
+ */
+function consumeCodeToken(source, out, i, stack, prevToken) {
+  const commentEnd = consumeComment(source, out, i);
+  if (commentEnd !== -1) return { next: commentEnd, prevToken };
+
+  const ch = source[i];
+  if (ch === '"' || ch === "'") {
+    return { next: consumeQuotedString(source, out, i), prevToken: ch };
+  }
+  if (ch === "`") {
+    stack.push("template");
+    blankRange(out, i, i + 1);
+    return { next: i + 1, prevToken };
+  }
+  if (ch === "/" && regexAllowed(prevToken)) {
+    const regexEnd = consumeRegexLiteral(source, out, i);
+    if (regexEnd !== -1) return { next: regexEnd, prevToken: "/" };
+    // Ran off the line without a closing `/` — not actually a regex. Fall
+    // through and treat this `/` as an ordinary (division) character.
+  }
+
+  trackExpressionDepth(stack, ch);
+  if (/\s/.test(ch)) return { next: i + 1, prevToken };
+  const wordEnd = endOfWord(source, i);
+  if (wordEnd > i) return { next: wordEnd, prevToken: source.slice(i, wordEnd) };
+  return { next: i + 1, prevToken: ch };
+}
+
 /**
  * @param {string} source
  * @returns {string} same length and line count, literals blanked in place
@@ -55,127 +260,19 @@ function regexAllowed(prevToken) {
 export function blankSource(source) {
   const n = source.length;
   const out = source.split("");
-  /** @type {(from: number, to: number) => void} */
-  const blank = (from, to) => {
-    for (let k = from; k < to; k += 1) if (out[k] !== "\n") out[k] = " ";
-  };
-
-  // Stack of open `${ }` interpolations: "template" = consuming literal
-  // TEXT; a number = an open expression's own unmatched-brace depth (so a
-  // nested object literal's braces don't close the `${ }` early).
-  /** @type {Array<"template" | number>} */
+  /** @type {TemplateStack} */
   const stack = [];
   let prevToken = "";
   let i = 0;
 
   while (i < n) {
     if (stack[stack.length - 1] === "template") {
-      const ch = source[i];
-      if (ch === "\\") {
-        blank(i, i + 2);
-        i += 2;
-        continue;
-      }
-      if (ch === "`") {
-        blank(i, i + 1);
-        stack.pop();
-        i += 1;
-        continue;
-      }
-      if (ch === "$" && source[i + 1] === "{") {
-        blank(i, i + 2);
-        stack.push(0);
-        i += 2;
-        continue;
-      }
-      blank(i, i + 1);
-      i += 1;
+      i = consumeTemplateText(source, out, i, stack);
       continue;
     }
-
-    const ch = source[i];
-
-    if (ch === "/" && source[i + 1] === "/") {
-      const start = i;
-      while (i < n && source[i] !== "\n") i += 1;
-      blank(start, i);
-      continue;
-    }
-    if (ch === "/" && source[i + 1] === "*") {
-      const start = i;
-      i += 2;
-      while (i < n && !(source[i] === "*" && source[i + 1] === "/")) i += 1;
-      i = Math.min(i + 2, n);
-      blank(start, i);
-      continue;
-    }
-    if (ch === '"' || ch === "'") {
-      const quote = ch;
-      const start = i;
-      i += 1;
-      while (i < n && source[i] !== quote) i += source[i] === "\\" ? 2 : 1;
-      i = Math.min(i + 1, n);
-      blank(start, i);
-      prevToken = quote;
-      continue;
-    }
-    if (ch === "`") {
-      stack.push("template");
-      blank(i, i + 1);
-      i += 1;
-      continue;
-    }
-    if (ch === "/" && regexAllowed(prevToken)) {
-      const start = i;
-      let j = i + 1;
-      let inClass = false;
-      let closed = false;
-      while (j < n && source[j] !== "\n") {
-        if (source[j] === "\\") {
-          j += 2;
-          continue;
-        }
-        if (source[j] === "[") inClass = true;
-        else if (source[j] === "]") inClass = false;
-        else if (source[j] === "/" && !inClass) {
-          closed = true;
-          j += 1;
-          break;
-        }
-        j += 1;
-      }
-      if (closed) {
-        while (j < n && /[a-z]/i.test(source[j])) j += 1; // flags
-        blank(start, j);
-        prevToken = "/";
-        i = j;
-        continue;
-      }
-      // Ran off the line without a closing `/` — not actually a regex. Fall
-      // through and treat this `/` as an ordinary (division) character.
-    }
-
-    const openExpressionDepth = stack[stack.length - 1];
-    if (typeof openExpressionDepth === "number") {
-      if (ch === "{") stack[stack.length - 1] = openExpressionDepth + 1;
-      else if (ch === "}") {
-        if (openExpressionDepth === 0) stack.pop();
-        else stack[stack.length - 1] = openExpressionDepth - 1;
-      }
-    }
-
-    if (/\s/.test(ch)) {
-      i += 1;
-      continue;
-    }
-    if (/[A-Za-z0-9_$]/.test(ch)) {
-      const start = i;
-      while (i < n && /[A-Za-z0-9_$]/.test(source[i])) i += 1;
-      prevToken = source.slice(start, i);
-      continue;
-    }
-    prevToken = ch;
-    i += 1;
+    const step = consumeCodeToken(source, out, i, stack, prevToken);
+    prevToken = step.prevToken;
+    i = step.next;
   }
 
   return out.join("");
