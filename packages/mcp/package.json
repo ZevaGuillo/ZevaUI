@@ -1,6 +1,13 @@
 {
   "name": "@zevaui/mcp",
   "version": "0.1.0",
+  "description": "MCP server exposing ZevaUI's design contract: validate themes against the token and contrast rules from agents and editors",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZevaGuillo/ZevaUI.git",
+    "directory": "packages/mcp"
+  },
   "type": "module",
   "exports": {
     ".": {

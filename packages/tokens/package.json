@@ -1,6 +1,13 @@
 {
   "name": "@zevaui/tokens",
   "version": "0.1.0",
+  "description": "Design tokens for ZevaUI: a single source of truth compiled to CSS custom properties, a typed manifest, and per-theme stylesheets",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZevaGuillo/ZevaUI.git",
+    "directory": "packages/tokens"
+  },
   "type": "module",
   "exports": {
     "./styles.css": "./dist/styles.css",
