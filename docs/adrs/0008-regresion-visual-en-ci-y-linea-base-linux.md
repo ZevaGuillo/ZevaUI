@@ -295,11 +295,14 @@ y ADR-0006 D3:
 
 **Neutras**
 
-- El paso `test:visual` (la puerta positiva) **todavía no está en `ci.yml`**:
-  aterriza en el mismo commit que las líneas base generadas, porque agregarlo
-  antes dejaría CI en rojo hasta que alguien despache el workflow. Las dos
-  puertas negativas sí están cableadas desde ya, porque siembran su propia
-  fixture y son autocontenidas.
+- El paso `test:visual` (la puerta positiva) se difirió deliberadamente al
+  commit de seguimiento: agregarlo antes habría dejado CI en rojo hasta que
+  alguien despachara el workflow. Las dos puertas negativas sí quedaron
+  cableadas desde esta slice, porque siembran su propia fixture y son
+  autocontenidas. **Cerrado con evidencia (2026-08-19)**: el primer despacho
+  de `visual-baselines.yml` (run `32303795159`, exitoso, 9m58s) generó las
+  38 líneas base `-chromium-linux`, commiteadas en `3628e9b`, y desde ese
+  aterrizaje `ci.yml` corre `test:visual` como paso final del job `ci`.
 - Las capturas fallidas dejan PNGs en `.vitest-attachments/`, ignorado por
   git desde esta slice.
 
@@ -314,8 +317,8 @@ y ADR-0006 D3:
   decorator/`globalTypes`, que a su vez exige resolver primero los huecos de
   contraste que ADR-0006 D3 registró, para no poner en rojo la puerta de
   accesibilidad existente.
-- **Agregar el paso `test:visual` a `ci.yml`** en el mismo commit que las 38
-  líneas base de Linux generadas por el primer despacho.
+- **Agregar el paso `test:visual` a `ci.yml`** — cerrado (2026-08-19) con el
+  primer despacho del workflow; la evidencia queda registrada en Neutras.
 - **Revisar la dependencia de `#vitest-tester`** en cada bump de
   `@storybook/addon-vitest`: si el identificador o el `transform: scale(0,8)`
   cambian, D2 necesita re-medición, no un parche a ciegas.
