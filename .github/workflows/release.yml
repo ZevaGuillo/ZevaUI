@@ -11,10 +11,14 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  # npm provenance: the publish step attests each tarball against this exact
+  # workflow run via GitHub's OIDC token. Without id-token the attestation is
+  # silently skipped, so the permission is part of the release contract.
+  id-token: write
 
 jobs:
   version:
-    name: Version Packages PR
+    name: Version Packages PR / Publish
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,11 +32,22 @@ jobs:
       # onlyBuiltDependencies, this repo declares no such allowlist, and no
       # workspace package has an install/prepare hook. Verified before adding.
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: Create or update Version Packages PR
+      # `files: ["dist"]` in every publishable package means an unbuilt tree
+      # would publish empty tarballs; build is therefore a hard precondition of
+      # publish, not an optimization. Correctness is already gated by ci.yml on
+      # the PRs that reached main — this step only materializes dist/.
+      - run: pnpm turbo run build
+      # One action, two modes: with pending changesets it maintains the Version
+      # Packages PR; with none it publishes every public package whose version
+      # is not yet on npm and pushes one git tag per published package.
+      - name: Create Version Packages PR or publish to npm
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1 (branch tip, frozen)
         with:
           version: pnpm changeset version
+          publish: pnpm changeset publish
           commit: "chore: version packages"
           title: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"

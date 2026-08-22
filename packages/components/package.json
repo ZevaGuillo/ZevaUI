@@ -1,6 +1,13 @@
 {
   "name": "@zevaui/components",
   "version": "0.1.0",
+  "description": "ZevaUI React components: six core components driven exclusively by design tokens via CSS custom properties",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZevaGuillo/ZevaUI.git",
+    "directory": "packages/components"
+  },
   "type": "module",
   "exports": {
     "./styles.css": "./dist/styles.css",
