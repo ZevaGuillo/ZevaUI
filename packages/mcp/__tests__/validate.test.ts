@@ -22,11 +22,11 @@ describe("validateThemeRequest / candidate mode", () => {
     );
   });
 
-  it("reports exactly 10 missing-token violations for an empty candidate", () => {
+  it("reports exactly 13 missing-token violations for an empty candidate", () => {
     const result = validateThemeRequest({ theme: "light", colors: {} });
 
     expect(result.pass).toBe(false);
-    expect(result.violations.filter((v) => v.rule === "missing-token")).toHaveLength(10);
+    expect(result.violations.filter((v) => v.rule === "missing-token")).toHaveLength(13);
   });
 
   it("reports an invalid-color violation for an unparseable value", () => {
