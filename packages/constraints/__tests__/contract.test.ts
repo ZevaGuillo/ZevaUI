@@ -2,14 +2,24 @@ import { describe, expect, it } from "vitest";
 import { contract, minContrastRatioFor, requiredTokens } from "../src/contract.js";
 
 describe("contract / contrastPairs", () => {
-  it("declares exactly 13 contrast pairs", () => {
-    expect(contract.contrastPairs).toHaveLength(13);
+  it("declares exactly 16 contrast pairs", () => {
+    expect(contract.contrastPairs).toHaveLength(16);
   });
 
   it("never references color-bg-subtle or color-bg-muted", () => {
     const backgrounds = contract.contrastPairs.map((pair) => pair.background);
     expect(backgrounds).not.toContain("color-bg-subtle");
     expect(backgrounds).not.toContain("color-bg-muted");
+  });
+});
+
+describe("contract / nonTextContrastPairs (PR1: inert)", () => {
+  it("declares the sibling array empty, awaiting PR2 population", () => {
+    expect(contract.nonTextContrastPairs).toEqual([]);
+  });
+
+  it("declares a flat 3.0 non-text floor, distinct from the per-theme text floors", () => {
+    expect(contract.nonTextMinContrastRatio).toBe(3.0);
   });
 });
 
@@ -35,7 +45,7 @@ describe("contract / declared-but-unconsumed blocks", () => {
 });
 
 describe("contract / requiredTokens", () => {
-  it("derives exactly 10 tokens, in first-appearance order", () => {
+  it("derives exactly 13 tokens, in first-appearance order", () => {
     expect(requiredTokens).toEqual([
       "color-text-default",
       "color-bg-canvas",
@@ -47,7 +57,23 @@ describe("contract / requiredTokens", () => {
       "color-text-success",
       "color-text-inverse",
       "color-bg-inverse",
+      "color-danger-subtle",
+      "color-success-subtle",
+      "color-warning-subtle",
     ]);
+  });
+
+  // Union property: requiredTokens must equal the deduplicated set of every
+  // token referenced by EITHER pair array, so no separate registration step
+  // can drift from the pairs that actually declare tokens. Vacuously true
+  // once the union call exists (nonTextContrastPairs is still empty in PR1);
+  // it stays true unedited once PR2 populates the non-text array.
+  it("equals the deduplicated union of contrastPairs and nonTextContrastPairs tokens", () => {
+    const flattened = [
+      ...contract.contrastPairs.flatMap((pair) => [pair.foreground, pair.background]),
+      ...contract.nonTextContrastPairs.flatMap((pair) => [pair.foreground, pair.background]),
+    ];
+    expect(new Set(requiredTokens)).toEqual(new Set(flattened));
   });
 });
 

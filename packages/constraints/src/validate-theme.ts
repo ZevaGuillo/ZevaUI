@@ -25,7 +25,19 @@ type ResolvedLuminances = { luminances: Map<string, number>; violations: Violati
 
 export function validateTheme(theme: Theme): ValidationResult {
   const resolved = resolveLuminances(theme.colors);
-  const violations = [...resolved.violations, ...checkContrast(resolved.luminances, theme.id)];
+  // Two tiers, one function: text pairs judged at the theme's own floor
+  // (4.5/7.0), non-text pairs always judged at the flat 3.0 floor from the
+  // contract — WCAG 1.4.11 defines no AAA tier, so high-contrast must never
+  // escalate the non-text check the way it escalates text.
+  const violations = [
+    ...resolved.violations,
+    ...checkContrast(resolved.luminances, contract.contrastPairs, minContrastRatioFor(theme.id)),
+    ...checkContrast(
+      resolved.luminances,
+      contract.nonTextContrastPairs,
+      contract.nonTextMinContrastRatio,
+    ),
+  ];
   return { pass: violations.length === 0, violations };
 }
 
@@ -50,11 +62,17 @@ function resolveLuminances(colors: Readonly<Record<string, string>>): ResolvedLu
   return { luminances, violations };
 }
 
-function checkContrast(luminances: Map<string, number>, themeId: string): Violation[] {
-  const minRatio = minContrastRatioFor(themeId);
+// Exported so both the text tier and the non-text tier can share one pure
+// comparison function, each with its own explicit floor — see D1: 1.4.11 has
+// no theme axis, so the floor is a parameter here, never a per-theme lookup.
+export function checkContrast(
+  luminances: Map<string, number>,
+  pairs: readonly ContrastPair[],
+  minRatio: number,
+): Violation[] {
   const violations: Violation[] = [];
 
-  for (const pair of contract.contrastPairs) {
+  for (const pair of pairs) {
     const fg = luminances.get(pair.foreground);
     const bg = luminances.get(pair.background);
     if (fg === undefined || bg === undefined) continue;
