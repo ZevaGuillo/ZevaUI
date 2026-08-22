@@ -1,5 +1,13 @@
 # @zevaui/storybook
 
+## 0.0.2
+
+### Patch Changes
+
+- Updated dependencies [34dbdd3]
+  - @zevaui/tokens@0.2.0
+  - @zevaui/components@0.2.0
+
 ## 0.0.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@zevaui/constraints",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Machine-readable design contract and validateTheme() for ZevaUI: WCAG text (4.5:1/7.0:1) and non-text (3.0:1) contrast enforcement",
   "license": "Apache-2.0",
   "repository": {
