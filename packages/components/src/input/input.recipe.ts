@@ -37,11 +37,10 @@ export const inputRecipe = {
       borderWidth: "1px",
       borderStyle: "solid",
       // `border.strong` (not `border.default`) because this boundary is what identifies the
-      // control, which is exactly what WCAG 1.4.11 measures. It is the strongest border token
-      // available and still falls short of the 3.0 floor (2.49 light / 2.66 dark), so RNF-01
-      // stays only partially satisfied here. That gap is a token-palette question, not a
-      // component one, and is tracked for the overlay stream — do not "fix" it by inventing a
-      // literal color, which G2 would reject anyway.
+      // control, which is exactly what WCAG 1.4.11 measures. It now clears the 3.0 floor
+      // against both backgrounds the input can sit on (4.84 light / 3.67 dark against
+      // bg-surface, its own background; 4.63 light / 4.16 dark against bg-canvas), since the
+      // PR2 token repoint — see packages/constraints/README.md and docs/adrs/0010.
       borderColor: "border.strong",
       backgroundColor: "bg.surface",
       color: "text.default",

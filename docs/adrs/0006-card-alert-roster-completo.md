@@ -237,3 +237,21 @@ nadie tenga que copiar un bloque de test.
   no está verificado en particular. Responderla de verdad necesita un
   programa de prueba real con varios lectores de pantalla, no un spike de
   una tarde.
+
+**Cierre de evidencia (2026-08-22, `ADR-0010`):** "Extender `contrastPairs` de
+`@zevaui/constraints` con los pares `color-text-default` × `color-{tono}-subtle`"
+quedó cerrado — `ADR-0010` (RF-CT10) sumó las 9 combinaciones (3 tonos × 3 temas) a
+la clase de texto existente, al piso de cada tema (4.5/7.0), **sin mover ningún
+token**: los `-subtle` que D2 midió en 14.54/16.14/15.94 para `light` no cambiaron
+de valor. Medido en los otros dos temas, no calculado antes de esta ADR: `dark`
+9.63 (`danger`) / 8.69 (`success`) / 8.71 (`warning`); `high-contrast` 17.20 /
+19.10 / 18.87. Los nueve limpian con margen amplio el piso de su tema — ninguno es
+frágil. La combinación ya no depende de qué story de Storybook la ejercite (el
+riesgo que este Seguimiento señalaba): el gate de `@zevaui/constraints` la vigila
+a nivel de token, en los tres temas, con o sin story. El segundo punto de
+Seguimiento — subir la escala de primitivos para cerrar el déficit del borde de
+acento de `Alert` (D3, 3 de 9 combinaciones bajo 3.0:1) — también queda cerrado:
+los mismos primitivos repuntados por `ADR-0010` (`green.700`, `amber.700`,
+`red.400`) son los que `Alert` usa como color de tono, así que las 3 combinaciones
+que fallaban 1.4.11 (light warning 1.93, light success 2.93, dark danger 2.63)
+ahora limpian 3.0 sin que `Alert` necesitara ningún cambio de componente.
