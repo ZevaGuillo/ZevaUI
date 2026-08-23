@@ -8,7 +8,7 @@
 // passing workflow_call inputs through as step-level `env:`.
 import { appendFileSync } from "node:fs";
 import path from "node:path";
-import { buildReport, resolveDsVersion } from "./build-report.js";
+import { buildReport, resolveDeprecated, resolveDsVersion } from "./build-report.js";
 import { MAX_SCANNED_FILES, walkAndScan } from "./walk-source-tree.js";
 
 /**
@@ -143,7 +143,16 @@ function main() {
     generatedAt: new Date().toISOString(),
   });
 
-  console.log(JSON.stringify(report, null, 2));
+  // RF-AR04/RF-AR05, D7: additive only. `buildReport` keeps its exact 5-key
+  // shape; `deprecatedComponents` is attached ONLY when the installed
+  // manifest was readable — `null` (unknown) stays omitted, never `null`.
+  const deprecatedComponents = resolveDeprecated({
+    consumerRoot,
+    componentNames: report.components,
+  });
+  const finalReport = deprecatedComponents === null ? report : { ...report, deprecatedComponents };
+
+  console.log(JSON.stringify(finalReport, null, 2));
 
   if (skipped.length > 0) {
     console.error(

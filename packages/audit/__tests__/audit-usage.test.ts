@@ -195,6 +195,69 @@ describe("audit-usage.js entry", () => {
   });
 });
 
+// RF-AR04/RF-AR05, D7: the wiring lives in audit-usage.js's main(), between
+// buildReport (unchanged, still exactly 5 keys) and stdout — proving the
+// end-to-end additive flow through the REAL entry point, not just the pure
+// helpers in build-report.js. The "[] known-none" case is already proven at
+// the unit level in build-report.test.ts's resolveDeprecated suite.
+function writeConsumerImportingButtonAndDialog(workspaceRoot: string) {
+  writeFileSync(
+    path.join(workspaceRoot, "package.json"),
+    JSON.stringify({ dependencies: { "@zevaui/components": "^1.0.0" } }),
+  );
+  mkdirSync(path.join(workspaceRoot, "src"), { recursive: true });
+  writeFileSync(
+    path.join(workspaceRoot, "src", "a.tsx"),
+    'import { Button, Dialog } from "@zevaui/components";\n',
+  );
+}
+
+describe("deprecatedComponents wiring (RF-AR04, RF-AR05)", () => {
+  // RF-AR05 scenario "v1 consumer keeps passing": with no installed manifest
+  // to read, the report must be byte-for-byte the same 5 keys as today —
+  // this is the explicit v1 byte-identical proof, run through the real CLI.
+  it("v1 byte-identical: omits deprecatedComponents entirely when no installed manifest exists", () => {
+    const workspaceRoot = makeWorkspace();
+    writeConsumerImportingButtonAndDialog(workspaceRoot);
+
+    const result = runEntry(workspaceRoot, { AUDIT_APP: "web" });
+
+    expect(result.status).toBe(0);
+    const report = JSON.parse(result.stdout);
+    expect(Object.keys(report).sort()).toEqual(
+      ["app", "components", "dsVersion", "dsVersionSource", "generatedAt"].sort(),
+    );
+    expect(report).not.toHaveProperty("deprecatedComponents");
+  });
+
+  it("adds deprecatedComponents as the 6th key when the installed manifest marks a used component deprecated", () => {
+    const workspaceRoot = makeWorkspace();
+    writeConsumerImportingButtonAndDialog(workspaceRoot);
+    const manifestDir = path.join(workspaceRoot, "node_modules", "@zevaui", "components", "dist");
+    mkdirSync(manifestDir, { recursive: true });
+    writeFileSync(
+      path.join(manifestDir, "components.manifest.json"),
+      JSON.stringify({
+        components: [{ name: "Button" }, { name: "Dialog", deprecated: { since: "1.4.0" } }],
+      }),
+    );
+
+    const result = runEntry(workspaceRoot, { AUDIT_APP: "web" });
+
+    expect(result.status).toBe(0);
+    const report = JSON.parse(result.stdout);
+    expect(Object.keys(report)).toEqual([
+      "app",
+      "dsVersion",
+      "dsVersionSource",
+      "components",
+      "generatedAt",
+      "deprecatedComponents",
+    ]);
+    expect(report.deprecatedComponents).toEqual(["Dialog"]);
+  });
+});
+
 describe("step summary rendering", () => {
   // dsVersion comes from the CONSUMER's package.json and app from a workflow
   // input: both are arbitrary text this repo does not control. Unescaped,

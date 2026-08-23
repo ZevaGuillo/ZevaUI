@@ -63,6 +63,17 @@ export type ComponentRegistryEntry = {
    * the artifact actually shipped, not what this field predicted it would.
    */
   readonly clientOnly: boolean;
+  /**
+   * Optional deprecation notice (RF-AR04, design D7). Richer than a boolean so the manifest —
+   * and eventually the adoption panel — can say "use X instead", per RNF-09's migration-guide
+   * culture. Absent by default: no component in `componentRegistry` sets this in this PR: the
+   * field only ships the mechanism, `scripts/build-manifest.js` emits it additively.
+   */
+  readonly deprecated?: {
+    readonly since: string;
+    readonly replacement?: string;
+    readonly note?: string;
+  };
 };
 
 // `as const satisfies` (not a type annotation) keeps each entry's literal recipe type intact,
