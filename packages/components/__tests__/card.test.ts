@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cleanup, render, screen } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { createElement, isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Card } from "../src/card/Card.js";
 import { cardRecipe } from "../src/card/card.recipe.js";
@@ -96,33 +96,49 @@ function footerElement(props: CardPartProps) {
 
 describe("Card public API surface (type-level)", () => {
   it("rejects className, style and unknown surface values on Card at compile time", () => {
-    // @ts-expect-error className is not part of the public API
-    cardElement({ className: "x", children: "x" });
-    // @ts-expect-error style is not part of the public API
-    cardElement({ style: {}, children: "x" });
-    // @ts-expect-error unknown surface value
-    cardElement({ surface: "nope", children: "x" });
+    // tsc asserts the rejection itself: each @ts-expect-error fails the
+    // typecheck the moment its error disappears. What runs here is the
+    // runtime half of the contract — a rejected prop still constructs a
+    // valid element rather than throwing.
+    const constructed = [
+      // @ts-expect-error className is not part of the public API
+      cardElement({ className: "x", children: "x" }),
+      // @ts-expect-error style is not part of the public API
+      cardElement({ style: {}, children: "x" }),
+      // @ts-expect-error unknown surface value
+      cardElement({ surface: "nope", children: "x" }),
+    ];
+    expect(constructed.every(isValidElement)).toBe(true);
   });
 
   it("rejects className and style on Card.Header at compile time", () => {
-    // @ts-expect-error className is not part of the public API
-    headerElement({ className: "x", children: "x" });
-    // @ts-expect-error style is not part of the public API
-    headerElement({ style: {}, children: "x" });
+    const constructed = [
+      // @ts-expect-error className is not part of the public API
+      headerElement({ className: "x", children: "x" }),
+      // @ts-expect-error style is not part of the public API
+      headerElement({ style: {}, children: "x" }),
+    ];
+    expect(constructed.every(isValidElement)).toBe(true);
   });
 
   it("rejects className and style on Card.Body at compile time", () => {
-    // @ts-expect-error className is not part of the public API
-    bodyElement({ className: "x", children: "x" });
-    // @ts-expect-error style is not part of the public API
-    bodyElement({ style: {}, children: "x" });
+    const constructed = [
+      // @ts-expect-error className is not part of the public API
+      bodyElement({ className: "x", children: "x" }),
+      // @ts-expect-error style is not part of the public API
+      bodyElement({ style: {}, children: "x" }),
+    ];
+    expect(constructed.every(isValidElement)).toBe(true);
   });
 
   it("rejects className and style on Card.Footer at compile time", () => {
-    // @ts-expect-error className is not part of the public API
-    footerElement({ className: "x", children: "x" });
-    // @ts-expect-error style is not part of the public API
-    footerElement({ style: {}, children: "x" });
+    const constructed = [
+      // @ts-expect-error className is not part of the public API
+      footerElement({ className: "x", children: "x" }),
+      // @ts-expect-error style is not part of the public API
+      footerElement({ style: {}, children: "x" }),
+    ];
+    expect(constructed.every(isValidElement)).toBe(true);
   });
 });
 

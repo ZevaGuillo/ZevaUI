@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, isValidElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buttonRecipe } from "../src/button/button.recipe.js";
 import { classSelectorPattern } from "../src/internal/consumed-tokens.js";
@@ -377,15 +377,22 @@ function menuElement(props: MenuProps) {
 
 describe("Menu public API surface (type-level)", () => {
   it("rejects className, style and unknown variant values at compile time", () => {
-    // @ts-expect-error className is not part of the public API
-    menuElement({ className: "x", label: "l", items: ITEMS });
-    // @ts-expect-error style is not part of the public API
-    menuElement({ style: {}, label: "l", items: ITEMS });
-    // @ts-expect-error unknown size value
-    menuElement({ size: "nope", label: "l", items: ITEMS });
-    // @ts-expect-error unknown width value
-    menuElement({ width: "nope", label: "l", items: ITEMS });
-    // @ts-expect-error children would be structural variation, which RF-07 forbids
-    menuElement({ children: "x", label: "l", items: ITEMS });
+    // tsc asserts the rejection itself: each @ts-expect-error fails the
+    // typecheck the moment its error disappears. What runs here is the
+    // runtime half of the contract — a rejected prop still constructs a
+    // valid element rather than throwing.
+    const constructed = [
+      // @ts-expect-error className is not part of the public API
+      menuElement({ className: "x", label: "l", items: ITEMS }),
+      // @ts-expect-error style is not part of the public API
+      menuElement({ style: {}, label: "l", items: ITEMS }),
+      // @ts-expect-error unknown size value
+      menuElement({ size: "nope", label: "l", items: ITEMS }),
+      // @ts-expect-error unknown width value
+      menuElement({ width: "nope", label: "l", items: ITEMS }),
+      // @ts-expect-error children would be structural variation, which RF-07 forbids
+      menuElement({ children: "x", label: "l", items: ITEMS }),
+    ];
+    expect(constructed.every(isValidElement)).toBe(true);
   });
 });
