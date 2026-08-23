@@ -218,3 +218,15 @@ modo navegador de forma compartida — hoy ese segundo consumidor no existe.
   exige (ver Consecuencias).
 - Ampliar el roster de historias más allá de `Button` a medida que
   ADR-0001 (D8, Seguimiento) sume componentes al roster core (RF-05).
+
+**Cierre de evidencia (2026-08-22, `ADR-0010`):** el caveat de `@zevaui/constraints`
+citado en Consecuencias (Neutras) — WCAG 1.4.11 no enforced, `color-border-strong`
+por debajo del piso — quedó cerrado por `ADR-0010`. Re-corrida la puerta de axe de
+Storybook contra los cinco repoints de token: sin delta, como se esperaba, porque
+axe nunca inspeccionó bordes (la regla `color-contrast` evalúa texto, no elementos
+decorativos — el límite exacto que este ADR ya documentó en D7). La única superficie
+de texto real que toca un token repuntado es `color-text-inverse` sobre un fondo
+`{tono}-default`, el par que usa `Button visual="{tono}"`: medido en 4.94 (`success`,
+light) / 5.05 (`warning`, light) / 7.26 (`danger`, dark), todos por encima del piso
+de texto 4.5 de su tema. `Button visual="danger"` en `light` no usa ningún token
+repuntado y queda sin cambios en 4.76. Ningún componente client necesitó cambios.

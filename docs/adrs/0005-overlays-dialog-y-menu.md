@@ -300,3 +300,14 @@ obligue.
   superficie flotante difiera de una tarjeta (D3).
 - Completar el roster core de RF-05: con `Button`, `Dialog` y `Menu` van tres
   de los seis componentes.
+
+**Cierre de evidencia (2026-08-22, `ADR-0010`):** "Cerrar de verdad el hueco de
+WCAG 1.4.11" quedó cerrado por `ADR-0010` — los cinco repoints de token, incluido
+`color-border-strong` (ahora 4.63/4.84 en `light`, 4.16/3.67 en `dark`, ambos sobre
+el piso de 3.0). Con eso resuelto, la frontera de alcance de esta ADR se verificó
+explícitamente: **ningún eje `tone`/`intent` se agregó a `Dialog` ni a `Menu`** en
+el cambio que cerró el hueco (`RF-CT14` lo prohibía de forma expresa). Que
+`color-border-strong` ya limpie 1.4.11 no dispara automáticamente reabrir el eje de
+tono de los overlays — sigue siendo una decisión de diseño independiente, que
+permanece diferida, ahora explícitamente confirmada como fuera de alcance en vez de
+bloqueada por un token que fallaba.

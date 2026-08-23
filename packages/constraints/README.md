@@ -29,23 +29,34 @@ broken theme fails CI instead of shipping.
    minimum contrast ratio. Otherwise `result.violations` lists each failure
    with both token names and the measured/required ratios.
 
-## Known gap: non-text contrast is not enforced
+## Non-text contrast (WCAG 1.4.11) is enforced
 
-**WCAG 1.4.11 (Non-text Contrast) is NOT enforced in v1.** The contract only
-checks text/background pairs; borders, focus rings, and other UI-component
-graphics are not validated.
+`nonTextContrastPairs` is a sibling pair class to `contrastPairs`, checked
+against a flat `nonTextMinContrastRatio: 3.0` applied identically across
+**every** theme (`light`, `dark`, `high-contrast`) — WCAG 1.4.11 has no AAA
+tier, so `high-contrast` does not get a stricter non-text floor the way it
+does for text (7.0:1). `checkContrast` is a pure `(luminances, pairs,
+minRatio)` function, called once per pair class; violations reuse the same
+`rule: "low-contrast"` as text pairs and are distinguished by
+`expected: "3.0"`. See ADR-0010 for the full design rationale.
 
-This is not a hypothetical gap — `color-border-strong` currently fails the
-1.4.11 threshold (3.0:1) against the canvas background in both base themes:
+| Non-text pair | light | dark | high-contrast |
+|----------------|-------|------|-----------------|
+| `color-border-strong` × `color-bg-canvas` | 4.63 | 4.16 | (unchanged, above floor) |
+| `color-border-strong` × `color-bg-surface` | 4.84 | 3.67 | (unchanged, above floor) |
+| `color-danger-default` × `color-danger-subtle` | (above floor) | 3.48 | (unchanged, above floor) |
+| `color-success-default` × `color-success-subtle` | 4.50 | (above floor) | (unchanged, above floor) |
+| `color-warning-default` × `color-warning-subtle` | 4.54 | (above floor) | (unchanged, above floor) |
 
-| Theme | Measured ratio | Required |
-|-------|-----------------|----------|
-| light | 2.49:1 | 3.0:1 |
-| dark | 2.66:1 | 3.0:1 |
+All 15 pair evaluations (5 pairs × 3 themes) pass the 3.0:1 floor. Two dark
+ratios are fragile (danger 3.48, 16% headroom; border × surface 3.67, 22%
+headroom) and carry `toBeCloseTo` pins in `tokens-contract.gate.test.ts` — see
+the headroom note below.
 
-As a result, **RNF-01 (WCAG 2.2 AA) is only partially satisfied**: text
-contrast is enforced and verified, non-text contrast is not. Do not represent
-this package as a full WCAG 2.2 AA guarantee.
+As a result, **RNF-01 (WCAG 2.2 AA) is now enforced for both text and
+non-text pairs declared in the contract.** Contrast that is not declared as a
+pair (e.g. focus rings, or any future non-text surface) is still outside this
+package's coverage.
 
 ## How contrast is computed
 
@@ -55,20 +66,28 @@ mapping (which uses a perceptual, non-naive algorithm), chosen because it is
 deterministic and always errs on the conservative side — it never reports a
 higher ratio than the browser would render.
 
-## Fragile pin: high-contrast text-success
+## Fragile pins
 
-The high-contrast theme's `color-text-success` passes its 7.0:1 floor at
-**7.09:1 — 1.3% headroom**. Any future change to `green.800` or to the
-high-contrast canvas color must re-verify this ratio before merge; a small
-shift in either value can regress it below the floor.
+- **high-contrast text-success**: passes its 7.0:1 floor at **7.09:1 — 1.3%
+  headroom**. Any future change to `green.800` or to the high-contrast canvas
+  color must re-verify this ratio before merge.
+- **dark danger-default × danger-subtle** (non-text, 3.0:1 floor): passes at
+  **3.48:1 — 16% headroom**.
+- **dark border-strong × bg-surface** (non-text, 3.0:1 floor): passes at
+  **3.67:1 — 22% headroom**.
+
+All three are pinned with `toBeCloseTo` in `tokens-contract.gate.test.ts`. If
+headroom widens, update this doc; never loosen a pin to make a regression
+pass.
 
 ## Checklist
 
-- [ ] Every token referenced in `contract.contrastPairs` is present in the
-      `colors` you pass to `validateTheme`.
+- [ ] Every token referenced in `contract.contrastPairs` and
+      `contract.nonTextContrastPairs` is present in the `colors` you pass to
+      `validateTheme`.
 - [ ] `result.pass` is checked, not just `result.violations.length`.
-- [ ] You understand this package does not enforce WCAG 1.4.11 non-text
-      contrast (see above).
+- [ ] You understand this package enforces both text pairs (4.5:1 / 7.0:1,
+      theme-scoped) and non-text pairs (flat 3.0:1, all themes) — see above.
 
 ## Next step
 
