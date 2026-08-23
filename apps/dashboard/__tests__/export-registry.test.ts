@@ -74,6 +74,9 @@ describe("exportRegistry (D2: repo-as-registry escape hatch)", () => {
     ["app label", { ...rowKnownNone, appLabel: "../../escaped" }],
     ["repository owner", { ...rowKnownNone, repository: "../../etc/web" }],
     ["repository shape", { ...rowKnownNone, repository: "no-slash" }],
+    // An empty owner is what a leading separator yields; the segment guard is
+    // what rejects it, which is why no undefined-check is needed above.
+    ["empty repository owner", { ...rowKnownNone, repository: "/web" }],
   ])("refuses to write when the %s is unsafe", async (_case, row) => {
     outDir = mkdtempSync(path.join(tmpdir(), "zevaui-dashboard-export-"));
     await expect(exportRegistry({ outDir, listAllLatest: async () => [row] })).rejects.toThrow(

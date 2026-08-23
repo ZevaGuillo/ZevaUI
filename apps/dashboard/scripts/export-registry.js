@@ -31,8 +31,11 @@ function assertSafeSegment(segment, field) {
  * @returns {string[]} path segments under outDir, identity-preserving
  */
 function identitySegments(row) {
+  // split always yields at least one element, so `owner` is a string here --
+  // possibly empty, which assertSafeSegment rejects below. Only `repo` can be
+  // undefined, when the slug carries no separator at all.
   const [owner, repo, ...rest] = row.repository.split("/");
-  if (rest.length > 0 || owner === undefined || repo === undefined) {
+  if (rest.length > 0 || repo === undefined) {
     throw new Error(
       `[export:registry] repository must be "owner/name": ${JSON.stringify(row.repository)}`,
     );
