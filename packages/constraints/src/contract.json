@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "defaultMinContrastRatio": 4.5,
   "themes": {
     "light": { "minContrastRatio": 4.5 },
@@ -19,8 +19,13 @@
     { "foreground": "color-text-danger", "background": "color-bg-surface" },
     { "foreground": "color-text-success", "background": "color-bg-canvas" },
     { "foreground": "color-text-success", "background": "color-bg-surface" },
-    { "foreground": "color-text-inverse", "background": "color-bg-inverse" }
+    { "foreground": "color-text-inverse", "background": "color-bg-inverse" },
+    { "foreground": "color-text-default", "background": "color-danger-subtle" },
+    { "foreground": "color-text-default", "background": "color-success-subtle" },
+    { "foreground": "color-text-default", "background": "color-warning-subtle" }
   ],
+  "nonTextContrastPairs": [],
+  "nonTextMinContrastRatio": 3.0,
   "tokenTypes": {
     "dimension": [
       "radius-input",
