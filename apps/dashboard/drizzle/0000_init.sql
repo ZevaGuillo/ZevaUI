@@ -15,7 +15,7 @@ CREATE TABLE submissions (
 );
 CREATE INDEX submissions_repo_app_generated_idx ON submissions (repository_id, app_label, generated_at DESC);
 
--- Read-time "upsert" (D1's oidc_jti replay-guard table lands in PR3).
+-- Read-time "upsert" (D1's oidc_jti replay-guard table is 0001_oidc_jti.sql).
 CREATE VIEW report_latest AS
   SELECT DISTINCT ON (repository_id, app_label) id, repository_id, repository, app_label,
     ds_version, ds_version_source, components, deprecated_components, schema_version,
