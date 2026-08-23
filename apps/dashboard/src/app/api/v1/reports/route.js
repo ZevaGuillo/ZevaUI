@@ -8,7 +8,11 @@ import {
   recentSubmissionCountQuery,
 } from "../../../../db/queries.js";
 import { oidcJti } from "../../../../db/schema.js";
-import { ingestReport } from "../../../../ingestion/ingest-report.js";
+import {
+  ingestReport,
+  MAX_BODY_BYTES,
+  payloadTooLargeResult,
+} from "../../../../ingestion/ingest-report.js";
 import { serializeReport } from "../../../../reports/serialize.js";
 
 // D4: GET /api/v1/reports -- public. Thin wiring; query/response shapes
@@ -44,16 +48,29 @@ function allowedOwnersFromEnv() {
   );
 }
 
-// D1/D4: OIDC-authenticated ingestion. Pipeline logic (size/parse/schema/
-// token/IB/rate-limit/monotonicity) lives in ingestion/ingest-report.js,
-// unit-tested without a live DB; this wires the real dependencies.
+// D1/D4: OIDC-authenticated ingestion. Pipeline logic (content-type/size/
+// parse/schema/token/IB/rate-limit/monotonicity) lives in
+// ingestion/ingest-report.js, unit-tested without a live DB; this wires the
+// real dependencies.
 /** @param {Request} request */
 export async function POST(request) {
-  const db = getDb();
+  // D4 step 1, gate b (pre-buffer): reject an oversized body from its
+  // declared Content-Length BEFORE ever reading it into memory -- this is
+  // the actual DoS-resistance mechanism. ingestReport's own contentLength
+  // check remains as a backstop for a request that omits or understates
+  // this header.
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    const { status, body } = payloadTooLargeResult();
+    return NextResponse.json(body, { status });
+  }
+
   const rawBody = await request.text();
+  const db = getDb();
   const result = await ingestReport({
     rawBody,
     contentLength: Buffer.byteLength(rawBody),
+    contentType: request.headers.get("content-type") ?? undefined,
     authorizationHeader: request.headers.get("authorization") ?? undefined,
     deps: {
       audience: process.env.REGISTRY_OIDC_AUDIENCE ?? "",

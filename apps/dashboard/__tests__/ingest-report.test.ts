@@ -66,6 +66,7 @@ function request(
   overrides: {
     rawBody?: string;
     contentLength?: number;
+    contentType?: string | undefined;
     authorizationHeader?: string;
     reportBody?: Record<string, unknown>;
     tokenClaims?: Record<string, unknown>;
@@ -76,6 +77,7 @@ function request(
   return {
     rawBody,
     contentLength: overrides.contentLength ?? Buffer.byteLength(rawBody),
+    contentType: "contentType" in overrides ? overrides.contentType : "application/json",
     authorizationHeader:
       "authorizationHeader" in overrides
         ? overrides.authorizationHeader
@@ -96,6 +98,18 @@ describe("ingestReport (D4 pipeline)", () => {
   });
 
   it.each([
+    [
+      "a non-JSON content-type, before parsing",
+      { contentType: "text/plain" },
+      415,
+      "unsupported_media_type",
+    ],
+    [
+      "a missing content-type, before parsing",
+      { contentType: undefined },
+      415,
+      "unsupported_media_type",
+    ],
     [
       "a body over the 64 KiB size cap, before parsing",
       { contentLength: 64 * 1024 + 1 },
@@ -148,6 +162,21 @@ describe("ingestReport (D4 pipeline)", () => {
       body: { error: { code: "schema_invalid", field: "app" } },
     });
     expect(JSON.stringify(result.body)).not.toContain("<img onerror=1>");
+  });
+
+  it("accepts a content-type with a charset parameter (application/json; charset=utf-8)", async () => {
+    const result = await ingestReport(request({ contentType: "application/json; charset=utf-8" }));
+    expect(result.status).toBe(201);
+  });
+
+  it("rejects an unsupported content-type before the size cap (gate order: content-type first)", async () => {
+    const result = await ingestReport(
+      request({ contentType: "text/plain", contentLength: 64 * 1024 + 1 }),
+    );
+    expect(result).toMatchObject({
+      status: 415,
+      body: { error: { code: "unsupported_media_type" } },
+    });
   });
 
   it("accepts a report newer than the stored latest", async () => {
