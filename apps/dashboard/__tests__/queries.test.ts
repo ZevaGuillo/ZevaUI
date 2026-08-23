@@ -5,6 +5,7 @@ import {
   allLatestReportsQuery,
   latestGeneratedAtQuery,
   recentSubmissionCountQuery,
+  reportsForRepoQuery,
 } from "../src/db/queries.js";
 
 // A lazy `pg` Pool never connects until a query runs -- proves the real SQL shape, no live DB.
@@ -28,6 +29,16 @@ describe("latestGeneratedAtQuery (RF-AR03 monotonicity)", () => {
     expect(sql).toContain('"report_latest"."repository_id" = $1');
     expect(sql).toContain('"report_latest"."app_label" = $2');
     expect(params).toEqual([123, "web"]);
+  });
+});
+
+describe("reportsForRepoQuery (D4: GET /api/v1/reports/{owner}/{repo}, task 4.0)", () => {
+  it("selects from report_latest filtered by repository, ordered by app label", () => {
+    const { sql, params } = reportsForRepoQuery(db, "acme/web").toSQL();
+    expect(sql).toContain('from "report_latest"');
+    expect(sql).toContain('"report_latest"."repository" = $1');
+    expect(sql).toContain('order by "report_latest"."app_label" asc');
+    expect(params).toEqual(["acme/web"]);
   });
 });
 

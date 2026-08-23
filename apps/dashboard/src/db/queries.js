@@ -13,6 +13,17 @@ export function allLatestReportsQuery(db) {
     .orderBy(asc(reportLatest.repository), asc(reportLatest.appLabel));
 }
 
+// D4: GET /api/v1/reports/{owner}/{repo} -- one repository's latest rows,
+// task 4.0 (deferred from PR2 -- the Panel is its first real consumer).
+/** @param {import("drizzle-orm/node-postgres").NodePgDatabase} db @param {string} repository */
+export function reportsForRepoQuery(db, repository) {
+  return db
+    .select()
+    .from(reportLatest)
+    .where(eq(reportLatest.repository, repository))
+    .orderBy(asc(reportLatest.appLabel));
+}
+
 // RF-AR03 monotonicity gate: the stored latest generatedAt for one repo/app pair.
 /** @param {import("drizzle-orm/node-postgres").NodePgDatabase} db @param {number} repositoryId @param {string} appLabel */
 export function latestGeneratedAtQuery(db, repositoryId, appLabel) {
