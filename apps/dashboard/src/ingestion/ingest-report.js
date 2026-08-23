@@ -10,13 +10,26 @@ import { checkIdentityBinding } from "./identity-binding.js";
 
 /** @typedef {import("../auth/oidc.js").JwksKey} JwksKey */
 
-const MAX_BODY_BYTES = 64 * 1024;
+export const MAX_BODY_BYTES = 64 * 1024;
 const RATE_LIMIT_PER_HOUR = 60;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
 
 /** @param {number} status @param {string} code @param {string} message @param {string} [field] */
 function errorResult(status, code, message, field) {
   return { status, body: { error: field ? { code, message, field } : { code, message } } };
+}
+
+// D4 step 1: the request body is only ever application/json. Parameters
+// (e.g. `; charset=utf-8`) are ignored, matching how the platform itself
+// negotiates content types.
+export function payloadTooLargeResult() {
+  return errorResult(413, "payload_too_large", "request body exceeds 64 KiB");
+}
+
+/** @param {string | undefined} contentType */
+function isJsonContentType(contentType) {
+  const mediaType = contentType?.split(";")[0]?.trim().toLowerCase();
+  return mediaType === "application/json";
 }
 
 /** @param {string | undefined} header */
@@ -29,6 +42,7 @@ function extractBearerToken(header) {
  * @param {{
  *   rawBody: string,
  *   contentLength: number,
+ *   contentType: string | undefined,
  *   authorizationHeader: string | undefined,
  *   deps: {
  *     audience: string,
@@ -42,11 +56,26 @@ function extractBearerToken(header) {
  *   },
  * }} request
  */
-export async function ingestReport({ rawBody, contentLength, authorizationHeader, deps }) {
+export async function ingestReport({
+  rawBody,
+  contentLength,
+  contentType,
+  authorizationHeader,
+  deps,
+}) {
   const now = deps.now ?? Date.now();
 
+  // D4 step 1, gate a: content-type, checked before parsing (and before the
+  // size cap, which is the platform's own transport-level backstop).
+  if (!isJsonContentType(contentType)) {
+    return errorResult(415, "unsupported_media_type", "content-type must be application/json");
+  }
+
+  // D4 step 1, gate b: size cap. The pre-buffer guard against
+  // request.text() lives in route.js; this is the backstop for a request
+  // that omits or understates Content-Length.
   if (contentLength > MAX_BODY_BYTES) {
-    return errorResult(413, "payload_too_large", "request body exceeds 64 KiB");
+    return payloadTooLargeResult();
   }
 
   let parsed;
