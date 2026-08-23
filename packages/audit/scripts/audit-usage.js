@@ -43,7 +43,7 @@ function cell(value) {
   // breaks the line wherever it is honoured, and `\r?\n` walks straight past it.
   return String(value)
     .replace(/\r\n?|\n/g, " ")
-    .replace(/\|/g, "\\|");
+    .replaceAll("|", "\\|");
 }
 
 /**
