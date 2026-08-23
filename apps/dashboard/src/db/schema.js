@@ -41,3 +41,9 @@ export const submissions = pgTable(
 );
 
 export const reportLatest = pgView("report_latest", reportColumns).existing();
+
+// D1: OIDC `jti` replay guard, one row per seen token, pruned by expiresAt.
+export const oidcJti = pgTable("oidc_jti", {
+  jti: text("jti").primaryKey(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
