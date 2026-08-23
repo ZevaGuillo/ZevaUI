@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "allowJs": true,
+    "checkJs": true,
+    "paths": {}
+  },
+  "include": ["src/**/*.js", "scripts/**/*.js", "__tests__/**/*.ts", "drizzle.config.js"]
+}
