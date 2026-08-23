@@ -54,6 +54,36 @@ describe("high-contrast AAA headroom", () => {
   });
 });
 
+describe("non-text contrast headroom (PR2 repoints)", () => {
+  // The two tightest ratios introduced by the PR2 repoint. The gate above only
+  // notices once a ratio has already dropped below 3.0; these pin the measured
+  // values so a primitive-scale edit surfaces as a failure here first, at the
+  // narrowest margins, rather than silently eroding until the gate itself trips.
+  // If either fails because headroom WIDENED, update the README's stated
+  // headroom rather than loosening the assertion.
+  function ratioOf(themeId: string, foreground: string, background: string): number {
+    const { colors } = themeFrom(themeId);
+    const fg = parseColor(colors[foreground]);
+    const bg = parseColor(colors[background]);
+    if (fg === undefined || bg === undefined) {
+      throw new Error(`${themeId} "${foreground}"/"${background}" tokens must be parseable`);
+    }
+    return contrastRatio(relativeLuminance(fg), relativeLuminance(bg));
+  }
+
+  it("keeps dark color-danger-default just above its 3.0 non-text floor (16% headroom)", () => {
+    const ratio = ratioOf("dark", "color-danger-default", "color-danger-subtle");
+    expect(ratio).toBeGreaterThan(contract.nonTextMinContrastRatio);
+    expect(ratio).toBeCloseTo(3.48, 2);
+  });
+
+  it("keeps dark color-border-strong x color-bg-surface just above its 3.0 non-text floor (22% headroom)", () => {
+    const ratio = ratioOf("dark", "color-border-strong", "color-bg-surface");
+    expect(ratio).toBeGreaterThan(contract.nonTextMinContrastRatio);
+    expect(ratio).toBeCloseTo(3.67, 2);
+  });
+});
+
 describe("manifest / contract type agreement", () => {
   const declaredType = new Map(
     Object.entries(contract.tokenTypes).flatMap(([type, names]) => names.map((n) => [n, type])),

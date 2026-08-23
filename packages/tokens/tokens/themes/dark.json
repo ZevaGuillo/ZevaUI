@@ -19,7 +19,7 @@
     "border": {
       "default": { "$value": "{gray.800}", "$type": "color" },
       "subtle": { "$value": "{gray.800}", "$type": "color" },
-      "strong": { "$value": "{gray.600}", "$type": "color" }
+      "strong": { "$value": "{gray.500}", "$type": "color" }
     },
     "accent": {
       "default": { "$value": "{blue.500}", "$type": "color" },
@@ -27,7 +27,7 @@
       "strong": { "$value": "{blue.400}", "$type": "color" }
     },
     "danger": {
-      "default": { "$value": "{red.500}", "$type": "color" },
+      "default": { "$value": "{red.400}", "$type": "color" },
       "subtle": { "$value": "{red.900}", "$type": "color" }
     },
     "success": {
