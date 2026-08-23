@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { buildManifestEntry } from "./manifest-entry.js";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const distDir = join(packageRoot, "dist");
@@ -69,18 +70,15 @@ const manifest = {
   generated: new Date().toISOString(),
   components: componentRegistry.map((entry) => {
     const classNames = extractClassNames(entry.recipe);
-    return {
-      name: entry.name,
-      className: entry.recipe.className,
+    return buildManifestEntry(entry, {
       clientOnly: isClientOnly(entry.modulePath),
-      import: "@zevaui/components",
       slots: extractSlots(entry.recipe),
       variants: extractVariants(entry.recipe),
       classNames,
       // Scoped to this component's own rules: reporting what it ACTUALLY consumes rather than
       // everything the package happens to reference.
       tokens: consumedTokens(css, classNames),
-    };
+    });
   }),
 };
 

@@ -66,6 +66,50 @@ export function resolveDsVersion({ consumerRoot }) {
   return null;
 }
 
+// RF-AR04, D7: reads the SAME node_modules path resolveDsVersion's
+// "installed" branch reads — zero network. `null` = unknown (absent or
+// unreadable, caller must omit the key); a readable manifest returns the
+// sorted intersection of `componentNames` with its deprecated names.
+/**
+ * @param {{ consumerRoot: string, componentNames: readonly string[] }} options
+ * @returns {string[] | null}
+ */
+export function resolveDeprecated({ consumerRoot, componentNames }) {
+  const manifestPath = path.join(
+    consumerRoot,
+    "node_modules",
+    "@zevaui",
+    "components",
+    "dist",
+    "components.manifest.json",
+  );
+  if (!existsSync(manifestPath)) return null;
+
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  } catch {
+    // Corrupt is the same "unknown" outcome as absent — not a third state.
+    return null;
+  }
+
+  /** @type {unknown[]} */
+  const manifestComponents = Array.isArray(manifest.components) ? manifest.components : [];
+  const deprecatedNames = new Set(
+    manifestComponents
+      .filter(
+        /** @param {unknown} entry */ (entry) =>
+          entry !== null &&
+          typeof entry === "object" &&
+          "deprecated" in entry &&
+          entry.deprecated !== undefined,
+      )
+      .map((entry) => /** @type {{ name: string }} */ (entry).name),
+  );
+
+  return componentNames.filter((name) => deprecatedNames.has(name)).sort(byCodeUnit);
+}
+
 // UTF-16 code-unit order, explicit. The default sort() happens to produce the
 // same order for strings, but as an accident of coercion rather than a stated
 // contract (Sonar S2871). NOT localeCompare: this array is deep-equalled

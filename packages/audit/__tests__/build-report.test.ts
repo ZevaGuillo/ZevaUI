@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildReport, resolveDsVersion } from "../scripts/build-report.js";
+import { buildReport, resolveDeprecated, resolveDsVersion } from "../scripts/build-report.js";
 
 let tempDirs: string[] = [];
 
@@ -131,5 +131,59 @@ describe("resolveDsVersion (D8 cascade)", () => {
     writeFileSync(path.join(consumerRoot, "package.json"), "{ not json");
 
     expect(resolveDsVersion({ consumerRoot })).toEqual({ version: "1.2.3", source: "installed" });
+  });
+});
+
+// RF-AR04/D7: `null` (unknown) vs `[]` (known-none, D3 provenance honesty).
+function writeInstalledManifest(
+  consumerRoot: string,
+  manifestComponents: Array<{ name: string; deprecated?: { since: string } }>,
+) {
+  const manifestDir = path.join(consumerRoot, "node_modules", "@zevaui", "components", "dist");
+  mkdirSync(manifestDir, { recursive: true });
+  writeFileSync(
+    path.join(manifestDir, "components.manifest.json"),
+    JSON.stringify({
+      version: "1.0.0",
+      generated: "2026-01-01T00:00:00.000Z",
+      components: manifestComponents,
+    }),
+  );
+}
+
+describe("resolveDeprecated (RF-AR04, D7)", () => {
+  it("returns null (unknown) when no installed manifest exists", () => {
+    const consumerRoot = makeConsumerRoot();
+    expect(resolveDeprecated({ consumerRoot, componentNames: ["Dialog"] })).toBeNull();
+  });
+
+  it("returns null (unknown) when the installed manifest is corrupt JSON", () => {
+    const consumerRoot = makeConsumerRoot();
+    const manifestDir = path.join(consumerRoot, "node_modules", "@zevaui", "components", "dist");
+    mkdirSync(manifestDir, { recursive: true });
+    writeFileSync(path.join(manifestDir, "components.manifest.json"), "{ not json");
+
+    expect(resolveDeprecated({ consumerRoot, componentNames: ["Dialog"] })).toBeNull();
+  });
+
+  it("returns [] (known-none) when the manifest is readable but nothing used is deprecated", () => {
+    const consumerRoot = makeConsumerRoot();
+    writeInstalledManifest(consumerRoot, [{ name: "Button" }, { name: "Dialog" }]);
+
+    expect(resolveDeprecated({ consumerRoot, componentNames: ["Button", "Dialog"] })).toEqual([]);
+  });
+
+  it("returns the sorted intersection of componentNames with the manifest's deprecated entries", () => {
+    const consumerRoot = makeConsumerRoot();
+    writeInstalledManifest(consumerRoot, [
+      { name: "Button" },
+      { name: "Dialog", deprecated: { since: "1.4.0" } },
+      { name: "Zebra", deprecated: { since: "1.0.0" } },
+      { name: "Alert", deprecated: { since: "1.0.0" } },
+    ]);
+
+    expect(
+      resolveDeprecated({ consumerRoot, componentNames: ["Button", "Dialog", "Zebra", "Alert"] }),
+    ).toEqual(["Alert", "Dialog", "Zebra"]);
   });
 });
