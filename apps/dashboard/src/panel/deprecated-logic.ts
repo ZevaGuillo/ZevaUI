@@ -8,8 +8,10 @@
 // provenance honesty). The panel view is responsible for rendering that
 // distinction; this module only computes the primary, always-known value.
 
-/** @param {{ components?: { name: string, deprecated?: unknown }[] }} manifest */
-export function deprecatedNamesFromManifest(manifest) {
+export type ManifestComponent = { readonly name: string; readonly deprecated?: unknown };
+export type ComponentManifest = { readonly components?: readonly ManifestComponent[] };
+
+export function deprecatedNamesFromManifest(manifest: ComponentManifest): Set<string> {
   return new Set(
     (manifest.components ?? [])
       .filter((component) => component.deprecated != null)
@@ -17,7 +19,9 @@ export function deprecatedNamesFromManifest(manifest) {
   );
 }
 
-/** @param {string[]} components @param {Set<string>} deprecatedNames */
-export function computeDeprecatedInUse(components, deprecatedNames) {
+export function computeDeprecatedInUse(
+  components: readonly string[],
+  deprecatedNames: ReadonlySet<string>,
+): string[] {
   return components.filter((name) => deprecatedNames.has(name));
 }

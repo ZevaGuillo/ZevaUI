@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const sources = [
-  path.join(dirname, "..", "scripts", "build-release-log.js"),
-  path.join(dirname, "..", "src", "release-log", "parse-changelog.js"),
+  path.join(dirname, "..", "scripts", "build-release-log.ts"),
+  path.join(dirname, "..", "src", "release-log", "parse-changelog.ts"),
 ].map((file) => readFileSync(file, "utf8").toLowerCase());
 
 // RF-AP02 refinement: the release log is derived from committed CHANGELOG.md

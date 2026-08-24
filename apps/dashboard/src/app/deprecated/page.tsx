@@ -5,7 +5,7 @@ import {
   computeDeprecatedInUse,
   deprecatedNamesFromManifest,
 } from "../../panel/deprecated-logic.js";
-import { DeprecatedView } from "../../panel/deprecated-view.jsx";
+import { type DeprecatedEntry, DeprecatedView } from "../../panel/deprecated-view.jsx";
 import { serializeReport } from "../../reports/serialize.js";
 
 // D5: public server component, no session, revalidated every 5 minutes. Thin
@@ -17,7 +17,7 @@ export const revalidate = 300;
 export default async function DeprecatedPage() {
   const rows = await allLatestReportsQuery(getDb());
   const deprecatedNames = deprecatedNamesFromManifest(manifest);
-  const entries = rows.map(serializeReport).map((report) => ({
+  const entries: DeprecatedEntry[] = rows.map(serializeReport).map((report) => ({
     repository: report.repository,
     app: report.app,
     deprecatedInUse: computeDeprecatedInUse(report.components, deprecatedNames),

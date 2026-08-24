@@ -7,8 +7,9 @@
 // own `{value}` auto-escaping, never as markup (Threat Matrix: poisoned
 // report XSS).
 
-/** @param {{ value: string[] | null }} props */
-function ReportedField({ value }) {
+type ReportedFieldProps = { readonly value: readonly string[] | null };
+
+function ReportedField({ value }: ReportedFieldProps) {
   if (value === null) {
     return <span data-provenance="unknown">unknown (not reported)</span>;
   }
@@ -24,11 +25,20 @@ function ReportedField({ value }) {
   );
 }
 
-/**
- * @param {{ entries: { repository: string, app: string, deprecatedInUse: string[],
- *   reportedDeprecated: string[] | null }[] }} props
- */
-export function DeprecatedView({ entries }) {
+// `reportedDeprecated: readonly string[] | null` is load-bearing (D3): null
+// means "unknown", [] means "known-none". Never collapse this to
+// `readonly string[]` with a default -- the whole point of ReportedField
+// above is rendering these two states distinctly.
+export type DeprecatedEntry = {
+  readonly repository: string;
+  readonly app: string;
+  readonly deprecatedInUse: readonly string[];
+  readonly reportedDeprecated: readonly string[] | null;
+};
+
+export type DeprecatedViewProps = { readonly entries: readonly DeprecatedEntry[] };
+
+export function DeprecatedView({ entries }: DeprecatedViewProps) {
   if (entries.length === 0) {
     return <p>No reports yet.</p>;
   }
