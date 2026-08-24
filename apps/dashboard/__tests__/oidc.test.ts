@@ -1,6 +1,6 @@
 import { sign as cryptoSign, generateKeyPairSync, type KeyObject } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
-import { verifyOidcToken } from "../src/auth/oidc.js";
+import { verifyOidcToken } from "../src/auth/oidc";
 
 // D1 gate table: local JWKS + minted RS256 tokens, no real GitHub call.
 const AUDIENCE = "https://registry.example.test";

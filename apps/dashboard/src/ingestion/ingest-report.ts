@@ -5,9 +5,9 @@
 // generic message is returned (never the raw error, which may carry a
 // secret value from a thrown DB/network error).
 import { type ValidationResult, validateReport } from "@zevaui/audit/report-schema";
-import { type JwksKey, OidcVerificationError, verifyOidcToken } from "../auth/oidc.js";
-import type { NewSubmission } from "../db/schema.js";
-import { checkIdentityBinding } from "./identity-binding.js";
+import { type JwksKey, OidcVerificationError, verifyOidcToken } from "../auth/oidc";
+import type { NewSubmission } from "../db/schema";
+import { checkIdentityBinding } from "./identity-binding";
 
 export const MAX_BODY_BYTES = 64 * 1024;
 const RATE_LIMIT_PER_HOUR = 60;

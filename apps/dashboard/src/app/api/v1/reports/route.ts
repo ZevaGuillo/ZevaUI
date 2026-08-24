@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
-import { JWKS_URI, type JwksKey } from "../../../../auth/oidc.js";
-import { getDb } from "../../../../db/client.js";
+import { JWKS_URI, type JwksKey } from "../../../../auth/oidc";
+import { getDb } from "../../../../db/client";
 import {
   allLatestReportsQuery,
   insertSubmissionQuery,
   latestGeneratedAtQuery,
   recentSubmissionCountQuery,
-} from "../../../../db/queries.js";
-import { oidcJti } from "../../../../db/schema.js";
+} from "../../../../db/queries";
+import { oidcJti } from "../../../../db/schema";
 import {
   ingestReport,
   MAX_BODY_BYTES,
   payloadTooLargeResult,
-} from "../../../../ingestion/ingest-report.js";
-import { serializeReport } from "../../../../reports/serialize.js";
+} from "../../../../ingestion/ingest-report";
+import { serializeReport } from "../../../../reports/serialize";
 
 // D4: GET /api/v1/reports -- public. Thin wiring; query/response shapes
 // are unit-covered in db/queries.test.ts and reports/serialize.test.ts.

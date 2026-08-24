@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getTableColumns, getTableName } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { oidcJti } from "../src/db/schema.js";
+import { oidcJti } from "../src/db/schema";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationSql = readFileSync(path.join(dirname, "..", "drizzle", "0001_oidc_jti.sql"), "utf8");

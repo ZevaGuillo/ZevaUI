@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GET } from "../src/app/api/v1/health/route.js";
+import { GET } from "../src/app/api/v1/health/route";
 
 describe("GET /api/v1/health -- Route Handlers are plain functions, called directly", () => {
   it("responds 200 with a liveness payload, never touching the DB", async () => {

@@ -5,7 +5,7 @@
 // `{value}` interpolation is React's own auto-escaping; every consumer-
 // supplied field renders as text, never as markup (Threat Matrix: poisoned
 // report XSS).
-import type { SerializedReport } from "../reports/serialize.js";
+import type { SerializedReport } from "../reports/serialize";
 
 export type VersionsViewProps = { readonly reports: readonly SerializedReport[] };
 

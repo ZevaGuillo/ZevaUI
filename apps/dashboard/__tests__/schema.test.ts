@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { getTableColumns, getTableName } from "drizzle-orm";
 import { getTableConfig, getViewConfig } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
-import { reportLatest, submissions } from "../src/db/schema.js";
+import { reportLatest, submissions } from "../src/db/schema";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationSql = readFileSync(path.join(dirname, "..", "drizzle", "0000_init.sql"), "utf8");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseChangelog } from "../src/release-log/parse-changelog.js";
+import { parseChangelog } from "../src/release-log/parse-changelog";
 
 const SAMPLE = `# @zevaui/components
 
