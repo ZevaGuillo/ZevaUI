@@ -21,15 +21,16 @@
     "@types/react-dom": "^19.2.4",
     "drizzle-kit": "^0.31.10",
     "jsdom": "^26.1.0",
+    "tsx": "^4.23.12",
     "vitest": "^4.1.10"
   },
   "scripts": {
     "dev": "next dev",
-    "build": "node --experimental-strip-types scripts/build-release-log.ts && next build",
+    "build": "tsx scripts/build-release-log.ts && next build",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "export:registry": "node --experimental-strip-types scripts/export-registry.ts"
+    "export:registry": "tsx scripts/export-registry.ts"
   }
 }

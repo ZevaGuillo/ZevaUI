@@ -2,18 +2,15 @@
 // repo-as-registry layout -- the zero-infra escape hatch stays one command
 // away.
 //
-// This script is invoked directly via `node --experimental-strip-types`
-// (see package.json's `export:registry` script), not through tsc/Vite --
-// unlike the rest of apps/dashboard, its own local imports below use
-// explicit `.ts` extensions (enabled via `allowImportingTsExtensions` in
-// tsconfig.json) because Node's native ESM loader, unlike tsc/Vite, does
-// not remap a `.js` specifier to a sibling `.ts` file.
+// This script is invoked directly via `tsx` (see package.json's
+// `export:registry` script), which resolves extensionless local imports the
+// same way Next/Vite do -- the same convention as the rest of the app.
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { getDb } from "../src/db/client.ts";
-import { allLatestReportsQuery } from "../src/db/queries.ts";
-import { isMainModule } from "../src/lib/is-main-module.ts";
-import { type ReportRow, toRegistryFileReport } from "../src/reports/serialize.ts";
+import { getDb } from "../src/db/client";
+import { allLatestReportsQuery } from "../src/db/queries";
+import { isMainModule } from "../src/lib/is-main-module";
+import { type ReportRow, toRegistryFileReport } from "../src/reports/serialize";
 
 // The registry keys report identity on the PAIR (repository, app) -- see the
 // view's DISTINCT ON in drizzle/0000_init.sql. The export path must carry the
