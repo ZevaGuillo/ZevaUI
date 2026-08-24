@@ -68,6 +68,10 @@ jobs:
       # node_modules), and that side effect must never be memoised by
       # turbo's cache (RF-UAW12).
       - run: pnpm --filter @zevaui/audit run audit:gate
+      # RF-AR08: not a turbo task, because it is not owned by any one
+      # package — it scans the WHOLE of packages/* for tenant-identity leaks
+      # against a denylist maintained under apps/dashboard.
+      - run: node scripts/assert-no-tenant-names.js
       # The two visual gates are negative fixtures: each seeds its own
       # baseline at run time, so both are self-contained and need nothing
       # committed to the repo. The first proves the comparison catches a
