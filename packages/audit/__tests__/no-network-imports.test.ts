@@ -84,12 +84,15 @@ describe("audit-usage.js and its transitive imports stay network-free (RF-AR07, 
     expect(modules.size).toBeGreaterThan(1);
   });
 
-  it.each(entries)("%s references no forbidden network specifier", (file: string, source: string) => {
-    const found = extractSpecifiers(source).filter((specifier) =>
-      FORBIDDEN_SPECIFIERS.has(specifier),
-    );
-    expect(found, `${path.basename(file)} imports: ${found.join(", ")}`).toEqual([]);
-  });
+  it.each(entries)(
+    "%s references no forbidden network specifier",
+    (file: string, source: string) => {
+      const found = extractSpecifiers(source).filter((specifier) =>
+        FORBIDDEN_SPECIFIERS.has(specifier),
+      );
+      expect(found, `${path.basename(file)} imports: ${found.join(", ")}`).toEqual([]);
+    },
+  );
 
   it.each(entries)("%s calls no bare fetch()", (file: string, source: string) => {
     expect(FETCH_CALL.test(source), `${path.basename(file)} calls fetch()`).toBe(false);
