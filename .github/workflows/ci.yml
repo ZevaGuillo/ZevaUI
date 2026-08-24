@@ -58,7 +58,7 @@ jobs:
       # Chromium under the lockfile key.
       - timeout-minutes: 10
         run: pnpm --filter @zevaui/storybook exec playwright install --with-deps chromium
-      - run: pnpm turbo run lint typecheck test size
+      - run: pnpm turbo run lint typecheck test build size
       - run: node -e "import('@zevaui/constraints').then(m => { if (typeof m.validateTheme !== 'function') process.exit(1) })"
         working-directory: packages/constraints
       - run: pnpm --filter @zevaui/storybook run test:a11y-gate

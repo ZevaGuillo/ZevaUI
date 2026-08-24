@@ -12,6 +12,7 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isMainModule } from "../src/lib/is-main-module.ts";
 import { type ParsedChangelog, parseChangelog } from "../src/release-log/parse-changelog.ts";
 
 const appRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -62,7 +63,7 @@ export function buildReleaseLog({
   return releaseLog;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url, process.argv[1])) {
   const releaseLog = buildReleaseLog();
   console.log(`[build:release-log] wrote ${releaseLog.packages.length} package(s)`);
 }

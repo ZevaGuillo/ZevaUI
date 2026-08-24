@@ -3,7 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": [".generated/**"]
+      "outputs": [".generated/**", ".next/**", "!.next/cache/**"]
     }
   }
 }

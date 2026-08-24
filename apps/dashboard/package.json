@@ -25,7 +25,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "node --experimental-strip-types scripts/build-release-log.ts",
+    "build": "node --experimental-strip-types scripts/build-release-log.ts && next build --webpack",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
