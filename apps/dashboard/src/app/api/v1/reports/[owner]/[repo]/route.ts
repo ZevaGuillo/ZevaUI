@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getDb } from "../../../../../../db/client.js";
-import { reportsForRepoQuery } from "../../../../../../db/queries.js";
-import { serializeReport } from "../../../../../../reports/serialize.js";
+import { getDb } from "../../../../../../db/client";
+import { reportsForRepoQuery } from "../../../../../../db/queries";
+import { serializeReport } from "../../../../../../reports/serialize";
 
 // D4: GET /api/v1/reports/{owner}/{repo} -- public, one repository's apps
 // (task 4.0, deferred from PR2 since the Panel is its first real consumer).

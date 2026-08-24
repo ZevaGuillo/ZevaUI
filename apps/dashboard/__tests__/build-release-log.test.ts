@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildReleaseLog } from "../scripts/build-release-log.js";
+import { buildReleaseLog } from "../scripts/build-release-log";
 
 let outDir = "";
 afterEach(() => rmSync(outDir, { recursive: true, force: true }));

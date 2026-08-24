@@ -6,7 +6,7 @@
 // raw-HTML-injection escape hatch banned by
 // __tests__/no-dangerous-html.test.ts is never used here (Threat Matrix:
 // poisoned report XSS).
-import type { ParsedChangelog } from "../release-log/parse-changelog.js";
+import type { ParsedChangelog } from "../release-log/parse-changelog";
 
 export type ReleaseLogViewProps = { readonly packages: readonly ParsedChangelog[] };
 

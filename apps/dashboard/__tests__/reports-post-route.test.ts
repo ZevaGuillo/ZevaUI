@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { POST } from "../src/app/api/v1/reports/route.js";
+import { POST } from "../src/app/api/v1/reports/route";
 
 // D4 step 1 (DoS resistance): the 64 KiB cap must be enforced from the
 // declared Content-Length header BEFORE the body is ever buffered into

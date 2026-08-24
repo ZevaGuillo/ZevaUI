@@ -5,7 +5,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { VersionsView } from "../src/panel/versions-view.jsx";
+import { VersionsView } from "../src/panel/versions-view";
 
 afterEach(cleanup);
 

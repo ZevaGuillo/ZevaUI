@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkIdentityBinding } from "../src/ingestion/identity-binding.js";
+import { checkIdentityBinding } from "../src/ingestion/identity-binding";
 
 // D1 IB rule + owner allowlist. `app` is a client-supplied label, never an
 // identity; `repository`/`repositoryOwner` come from the verified OIDC claims.

@@ -16,15 +16,15 @@ const rows = [
   },
 ];
 
-vi.mock("../src/db/client.js", () => ({ getDb: () => "db-marker" }));
-vi.mock("../src/db/queries.js", () => ({
+vi.mock("../src/db/client", () => ({ getDb: () => "db-marker" }));
+vi.mock("../src/db/queries", () => ({
   reportsForRepoQuery: vi.fn((db, repository) => {
     expect(db).toBe("db-marker");
     return Promise.resolve(repository === "acme/web" ? rows : []);
   }),
 }));
 
-const { GET } = await import("../src/app/api/v1/reports/[owner]/[repo]/route.js");
+const { GET } = await import("../src/app/api/v1/reports/[owner]/[repo]/route");
 
 describe("GET /api/v1/reports/{owner}/{repo} (D4, task 4.0)", () => {
   it("serializes only the matching repository's latest reports", async () => {

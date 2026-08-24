@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { DeprecatedView } from "../src/panel/deprecated-view.jsx";
+import { DeprecatedView } from "../src/panel/deprecated-view";
 
 afterEach(cleanup);
 

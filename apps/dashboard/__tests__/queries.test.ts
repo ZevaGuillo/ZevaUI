@@ -6,7 +6,7 @@ import {
   latestGeneratedAtQuery,
   recentSubmissionCountQuery,
   reportsForRepoQuery,
-} from "../src/db/queries.js";
+} from "../src/db/queries";
 
 // A lazy `pg` Pool never connects until a query runs -- proves the real SQL shape, no live DB.
 const db = drizzle(new Pool({ connectionString: "postgres://unused/unused" }));

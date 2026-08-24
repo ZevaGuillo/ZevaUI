@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { ReleaseLogView } from "../../panel/release-log-view.jsx";
-import type { ParsedChangelog } from "../../release-log/parse-changelog.js";
+import { ReleaseLogView } from "../../panel/release-log-view";
+import type { ParsedChangelog } from "../../release-log/parse-changelog";
 
 // D5: public server component, no session, revalidated every 5 minutes.
 // Reads the build-time-generated .generated/release-log.json (see

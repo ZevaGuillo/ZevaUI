@@ -1,12 +1,9 @@
 import manifest from "@zevaui/components/components.manifest.json";
-import { getDb } from "../../db/client.js";
-import { allLatestReportsQuery } from "../../db/queries.js";
-import {
-  computeDeprecatedInUse,
-  deprecatedNamesFromManifest,
-} from "../../panel/deprecated-logic.js";
-import { type DeprecatedEntry, DeprecatedView } from "../../panel/deprecated-view.jsx";
-import { serializeReport } from "../../reports/serialize.js";
+import { getDb } from "../../db/client";
+import { allLatestReportsQuery } from "../../db/queries";
+import { computeDeprecatedInUse, deprecatedNamesFromManifest } from "../../panel/deprecated-logic";
+import { type DeprecatedEntry, DeprecatedView } from "../../panel/deprecated-view";
+import { serializeReport } from "../../reports/serialize";
 
 // D5 deviation (documented for ADR-0011 reconciliation): the design specified
 // `revalidate = 300` (ISR), which forces Next to prerender this page at

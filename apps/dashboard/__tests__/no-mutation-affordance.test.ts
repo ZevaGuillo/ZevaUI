@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 import { cleanup, render } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { DeprecatedView } from "../src/panel/deprecated-view.jsx";
-import { ReleaseLogView } from "../src/panel/release-log-view.jsx";
-import { VersionsView } from "../src/panel/versions-view.jsx";
+import { DeprecatedView } from "../src/panel/deprecated-view";
+import { ReleaseLogView } from "../src/panel/release-log-view";
+import { VersionsView } from "../src/panel/versions-view";
 
 afterEach(cleanup);
 

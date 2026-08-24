@@ -2,8 +2,8 @@
 // unit-testable over a lazy `pg` Pool -- no live Postgres needed for tests.
 import { and, asc, count, eq, gt } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { NewSubmission } from "./schema.js";
-import { reportLatest, submissions } from "./schema.js";
+import type { NewSubmission } from "./schema";
+import { reportLatest, submissions } from "./schema";
 
 // GET /api/v1/reports -- all latest rows, stably ordered. Also the export
 // script's data source.

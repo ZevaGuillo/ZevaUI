@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  computeDeprecatedInUse,
-  deprecatedNamesFromManifest,
-} from "../src/panel/deprecated-logic.js";
+import { computeDeprecatedInUse, deprecatedNamesFromManifest } from "../src/panel/deprecated-logic";
 
 describe("deprecatedNamesFromManifest (D7: manifest is the deprecation source of truth)", () => {
   it("collects only component names that declare a deprecated field", () => {

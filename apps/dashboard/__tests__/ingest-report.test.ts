@@ -1,6 +1,6 @@
 import { sign as cryptoSign, generateKeyPairSync } from "node:crypto";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { ingestReport } from "../src/ingestion/ingest-report.js";
+import { ingestReport } from "../src/ingestion/ingest-report";
 
 // D4 validation pipeline, ordered fail-fast: size -> parse -> schema -> token
 // -> IB/allowlist -> rate limit -> monotonicity -> insert. No live DB: every

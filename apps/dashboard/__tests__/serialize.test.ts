@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serializeReport, toRegistryFileReport } from "../src/reports/serialize.js";
+import { serializeReport, toRegistryFileReport } from "../src/reports/serialize";
 
 const baseRow = {
   repository: "acme/web",

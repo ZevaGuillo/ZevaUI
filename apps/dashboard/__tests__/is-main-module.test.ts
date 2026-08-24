@@ -1,6 +1,6 @@
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
-import { isMainModule } from "../src/lib/is-main-module.js";
+import { isMainModule } from "../src/lib/is-main-module";
 
 // Defect 4: the CLI-runner guard `import.meta.url === \`file://${process.argv[1]}\`` silently
 // no-ops on Windows -- `process.argv[1]` keeps backslashes ("D:\\repo\\scripts\\build-release-log.ts")

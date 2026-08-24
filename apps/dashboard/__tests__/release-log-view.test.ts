@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { ReleaseLogView } from "../src/panel/release-log-view.jsx";
+import { ReleaseLogView } from "../src/panel/release-log-view";
 
 afterEach(cleanup);
 
