@@ -12,6 +12,17 @@
 # a trigger here would make it run against this repository on every event with
 # no caller and no meaning. This repo audits itself through the `audit-self`
 # job in ci.yml, which calls this same workflow.
+#
+# `v1` tag status (RF-12 rollout, decided at design time — not re-opened
+# here): this change adds `registry-url` and `id-token: write`, both
+# additive by construction, so by the `v1` tag's own contract policy (see the
+# tag message) this WOULD qualify as a move rather than a `v2`. It is
+# deliberately NOT moved yet. The tag only moves after the
+# `zevaui-consumer-probe` run (M.4, maintainer-gated) re-validates with
+# `registry-url` unset — designed behavior is not the same as verified
+# behavior, and this file's own history already has one place where those
+# disagreed (ADR-0009's RF-UAW14). Until that probe runs, `v1` stays exactly
+# where it is and pulls in this change only once someone re-runs it.
 name: DS usage audit
 
 on:
@@ -46,12 +57,33 @@ on:
         required: false
         type: string
         default: main
+      registry-url:
+        description: >-
+          Adoption registry endpoint to submit this report to (RF-12), opt-in.
 
-# Read-only, and nothing else. This workflow reads a consumer's source and
-# emits a report; it never needs to write to their repository, and a token that
-# cannot write is the only durable proof of that.
+          Empty — the default — means no network call happens at all: the run
+          behaves exactly as it does today (RF-AR06 scenario 1). Set it to
+          enable submission, in addition to the artifact upload above, not
+          instead of it. Submission is fire-and-tolerate (RF-AR06 scenario 2):
+          a registry that is down, slow, or misconfigured costs this job one
+          bounded submission attempt and a `::warning::` annotation, never a
+          failed run. This value is only ever read through `env:`, never
+          interpolated into a `run:` body, and is always upgraded to `https:`
+          before any request leaves this job (see the submission step below).
+        required: false
+        type: string
+        default: ""
+
+# Read-only, plus one narrow, opt-in write of identity: `id-token` lets this
+# job request its OWN short-lived OIDC token when submission is enabled — it
+# grants no ability to write to the CALLER's repository. Reusable-workflow
+# permissions are intersected with the caller's job permissions, so a caller
+# that never wrote `permissions: id-token: write` cannot obtain a token here
+# even with `registry-url` set — submission then simply has nothing to send
+# and warns, per the fire-and-tolerate contract (D6).
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   audit:
@@ -117,3 +149,40 @@ jobs:
           name: ${{ steps.name.outputs.value }}
           path: ds-usage-report.json
           if-no-files-found: error
+
+      # Everything from here down is the opt-in submission path (D6, RF-AR06)
+      # and runs ONLY when the caller set registry-url — the artifact above
+      # already exists either way, so a consumer who never opts in gets the
+      # identical run they got before this input existed.
+      #
+      # The audience passed to core.getIDToken() is registry-url itself: no
+      # separate, fixed service-audience string is provisioned yet (tracked
+      # as an open question until the registry is actually deployed), and an
+      # OIDC audience naming the exact resource being called is a standard,
+      # defensible default in the meantime. `env:`, not string interpolation
+      # into `script:` — the same shell-injection rule applies to splicing
+      # caller-controlled text into embedded JS source.
+      - name: Mint an OIDC token for the registry audience
+        if: inputs.registry-url != ''
+        id: registry-token
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: return await core.getIDToken(process.env.REGISTRY_URL)
+        env:
+          REGISTRY_URL: ${{ inputs.registry-url }}
+
+      # registry-url reaches submit-report.js through env:, exactly like
+      # AUDIT_APP/AUDIT_WORKING_DIRECTORY above — never interpolated into
+      # this `run:` line. submit-report.js re-parses it with `new URL()` and
+      # forces `https:` before it ever opens a connection (Threat Matrix:
+      # argument/env composition), and this step's own contract is fire-and-
+      # tolerate: submit-report.js always exits 0, so a dead registry cannot
+      # fail this job.
+      - name: Submit usage report to the registry (opt-in)
+        if: inputs.registry-url != ''
+        env:
+          REGISTRY_URL: ${{ inputs.registry-url }}
+          REGISTRY_OIDC_TOKEN: ${{ steps.registry-token.outputs.result }}
+          REGISTRY_REPORT_PATH: ds-usage-report.json
+        run: node .zevaui-audit/packages/audit/scripts/submit-report.js
