@@ -12,6 +12,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { getDb } from "../src/db/client.ts";
 import { allLatestReportsQuery } from "../src/db/queries.ts";
+import { isMainModule } from "../src/lib/is-main-module.ts";
 import { type ReportRow, toRegistryFileReport } from "../src/reports/serialize.ts";
 
 // The registry keys report identity on the PAIR (repository, app) -- see the
@@ -70,7 +71,7 @@ export async function exportRegistry({
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url, process.argv[1])) {
   const outDir = path.resolve(process.cwd(), "reports");
   exportRegistry({ outDir })
     .then((written) =>
