@@ -3,17 +3,19 @@
 // DB -- production wiring binds real ones (JWKS_URI + oidc_jti), tests bind
 // fakes. Fail-closed: any JWKS fetch failure is `store_unavailable` (503),
 // never a bypass.
-import { createPublicKey, verify as cryptoVerify } from "node:crypto";
+import { createPublicKey, verify as cryptoVerify, type JsonWebKey } from "node:crypto";
 
 export const ISSUER = "https://token.actions.githubusercontent.com";
 export const JWKS_URI = `${ISSUER}/.well-known/jwks`;
 const CLOCK_SKEW_SECONDS = 60;
 
-/** @typedef {import("node:crypto").JsonWebKey & { kid?: string }} JwksKey */
+export type JwksKey = JsonWebKey & { readonly kid?: string };
 
 export class OidcVerificationError extends Error {
-  /** @param {string} code @param {number} status @param {string} message */
-  constructor(code, status, message) {
+  readonly code: string;
+  readonly status: number;
+
+  constructor(code: string, status: number, message: string) {
     super(message);
     this.name = "OidcVerificationError";
     this.code = code;
@@ -21,25 +23,33 @@ export class OidcVerificationError extends Error {
   }
 }
 
-/** @param {string} code @param {number} status @param {string} message @returns {never} */
-function fail(code, status, message) {
+function fail(code: string, status: number, message: string): never {
   throw new OidcVerificationError(code, status, message);
 }
 
-/** @param {string} segment */
-function decodeBase64Url(segment) {
+function decodeBase64Url(segment: string): Buffer {
   return Buffer.from(segment, "base64url");
 }
 
-/** @param {string} token */
-function decodeJwt(token) {
+type DecodedJwt = {
+  readonly header: Record<string, unknown>;
+  readonly payload: Record<string, unknown>;
+  readonly signingInput: string;
+  readonly signature: Buffer;
+};
+
+function decodeJwt(token: string): DecodedJwt {
   const parts = token.split(".");
   if (parts.length !== 3) fail("token_invalid", 401, "malformed token");
   const [headerB64, payloadB64, signatureB64] = parts;
   try {
+    const header: Record<string, unknown> = JSON.parse(decodeBase64Url(headerB64).toString("utf8"));
+    const payload: Record<string, unknown> = JSON.parse(
+      decodeBase64Url(payloadB64).toString("utf8"),
+    );
     return {
-      header: JSON.parse(decodeBase64Url(headerB64).toString("utf8")),
-      payload: JSON.parse(decodeBase64Url(payloadB64).toString("utf8")),
+      header,
+      payload,
       signingInput: `${headerB64}.${payloadB64}`,
       signature: decodeBase64Url(signatureB64),
     };
@@ -48,11 +58,10 @@ function decodeJwt(token) {
   }
 }
 
-/**
- * @param {Record<string, unknown>} payload
- * @param {{ audience: string, now: number }} ctx
- */
-function verifyClaims(payload, { audience, now }) {
+function verifyClaims(
+  payload: Record<string, unknown>,
+  { audience, now }: { audience: string; now: number },
+): void {
   if (payload.iss !== ISSUER) fail("issuer_mismatch", 401, `unexpected issuer "${payload.iss}"`);
   if (payload.aud !== audience) fail("audience_mismatch", 401, "audience does not match");
 
@@ -68,30 +77,28 @@ function verifyClaims(payload, { audience, now }) {
   }
 }
 
-/**
- * @param {{
- *   token: string,
- *   audience: string,
- *   now?: number,
- *   loadJwks: () => Promise<{ keys?: JwksKey[] }>,
- *   checkAndRecordReplay: (jti: string, expiresAt: Date) => Promise<boolean>,
- * }} options
- * @returns {Promise<Record<string, unknown>>}
- */
+export type VerifyOidcTokenOptions = {
+  readonly token: string;
+  readonly audience: string;
+  readonly now?: number;
+  readonly loadJwks: () => Promise<{ keys?: JwksKey[] }>;
+  readonly checkAndRecordReplay: (jti: string, expiresAt: Date) => Promise<boolean>;
+};
+
 export async function verifyOidcToken({
   token,
   audience,
   now = Date.now(),
   loadJwks,
   checkAndRecordReplay,
-}) {
+}: VerifyOidcTokenOptions): Promise<Record<string, unknown>> {
   const { header, payload, signingInput, signature } = decodeJwt(token);
 
   // alg/kid rejected BEFORE any JWKS fetch (D1: "rejected before key lookup").
   if (header.alg !== "RS256") fail("token_invalid", 401, `unsupported alg "${header.alg}"`);
   if (!header.kid) fail("token_invalid", 401, "token is missing kid");
 
-  let jwks;
+  let jwks: { keys?: JwksKey[] };
   try {
     jwks = await loadJwks();
   } catch {
@@ -100,7 +107,7 @@ export async function verifyOidcToken({
   const key = jwks.keys?.find((candidate) => candidate.kid === header.kid);
   if (!key) fail("token_invalid", 401, "no matching JWKS key for kid");
 
-  let publicKey;
+  let publicKey: ReturnType<typeof createPublicKey>;
   try {
     publicKey = createPublicKey({ key, format: "jwk" });
   } catch {

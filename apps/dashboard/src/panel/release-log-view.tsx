@@ -6,12 +6,11 @@
 // raw-HTML-injection escape hatch banned by
 // __tests__/no-dangerous-html.test.ts is never used here (Threat Matrix:
 // poisoned report XSS).
+import type { ParsedChangelog } from "../release-log/parse-changelog.js";
 
-/**
- * @param {{ packages: { package: string, releases: { version: string,
- *   changes: { type: string, text: string }[] }[] }[] }} props
- */
-export function ReleaseLogView({ packages }) {
+export type ReleaseLogViewProps = { readonly packages: readonly ParsedChangelog[] };
+
+export function ReleaseLogView({ packages }: ReleaseLogViewProps) {
   if (packages.length === 0) {
     return <p>No releases yet.</p>;
   }

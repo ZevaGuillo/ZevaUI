@@ -8,8 +8,9 @@ import { serializeReport } from "../../../../../../reports/serialize.js";
 // Thin wiring; the query shape is unit-covered in db/queries.test.ts and
 // serialization in reports/serialize.test.ts. This route's own test
 // (__tests__/reports-by-repo-route.test.ts) calls GET directly.
-/** @param {Request} _request @param {{ params: Promise<{ owner: string, repo: string }> }} context */
-export async function GET(_request, context) {
+type RouteContext = { readonly params: Promise<{ readonly owner: string; readonly repo: string }> };
+
+export async function GET(_request: Request, context: RouteContext): Promise<NextResponse> {
   const { owner, repo } = await context.params;
   const rows = await reportsForRepoQuery(getDb(), `${owner}/${repo}`);
   return NextResponse.json(rows.map(serializeReport));

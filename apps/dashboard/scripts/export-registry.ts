@@ -1,11 +1,18 @@
 // D2: writes reports/{owner}/{repo}/{app}.json, exactly the declined
 // repo-as-registry layout -- the zero-infra escape hatch stays one command
 // away.
+//
+// This script is invoked directly via `node --experimental-strip-types`
+// (see package.json's `export:registry` script), not through tsc/Vite --
+// unlike the rest of apps/dashboard, its own local imports below use
+// explicit `.ts` extensions (enabled via `allowImportingTsExtensions` in
+// tsconfig.json) because Node's native ESM loader, unlike tsc/Vite, does
+// not remap a `.js` specifier to a sibling `.ts` file.
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { getDb } from "../src/db/client.js";
-import { allLatestReportsQuery } from "../src/db/queries.js";
-import { toRegistryFileReport } from "../src/reports/serialize.js";
+import { getDb } from "../src/db/client.ts";
+import { allLatestReportsQuery } from "../src/db/queries.ts";
+import { type ReportRow, toRegistryFileReport } from "../src/reports/serialize.ts";
 
 // The registry keys report identity on the PAIR (repository, app) -- see the
 // view's DISTINCT ON in drizzle/0000_init.sql. The export path must carry the
@@ -16,21 +23,14 @@ import { toRegistryFileReport } from "../src/reports/serialize.js";
 // outDir once the ingestion path lands in PR3.
 const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
 
-/**
- * @param {string} segment
- * @param {string} field
- */
-function assertSafeSegment(segment, field) {
+function assertSafeSegment(segment: string, field: string): void {
   if (segment === "." || segment === ".." || !SAFE_SEGMENT.test(segment)) {
     throw new Error(`[export:registry] unsafe ${field} segment: ${JSON.stringify(segment)}`);
   }
 }
 
-/**
- * @param {import("../src/reports/serialize.js").ReportRow} row
- * @returns {string[]} path segments under outDir, identity-preserving
- */
-function identitySegments(row) {
+/** Path segments under outDir, identity-preserving. */
+function identitySegments(row: ReportRow): string[] {
   // A slug must be exactly two segments. Checking the count says that rule out
   // loud; destructuring past the end and testing for undefined only *looks*
   // like it says it, and reads as dead code because the element type is string.
@@ -47,15 +47,19 @@ function identitySegments(row) {
   return [owner, repo, `${row.appLabel}.json`];
 }
 
+export type ExportRegistryOptions = {
+  readonly outDir: string;
+  readonly listAllLatest?: () => Promise<ReportRow[]>;
+};
+
 /**
  * `listAllLatest` is injectable, so this is a pure unit under test.
- * @param {{ outDir: string, listAllLatest?: () => Promise<import("../src/reports/serialize.js").ReportRow[]> }} options
- * @returns {Promise<string[]>} the file paths written
+ * @returns the file paths written
  */
 export async function exportRegistry({
   outDir,
-  listAllLatest = () => allLatestReportsQuery(getDb()),
-}) {
+  listAllLatest = async () => allLatestReportsQuery(getDb()),
+}: ExportRegistryOptions): Promise<string[]> {
   mkdirSync(outDir, { recursive: true });
   const rows = await listAllLatest();
   return rows.map((row) => {
@@ -72,8 +76,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     .then((written) =>
       console.log(`[export:registry] wrote ${written.length} file(s) to ${outDir}`),
     )
-    .catch((error) => {
-      console.error(`[export:registry] FAILED: ${error.message}`);
+    .catch((error: unknown) => {
+      console.error(
+        `[export:registry] FAILED: ${error instanceof Error ? error.message : String(error)}`,
+      );
       process.exitCode = 1;
     });
 }

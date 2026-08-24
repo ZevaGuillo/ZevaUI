@@ -27,6 +27,8 @@ describe("RF-AP01 scenario 2: no mutation affordance in any rendered panel view"
             app: "web",
             dsVersion: "1.4.0",
             dsVersionSource: "installed",
+            components: ["Button"],
+            deprecatedComponents: [],
             generatedAt: "2026-01-01T00:00:00.000Z",
           },
         ],

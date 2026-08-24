@@ -11,22 +11,14 @@ const CHANGE_TYPE_HEADING = /^###\s+(Major|Minor|Patch)\s+Changes\s*$/i;
 const TOP_LEVEL_BULLET = /^-\s+(.*)$/;
 const COMMIT_HASH_PREFIX = /^[0-9a-f]{7,40}:\s*/i;
 
-/** @typedef {{ type: string, text: string }} ChangelogChange */
-/** @typedef {{ version: string, changes: ChangelogChange[] }} ChangelogRelease */
-/** @typedef {{ package: string, releases: ChangelogRelease[] }} ParsedChangelog */
+export type ChangelogChange = { readonly type: string; readonly text: string };
+export type ChangelogRelease = { readonly version: string; readonly changes: ChangelogChange[] };
+export type ParsedChangelog = { readonly package: string; readonly releases: ChangelogRelease[] };
 
-/**
- * @param {string} markdown
- * @param {string} packageName
- * @returns {ParsedChangelog}
- */
-export function parseChangelog(markdown, packageName) {
-  /** @type {ChangelogRelease[]} */
-  const releases = [];
-  /** @type {ChangelogRelease | null} */
-  let currentRelease = null;
-  /** @type {string | null} */
-  let currentType = null;
+export function parseChangelog(markdown: string, packageName: string): ParsedChangelog {
+  const releases: ChangelogRelease[] = [];
+  let currentRelease: ChangelogRelease | null = null;
+  let currentType: string | null = null;
 
   for (const line of markdown.split("\n")) {
     const versionMatch = VERSION_HEADING.exec(line);

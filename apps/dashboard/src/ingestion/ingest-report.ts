@@ -4,65 +4,100 @@
 // route.js. Payload is NEVER echoed back; on an unexpected error, only a
 // generic message is returned (never the raw error, which may carry a
 // secret value from a thrown DB/network error).
-import { validateReport } from "@zevaui/audit/report-schema";
-import { OidcVerificationError, verifyOidcToken } from "../auth/oidc.js";
+import { type ValidationResult, validateReport } from "@zevaui/audit/report-schema";
+import { type JwksKey, OidcVerificationError, verifyOidcToken } from "../auth/oidc.js";
+import type { NewSubmission } from "../db/schema.js";
 import { checkIdentityBinding } from "./identity-binding.js";
-
-/** @typedef {import("../auth/oidc.js").JwksKey} JwksKey */
 
 export const MAX_BODY_BYTES = 64 * 1024;
 const RATE_LIMIT_PER_HOUR = 60;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
 
-/** @param {number} status @param {string} code @param {string} message @param {string} [field] */
-function errorResult(status, code, message, field) {
+export type IngestSuccessResult = {
+  readonly status: 201;
+  readonly body: { readonly accepted: true };
+};
+
+export type IngestErrorResult = {
+  readonly status: number;
+  readonly body: {
+    readonly error: { readonly code: string; readonly message: string; readonly field?: string };
+  };
+};
+
+export type IngestResult = IngestSuccessResult | IngestErrorResult;
+
+function errorResult(
+  status: number,
+  code: string,
+  message: string,
+  field?: string,
+): IngestErrorResult {
   return { status, body: { error: field ? { code, message, field } : { code, message } } };
 }
 
 // D4 step 1: the request body is only ever application/json. Parameters
 // (e.g. `; charset=utf-8`) are ignored, matching how the platform itself
 // negotiates content types.
-export function payloadTooLargeResult() {
+export function payloadTooLargeResult(): IngestErrorResult {
   return errorResult(413, "payload_too_large", "request body exceeds 64 KiB");
 }
 
-/** @param {string | undefined} contentType */
-function isJsonContentType(contentType) {
+function isJsonContentType(contentType: string | undefined): boolean {
   const mediaType = contentType?.split(";")[0]?.trim().toLowerCase();
   return mediaType === "application/json";
 }
 
-/** @param {string | undefined} header */
-function extractBearerToken(header) {
+function extractBearerToken(header: string | undefined): string | null {
   const match = /^Bearer\s+(\S+)$/.exec(header ?? "");
   return match ? match[1] : null;
 }
 
-/**
- * @param {{
- *   rawBody: string,
- *   contentLength: number,
- *   contentType: string | undefined,
- *   authorizationHeader: string | undefined,
- *   deps: {
- *     audience: string,
- *     allowedOwners: Set<string>,
- *     loadJwks: () => Promise<{ keys?: JwksKey[] }>,
- *     checkAndRecordReplay: (jti: string, expiresAt: Date) => Promise<boolean>,
- *     countRecentSubmissions: (repositoryId: number, since: Date) => Promise<number>,
- *     getLatestGeneratedAt: (repositoryId: number, appLabel: string) => Promise<Date | null>,
- *     insertSubmission: (values: import("../db/schema.js").NewSubmission) => Promise<unknown>,
- *     now?: number,
- *   },
- * }} request
- */
+// The shape `report-schema.js` validates -- see `ambient` declaration in
+// src/types/audit-report-schema.d.ts for why this is declared locally
+// rather than imported.
+export type ValidatedReport = {
+  readonly app: string;
+  readonly dsVersion: string;
+  readonly dsVersionSource: string;
+  readonly components: readonly string[];
+  readonly deprecatedComponents?: readonly string[];
+  readonly generatedAt: string;
+};
+
+// `parsed` is `unknown` until `validateReport` has actually run its runtime
+// checks; this guard reads that real boolean rather than blindly asserting
+// the shape, so the narrowing stays honest about what was actually checked.
+function isValidatedReport(value: unknown, result: ValidationResult): value is ValidatedReport {
+  return result.valid;
+}
+
+export type IngestReportDeps = {
+  readonly audience: string;
+  readonly allowedOwners: ReadonlySet<string>;
+  readonly loadJwks: () => Promise<{ keys?: JwksKey[] }>;
+  readonly checkAndRecordReplay: (jti: string, expiresAt: Date) => Promise<boolean>;
+  readonly countRecentSubmissions: (repositoryId: number, since: Date) => Promise<number>;
+  readonly getLatestGeneratedAt: (repositoryId: number, appLabel: string) => Promise<Date | null>;
+  readonly insertSubmission: (values: NewSubmission) => Promise<unknown>;
+  readonly now?: number;
+};
+
+export type IngestReportRequest = {
+  readonly rawBody: string;
+  readonly contentLength: number;
+  readonly contentType: string | undefined;
+  readonly authorizationHeader: string | undefined;
+  readonly deps: IngestReportDeps;
+};
+
 export async function ingestReport({
   rawBody,
   contentLength,
   contentType,
   authorizationHeader,
   deps,
-}) {
+}: IngestReportRequest): Promise<IngestResult> {
   const now = deps.now ?? Date.now();
 
   // D4 step 1, gate a: content-type, checked before parsing (and before the
@@ -78,7 +113,7 @@ export async function ingestReport({
     return payloadTooLargeResult();
   }
 
-  let parsed;
+  let parsed: unknown;
   try {
     parsed = JSON.parse(rawBody);
   } catch {
@@ -89,11 +124,17 @@ export async function ingestReport({
   if (!schemaResult.valid) {
     return errorResult(400, "schema_invalid", schemaResult.message, schemaResult.field);
   }
+  if (!isValidatedReport(parsed, schemaResult)) {
+    // Unreachable in practice: schemaResult.valid is true here. Kept so the
+    // rest of this function works against a real, narrowed report type
+    // instead of `unknown`.
+    return errorResult(500, "internal_error", "an unexpected error occurred");
+  }
 
   const token = extractBearerToken(authorizationHeader);
   if (!token) return errorResult(401, "token_invalid", "missing bearer token");
 
-  let claims;
+  let claims: Record<string, unknown>;
   try {
     claims = await verifyOidcToken({
       token,
@@ -143,8 +184,8 @@ export async function ingestReport({
       appLabel: parsed.app,
       dsVersion: parsed.dsVersion,
       dsVersionSource: parsed.dsVersionSource,
-      components: parsed.components,
-      deprecatedComponents: parsed.deprecatedComponents ?? null,
+      components: [...parsed.components],
+      deprecatedComponents: parsed.deprecatedComponents ? [...parsed.deprecatedComponents] : null,
       schemaVersion: parsed.deprecatedComponents ? 2 : 1,
       generatedAt: new Date(generatedAtMs),
       payload: parsed,

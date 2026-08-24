@@ -3,9 +3,21 @@
   "compilerOptions": {
     "noEmit": true,
     "types": ["node"],
-    "allowJs": true,
-    "checkJs": true,
-    "paths": {}
+    "paths": {},
+    // Only `scripts/build-release-log.ts` and `scripts/export-registry.ts`
+    // use `.ts`-extension local imports (see the comment at the top of each
+    // file): they run directly via `node --experimental-strip-types`, whose
+    // native ESM loader -- unlike tsc/Vite -- does not remap a `.js`
+    // specifier to a sibling `.ts` file. Every other import in this project
+    // keeps the `.js`-specifier convention the rest of the monorepo uses.
+    "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.js", "scripts/**/*.js", "__tests__/**/*.ts", "drizzle.config.js"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "scripts/**/*.ts",
+    "__tests__/**/*.ts",
+    "drizzle.config.ts",
+    "next.config.ts"
+  ]
 }
