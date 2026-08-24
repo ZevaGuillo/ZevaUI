@@ -3,17 +3,14 @@
 // runtime GitHub Releases API call, never a read of any repository release
 // tag (RF-AP02 refinement; see __tests__/no-git-tag-read.test.ts).
 //
-// This script is invoked directly via `node --experimental-strip-types`
-// (see package.json's `build` script), not through tsc/Vite -- unlike the
-// rest of apps/dashboard, its own local imports below use explicit `.ts`
-// extensions (enabled via `allowImportingTsExtensions` in tsconfig.json)
-// because Node's native ESM loader, unlike tsc/Vite, does not remap a
-// `.js` specifier to a sibling `.ts` file.
+// This script is invoked directly via `tsx` (see package.json's `build`
+// script), which resolves extensionless local imports the same way
+// Next/Vite do -- the same convention as the rest of the app.
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { isMainModule } from "../src/lib/is-main-module.ts";
-import { type ParsedChangelog, parseChangelog } from "../src/release-log/parse-changelog.ts";
+import { isMainModule } from "../src/lib/is-main-module";
+import { type ParsedChangelog, parseChangelog } from "../src/release-log/parse-changelog";
 
 const appRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const workspaceRoot = path.dirname(path.dirname(appRoot));

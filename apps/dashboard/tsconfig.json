@@ -3,17 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "types": ["node"],
-    "paths": {},
-    // Only `scripts/build-release-log.ts` and `scripts/export-registry.ts`
-    // use `.ts`-extension local imports (see the comment at the top of each
-    // file): they run directly via `node --experimental-strip-types`, whose
-    // native ESM loader -- unlike tsc/Vite/Next -- does not remap a `.js`
-    // specifier or an extensionless specifier to a sibling `.ts` file. Every
-    // other local import in this app is extensionless: `apps/dashboard`
-    // never emits (`noEmit: true`, bundled by Next), so it never needed the
-    // explicit-extension convention the rest of the monorepo's emitting
-    // packages require for real ESM output.
-    "allowImportingTsExtensions": true
+    "paths": {}
   },
   "include": [
     "src/**/*.ts",
