@@ -5,6 +5,10 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# apps/dashboard: release log, generated at build time from committed
+# CHANGELOG.md files (D5) -- never committed, never hand-edited.
+.generated/
+
 # Panda CSS (ejected, generated — never committed, never imported by src)
 styled-system/
 
