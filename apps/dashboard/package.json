@@ -25,7 +25,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "echo \"stage 1: build deferred (no dist; Panel pages land in PR4)\"",
+    "build": "node scripts/build-release-log.js",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
