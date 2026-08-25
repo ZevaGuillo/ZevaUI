@@ -1,0 +1,4 @@
+{
+  "$comment": "RF-AR08: concrete app/tenant identifiers that must never appear anywhere under packages/*. All app-identity-aware code (report `app` handling, registry client, panel UI) stays under apps/ instead. Extend `names` here, never inside packages/*, as real consumers onboard — see docs/adrs/0011-registro-de-adopcion-y-panel.md.",
+  "names": ["zevaui-consumer-probe"]
+}
