@@ -1,9 +1,25 @@
-// M.4 found this the expensive way: a reusable workflow that declares
-// `id-token: write` at workflow level does NOT quietly intersect with the
-// caller's permissions. GitHub refuses the run outright -- `startup_failure`
-// in two seconds, before a single step -- for every caller that did not grant
-// it. A consumer who never opts into submission was paying for a feature it
-// never asked for, with a red build.
+// This workflow declares NO top-level `permissions:` block, and that is a
+// decision, not an omission. Both alternatives were measured against a real
+// consumer, and both are broken:
+//
+//   permissions: contents: read, id-token: write
+//     -> `startup_failure` in 2s for every caller that did not grant
+//        id-token. A reusable workflow requesting more than its caller holds
+//        is refused outright; there is no silent intersection.
+//
+//   permissions: contents: read
+//     -> starts fine, but a caller that DOES grant id-token still cannot get
+//        one: the called workflow's block decides what its jobs actually
+//        receive, not merely a ceiling. `core.getIDToken()` fails with
+//        "Unable to get ACTIONS_ID_TOKEN_REQUEST_URL", so opting into
+//        submission (RF-AR06) can never work.
+//
+// With no block at all, the jobs inherit whatever the caller granted, and
+// both consumers work: the one who adds nothing starts and skips submission,
+// the one who grants id-token mints a token and submits. The cost is that a
+// caller granting broad permissions passes them in, which is why this file
+// does nothing with write scopes and checks out with persist-credentials:
+// false.
 //
 // These are structural gates over the workflow text, not a YAML parser:
 // @zevaui/audit is dependency-free by contract, the same reason the
@@ -27,21 +43,13 @@ const workflow = readFileSync(workflowPath, "utf8");
 const lines = workflow.split(/\r?\n/);
 
 /**
- * The lines of a top-level block, by its unindented key. Comments and blank
- * lines are dropped so a gate never matches prose -- `id-token` is discussed
- * at length in this file's comments, and must be able to be, because the
- * consumer-facing instructions live there.
+ * Whether an unindented `key:` exists at the top level. Matched on the line
+ * itself rather than anywhere in the text, so the consumer-facing
+ * `permissions:` snippet inside this workflow's comments -- which has to stay
+ * there, it is the instruction an opting-in caller follows -- does not count.
  */
-function topLevelBlock(key: string): string[] {
-  const start = lines.indexOf(`${key}:`);
-  if (start === -1) throw new Error(`no top-level \`${key}:\` block in ${workflowPath}`);
-  const body: string[] = [];
-  for (const line of lines.slice(start + 1)) {
-    if (line.trim() === "" || line.trimStart().startsWith("#")) continue;
-    if (!line.startsWith(" ")) break;
-    body.push(line);
-  }
-  return body;
+function hasTopLevelBlock(key: string): boolean {
+  return lines.includes(`${key}:`);
 }
 
 /** The lines of the step whose `- name:` matches, up to the next step. */
@@ -61,24 +69,40 @@ function stepBlock(nameFragment: string): string[] {
   return body;
 }
 
-describe("audit-ds-usage.yml permissions contract (M.4 regression)", () => {
-  it("does not request id-token at workflow level, so a caller that never opts in still starts", () => {
-    const permissions = topLevelBlock("permissions");
-
-    expect(permissions.length).toBeGreaterThan(0);
-    expect(permissions.some((line) => line.includes("id-token"))).toBe(false);
+describe("audit-ds-usage.yml permissions contract (M.4/M.5 regression)", () => {
+  it("declares no top-level permissions block, so jobs inherit the caller's grant", () => {
+    // Both ways of writing this block were measured against a real consumer
+    // and both broke a consumer -- see the header. Anything here caps what the
+    // jobs receive, and there is no value that serves an opting-in caller and
+    // a non-opting one at the same time.
+    expect(hasTopLevelBlock("permissions")).toBe(false);
   });
 
-  it("still requests contents: read, so the gate above cannot be satisfied by deleting the block", () => {
-    expect(topLevelBlock("permissions").some((line) => line.includes("contents: read"))).toBe(true);
+  it("does not grant itself write scopes anywhere, since it now inherits them", () => {
+    // Inheriting is what makes both consumers work, and it is also why this
+    // file must not quietly start using a scope a broad caller happens to
+    // pass in. Both checkouts drop the caller's credentials.
+    // Directives only. The header explains this same setting in prose, and a
+    // gate that counts its own documentation is a gate that fires on an edit
+    // to a comment.
+    const directives = lines.filter((line) => !line.trimStart().startsWith("#"));
+    const persistCredentials = directives.filter((line) =>
+      line.includes("persist-credentials: false"),
+    );
+
+    expect(persistCredentials).toHaveLength(2);
+    expect(directives.some((line) => /\b(contents|packages|actions):\s*write/.test(line))).toBe(
+      false,
+    );
   });
 
   it("lets the OIDC minting step fail without failing the job", () => {
-    // With id-token no longer granted by this workflow, a consumer that sets
-    // registry-url WITHOUT granting the permission makes this step throw.
-    // Fire-and-tolerate (D6) says that costs a warning, never the build:
-    // the step tolerates its own failure, the token output comes back empty,
-    // and submit-report.js already warns and exits 0 on an empty token.
+    // A consumer that sets registry-url without granting id-token makes this
+    // step throw. Fire-and-tolerate (D6) says that costs a warning, never the
+    // build: the step tolerates its own failure, the token output comes back
+    // empty, and submit-report.js already warns and returns on an empty
+    // token. Measured end to end -- the run stayed green and warned
+    // "no OIDC token was available for the registry audience".
     const step = stepBlock("Mint an OIDC token");
 
     expect(step.some((line) => line.includes("continue-on-error: true"))).toBe(true);
