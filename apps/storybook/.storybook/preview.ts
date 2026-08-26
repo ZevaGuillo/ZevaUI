@@ -5,6 +5,7 @@
 import "@zevaui/tokens/styles.css";
 import "@zevaui/components/styles.css";
 import type { Preview } from "@storybook/react-vite";
+import { themeIds } from "@zevaui/tokens";
 // `vitest/browser`, never the deprecated `@vitest/browser/context` (it
 // warns) — both re-export the same provider context, but only this path is
 // current. `expect` from `vitest` itself: `preview.ts` is not a test file,
@@ -23,6 +24,15 @@ import { page } from "vitest/browser";
 // individual story carries, and this hook is a true no-op there.
 declare const __VISUAL_CAPTURE__: boolean;
 
+// __STORY_THEME__ is baked per vitest PROJECT (vitest.shared.ts's themed
+// matrix), so each project's run defaults `globals.theme` to its own theme
+// and every story is rendered — and axe-scanned — once per theme. In
+// `storybook dev` no define exists (main.ts adds none), so the `typeof`
+// guard falls back to light and the toolbar selector below drives the
+// global instead.
+declare const __STORY_THEME__: (typeof themeIds)[number];
+const DEFAULT_THEME = typeof __STORY_THEME__ === "undefined" ? "light" : __STORY_THEME__;
+
 // The target width for the capture box, and for the widened
 // #vitest-tester container below — see the afterEach comment for how this
 // number was measured, not assumed.
@@ -34,6 +44,52 @@ const preview: Preview = {
     // relies on. See apps/storybook/scripts/assert-gate-fails.js.
     a11y: { test: "error" },
   },
+  globalTypes: {
+    theme: {
+      description: "ZevaUI theme applied to the preview canvas",
+      toolbar: {
+        title: "Theme",
+        icon: "paintbrush",
+        items: [...themeIds],
+        dynamicTitle: true,
+      },
+    },
+  },
+  initialGlobals: { theme: DEFAULT_THEME },
+  decorators: [
+    (Story, context) => {
+      // The REAL consumer mechanism (packages/tokens/scripts/build.js):
+      // light lives on `:root`, `.theme-dark`/`.theme-high-contrast`
+      // override it, and `.theme-light` opts out of the
+      // prefers-color-scheme dark media query. The class goes on <html>,
+      // not on the story root: react-aria portals overlays out of the
+      // canvas subtree, and only `:root`-scoped custom properties reach
+      // them. Stale classes are removed first so toolbar switches (and the
+      // per-theme vitest projects) never stack themes.
+      const theme = String(context.globals.theme ?? DEFAULT_THEME);
+      const root = document.documentElement;
+      for (const id of themeIds) root.classList.remove(`theme-${id}`);
+      root.classList.add(`theme-${theme}`);
+
+      // Consumer page scaffold: components rely on the page setting the
+      // canvas colors (Card/Input body text has no `color` of its own and
+      // would inherit UA black — invisible on a dark canvas; this is
+      // exactly the dark-theme axe failure the themed gate caught on its
+      // first run). `bg-canvas`/`text-default` are the semantic tokens for
+      // precisely this, contrast-validated per theme by @zevaui/constraints.
+      // SKIPPED in visual-capture runs only: every existing PNG baseline
+      // was captured without the scaffold, on default UA colors, and
+      // baselines can only be regenerated on Linux — adopting the scaffold
+      // there belongs to the (out-of-scope) visual theme matrix. The
+      // `typeof` guard covers `storybook dev`, where no define exists and
+      // the scaffold must apply.
+      if (typeof __VISUAL_CAPTURE__ === "undefined" || !__VISUAL_CAPTURE__) {
+        document.body.style.backgroundColor = "var(--zui-color-bg-canvas)";
+        document.body.style.color = "var(--zui-color-text-default)";
+      }
+      return Story();
+    },
+  ],
   // Fail-closed visual capture (D-A2): every story tagged `visual` is
   // screenshotted automatically, with no per-story wiring to forget, in
   // any run whose own config selects `visual` or `visual-negative` (see
