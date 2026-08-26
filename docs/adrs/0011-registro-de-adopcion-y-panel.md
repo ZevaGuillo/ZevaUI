@@ -4,7 +4,7 @@
 |---|---|
 | Estado | Aceptada |
 | Fecha | 2026-08-23 |
-| Actualizada | 2026-08-25 — se agrega `D11` (runner de migraciones) y se cierra el pendiente "nada corrió jamás contra una base real" |
+| Actualizada | 2026-08-25 — `D11` (runner de migraciones), `D12` (build de despliegue), `D13` (permisos del reusable workflow); se cierran los pendientes "nada corrió jamás contra una base real" y "no verificado contra Vercel" |
 | Autor | Guillermo Zevallos |
 | Decisores | Guillermo Zevallos |
 | Relacionado | `ADR-0009` (auditoría de uso como reusable workflow); `RF-12`, `RF-13`; `apps/dashboard`; `packages/audit`; `CONSTITUCION.md` |
@@ -302,10 +302,55 @@ esta app, ambos comandos saliendo a la raíz, lockfile congelado — y además
 verifica que el import del manifiesto siga existiendo, para que las compuertas
 se re-justifiquen en vez de sobrevivir por inercia si ese import desaparece.
 
-**Verificado localmente, no contra Vercel.** El comando de build se ejecutó
-tal cual desde `apps/dashboard` con los `dist/` borrados: 5 tareas, `.next`
-generado. El cableado del lado de Vercel — detección del framework y Root
-Directory — no está verificado hasta el primer despliegue real (`M.1`).
+**Verificado contra Vercel real (2026-08-25).** Lo que este párrafo declaraba
+pendiente ya ocurrió. Deployment `2fda01f` en Production — confirmado por SHA
+vía la API de deployments, no por un `200` que podía venir del build anterior:
+
+| Ruta | HTTP | Evidencia |
+|---|---|---|
+| `/api/v1/health` | 200 | `{"status":"ok"}` |
+| `/` | 200 | `ZevaUI Adoption Panel`, "No reports" |
+| `/releases` | 200 | `@zevaui/components` 0.2.0, 0.1.0 — `RF-AP02` en producción |
+| `/api/v1/reports` | 200 | `[]`, consulta real a Neon |
+
+El header de `/` responde `Cache-Control: private, no-cache, no-store`, que es
+`D8` observable en producción.
+
+La taxonomía de errores de `D4` también quedó verificada contra la URL real:
+sin `authorization` → `token_invalid`; bearer malformado → `token_invalid`;
+`content-type` incorrecto → `unsupported_media_type`.
+
+### D13. El workflow no declara permisos, y eso es la decisión
+
+`D1` hace que la ingesta dependa de un token OIDC que el consumidor mintea en
+su propio runner. Lo que ni el diseño ni `ADR-0009` habían resuelto es **quién
+pide ese permiso**, y las dos respuestas obvias están rotas. Ambas se midieron
+contra un consumidor real:
+
+| Bloque `permissions:` del reusable | Llamador | Resultado |
+|---|---|---|
+| `contents` + `id-token` | sin permisos | `startup_failure` a los 2 s |
+| `contents` + `id-token` | concede `id-token` | success |
+| sólo `contents` | sin permisos | success, submission salteada |
+| sólo `contents` | concede `id-token` | success, **pero no se mintea token** |
+| **ninguno** | sin permisos | success, submission salteada |
+| **ninguno** | concede `id-token` | success, token minteado, POST a producción |
+
+Un reusable workflow que pide más permisos de los que su llamador otorga es
+rechazado de entrada: **no hay intersección silenciosa**. Y el bloque del
+workflow llamado no es sólo un techo — decide lo que sus jobs efectivamente
+reciben, así que declarar `contents: read` vuelve `RF-AR06` inalcanzable
+aunque el llamador conceda identidad.
+
+Sin bloque, los jobs heredan exactamente lo que el llamador otorgó, y los dos
+consumidores funcionan. El costo es que un llamador con permisos amplios los
+transfiere; se acepta porque este workflow no usa ningún scope de escritura y
+ambos checkouts hacen `persist-credentials: false`.
+
+**La lección de método pesa más que la decisión:** el segundo caso produjo una
+corrida **verde** que no escribió nada. Bajo un contrato fire-and-tolerate un
+run verde no prueba la submission — hay que leer el registro. Se descubrió
+consultando `GET /api/v1/reports` después del run, no leyendo el log.
 
 ## Divergencias respecto del diseño y el spec, registradas
 

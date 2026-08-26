@@ -13,27 +13,31 @@
 # no caller and no meaning. This repo audits itself through the `audit-self`
 # job in ci.yml, which calls this same workflow.
 #
-# `v1` tag status (RF-12 rollout). M.4 has now run, and the caution it
-# encoded was earned: the revision it tested claimed to be additive by
-# construction and was not. Requesting `id-token: write` in this file's own
-# permissions block made every caller that had not granted the permission
-# fail at startup, opt-in or not. Four probe runs on
-# `zevaui-consumer-probe` isolated it to that single line:
+# `v1` tag status (RF-12 rollout). The caution this comment used to encode
+# was earned twice over. Every claim below is a measured probe run on
+# `zevaui-consumer-probe`, not a reading of the docs:
 #
-#   @v1,        no caller permissions          -> success
-#   @b553d02e1, no caller permissions          -> startup_failure, 2s
-#   @b553d02e1, caller grants id-token: write  -> success
+#   permissions block            caller           result
+#   ---------------------------- ---------------- -----------------------------
+#   contents+id-token            (none)           startup_failure, 2s
+#   contents+id-token            grants id-token  success
+#   contents only                (none)           success, submission skipped
+#   contents only                grants id-token  success, but NO token minted
+#                                                 -> registry never written
+#   none (current)               (none)           success, submission skipped
+#   none (current)               grants id-token  success, token minted, POST
+#                                                 reached production
 #
-# The permissions block above is the fix. With it, the same probe with
-# `registry-url` unset produces a report identical to the `@v1` control in
-# every field but `generatedAt` (a timestamp, so literal byte-identity was
-# never an achievable criterion), under the same artifact name, with both
-# submission steps `skipped`.
+# The first shape broke consumers who never wanted submission. The second
+# started fine and silently made submission impossible, which only surfaced
+# by checking the REGISTRY after a green run rather than trusting the green.
+# Fire-and-tolerate means a green run proves nothing about submission on its
+# own; read the registry.
 #
-# `v1` may move once that re-verification runs against this revision. Until
-# then it stays where it is. Designed behavior is not the same as verified
-# behavior; this file's history now has two places where those disagreed
-# (ADR-0009's RF-UAW14, and this).
+# `v1` stays where it is until the write path is confirmed end to end against
+# this revision. Designed behavior is not the same as verified behavior, and
+# this file's history now has three places where those disagreed (ADR-0009's
+# RF-UAW14, and both rows above).
 name: DS usage audit
 
 on:
@@ -96,28 +100,40 @@ on:
         type: string
         default: ""
 
-# Read-only, and deliberately WITHOUT `id-token: write`.
+# THERE IS DELIBERATELY NO `permissions:` BLOCK HERE. Do not add one.
 #
-# An earlier revision of this file requested `id-token: write` here, on the
-# theory that reusable-workflow permissions are intersected with the caller's
-# and a caller that never granted it would simply get no token. That theory
-# is wrong, and M.4 measured it: GitHub refuses the run outright —
-# `startup_failure` in two seconds, before a single step — for every caller
-# that did not grant the permission. Adding an opt-in input would have broken
-# every existing consumer of this workflow, including consumers that never
-# intend to submit anything.
+# Both ways of writing it were measured against a real consumer, and both
+# break a real consumer:
 #
-# So identity is requested by the CALLER, not by this file. A consumer that
-# opts into submission adds this to its own job, next to `uses:`:
+#   permissions:                 -> `startup_failure` in 2s for every caller
+#     contents: read                that did not grant id-token. A reusable
+#     id-token: write               workflow requesting more than its caller
+#                                   holds is refused outright. There is no
+#                                   silent intersection. This broke consumers
+#                                   who never wanted submission at all.
+#
+#   permissions:                 -> starts fine, but a caller that DOES grant
+#     contents: read                id-token still cannot get one. The called
+#                                   workflow's block decides what its jobs
+#                                   actually receive, not merely a ceiling,
+#                                   so `core.getIDToken()` fails with
+#                                   "Unable to get ACTIONS_ID_TOKEN_REQUEST_URL"
+#                                   and RF-AR06 submission can never work.
+#
+# With no block, jobs inherit exactly what the caller granted, and both
+# consumers work: one adds nothing, starts, and skips submission; the other
+# grants `id-token: write` and submits.
+#
+# The cost is real and accepted: a caller that grants broad permissions passes
+# them in. This file is written so that costs nothing — it uses no write
+# scope anywhere, and both checkouts set `persist-credentials: false`, so the
+# caller's token is not left on disk for the scanner to reach.
+#
+# A consumer opting into submission adds this to its own job, next to `uses:`:
 #
 #     permissions:
 #       contents: read
 #       id-token: write
-#
-# A consumer that does not opt in adds nothing and is unaffected, which is
-# what "additive by construction" has to mean to be worth claiming.
-permissions:
-  contents: read
 
 jobs:
   audit:
