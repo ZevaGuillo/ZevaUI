@@ -26,6 +26,24 @@
       "measuredAtCommit": "98c91a6d48b5cc6001d077d1b5156cb924a5803d",
       "maxGzipBytes": 14973
     },
+    "Input": {
+      "imports": ["Input"],
+      "measuredGzipBytes": 12353,
+      "measuredAtCommit": "ee75ea9410a74485ad95c18b197695e527e258ad",
+      "maxGzipBytes": 13589
+    },
+    "Dialog": {
+      "imports": ["Dialog"],
+      "measuredGzipBytes": 25666,
+      "measuredAtCommit": "ee75ea9410a74485ad95c18b197695e527e258ad",
+      "maxGzipBytes": 28233
+    },
+    "Menu": {
+      "imports": ["Menu"],
+      "measuredGzipBytes": 51086,
+      "measuredAtCommit": "ee75ea9410a74485ad95c18b197695e527e258ad",
+      "maxGzipBytes": 56195
+    },
     "barrel": {
       "imports": "*",
       "measuredGzipBytes": 56849,
