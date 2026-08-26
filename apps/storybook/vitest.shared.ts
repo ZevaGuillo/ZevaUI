@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { playwright } from "@vitest/browser-playwright";
+import { themeIds } from "@zevaui/tokens";
 import { defineConfig } from "vitest/config";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -24,8 +25,8 @@ type TagFilter = {
 // automatically. Adding a manual setup file only risks the two provisioning
 // paths conflicting — verified against this project's actual 10.5.8
 // install, which warns exactly that.
-export function createStorybookVitestConfig(tags: TagFilter) {
-  return defineConfig({
+function storybookProject(tags: TagFilter, theme: (typeof themeIds)[number], name: string) {
+  return {
     // Every config here imports every story file under stories/**, including
     // stories/__gate__/BrokenVisual.stories.tsx, to discover their tags —
     // regardless of whether any of its own stories match the tag filter
@@ -52,9 +53,16 @@ export function createStorybookVitestConfig(tags: TagFilter) {
     // exists to prevent. Prefixing fails closed in the safe direction (a
     // new `visual*` partition captures by default), while `test` and
     // `a11y-negative` still resolve `false`.
+    //
+    // __STORY_THEME__ follows the same config-load-time pattern: each vitest
+    // project bakes in the theme id whose `.theme-*` class preview.ts's
+    // decorator must apply (via `initialGlobals`), so the themed matrix
+    // below runs every story once per theme. `storybook dev` has no define,
+    // and preview.ts falls back to light there.
     define: {
       __VISUAL_GATE_LABEL__: JSON.stringify(process.env.VISUAL_GATE_LABEL ?? "Publish"),
       __VISUAL_CAPTURE__: JSON.stringify(tags.include.some((tag) => tag.startsWith("visual"))),
+      __STORY_THEME__: JSON.stringify(theme),
     },
     plugins: [
       storybookTest({
@@ -67,7 +75,7 @@ export function createStorybookVitestConfig(tags: TagFilter) {
       }),
     ],
     test: {
-      name: "storybook",
+      name,
       // axe's color-contrast rule cannot execute in jsdom (see ADR-0004
       // D7) — browser mode via Playwright's Chromium is required, not a
       // performance nicety.
@@ -86,8 +94,28 @@ export function createStorybookVitestConfig(tags: TagFilter) {
           },
         }),
         headless: true,
-        instances: [{ browser: "chromium" }],
+        instances: [{ browser: "chromium" as const }],
       },
+    },
+  };
+}
+
+// Single light-theme run, unchanged shape — the visual configs keep using
+// this: baselines are captured in light only (regenerated on Linux via
+// workflow), so the theme matrix must not multiply their captures.
+export function createStorybookVitestConfig(tags: TagFilter) {
+  return defineConfig(storybookProject(tags, "light", "storybook"));
+}
+
+// One vitest project per theme id from @zevaui/tokens: every matching story
+// runs (and is axe-scanned, via `a11y: { test: "error" }` in preview.ts)
+// once under light, dark, and high-contrast. Used by the normal `test` run
+// and the a11y gate; roughly triples their wall time by design (ADR-0006
+// noted the gate only covered the light theme).
+export function createThemedStorybookVitestConfig(tags: TagFilter) {
+  return defineConfig({
+    test: {
+      projects: themeIds.map((theme) => storybookProject(tags, theme, `storybook-${theme}`)),
     },
   });
 }
