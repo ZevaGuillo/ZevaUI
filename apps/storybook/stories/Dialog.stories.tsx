@@ -97,6 +97,13 @@ export const OpensTrapsFocusAndClosesOnEscape: Story = {
     const dialog = await screen.findByRole("dialog", { name: "Delete project" });
     await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
 
+    // Parity with Menu's OpensNavigatesAndSelects (ADR-0005 follow-up): while the modal is open,
+    // `useModalOverlay` takes the background out of the accessibility tree with the `inert`
+    // PROPERTY, never `aria-hidden`. Asserted here so a future react-aria that drops the inert
+    // branch fails with this message on the modal path too, not only on Menu's popover path.
+    await expect(canvasElement).toHaveProperty("inert", true);
+    await expect(canvasElement).not.toHaveAttribute("aria-hidden");
+
     await userEvent.tab();
     await expect(dialog.contains(document.activeElement)).toBe(true);
 
@@ -104,5 +111,8 @@ export const OpensTrapsFocusAndClosesOnEscape: Story = {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     await expect(trigger).toBeVisible();
+    // ...and the page is handed back: closing the dialog must undo the inert marking, or the
+    // story root would stay unreachable for good.
+    await waitFor(() => expect(canvasElement).toHaveProperty("inert", false));
   },
 };
