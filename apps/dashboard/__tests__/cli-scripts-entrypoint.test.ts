@@ -76,3 +76,17 @@ describe("build-release-log CLI entrypoint (real child process)", () => {
     expect(Array.isArray(parsed.packages)).toBe(true);
   });
 });
+
+describe("db:migrate CLI entrypoint (real child process, no DATABASE_URL)", () => {
+  it("fails on missing database configuration, not on module resolution", () => {
+    const result = spawnScript(packageJson.scripts["db:migrate"], envWithoutDatabaseUrl());
+    const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+    // Same regression gate as export:registry -- migrate transitively imports
+    // `src/lib/is-main-module.ts` extensionlessly, so the CLI runner has to
+    // resolve it with no bundler in between.
+    expect(output).not.toContain("ERR_MODULE_NOT_FOUND");
+    expect(output).toContain("DATABASE_URL");
+    expect(result.status).not.toBe(0);
+  });
+});
