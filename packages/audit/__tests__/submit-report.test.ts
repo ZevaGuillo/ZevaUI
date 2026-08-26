@@ -38,11 +38,19 @@ function fakeTransport(steps: ScriptedStep[]) {
         queueMicrotask(() => request.emit("error", new Error("simulated connect error")));
         return;
       }
-      queueMicrotask(() =>
-        callback({ statusCode: step.status, resume: () => {} } as unknown as Parameters<
-          typeof callback
-        >[0]),
-      );
+      // A non-2xx response is read, not just drained, so the double has to
+      // behave like a readable stream that ends. Without the `end` event
+      // postOnce never settles and the retry state machine stalls.
+      queueMicrotask(() => {
+        const response = new EventEmitter() as unknown as Parameters<typeof callback>[0];
+        response.statusCode = step.status;
+        // @ts-expect-error — test double implements only what postOnce() calls.
+        response.setEncoding = () => {};
+        // @ts-expect-error — test double implements only what postOnce() calls.
+        response.resume = () => {};
+        callback(response);
+        queueMicrotask(() => response.emit("end"));
+      });
     };
     // @ts-expect-error — test double implements only what postOnce() calls.
     request.destroy = () => {};
@@ -147,3 +155,123 @@ describe("submitWithRetries", () => {
 // by default, registry down does not fail CI) lives in
 // submit-report-scenarios.test.ts, landing together with the workflow wiring
 // it validates.
+
+// ---------------------------------------------------------------------------
+// Error-code surfacing. A consumer whose submission is rejected only ever
+// sees this script's `::warning::`; if that line carries the status alone,
+// the only way to tell `owner_not_allowed` from `identity_mismatch` is to
+// read the registry's source, which an external consumer cannot do. That is
+// not a hypothetical -- diagnosing a live 403 during M.5 cost two round
+// trips for exactly this reason.
+//
+// The body is NOT trusted input. `registry-url` is chosen by the consumer,
+// so the response is whatever host that URL resolves to decided to send, and
+// it flows into `::warning::` -- a workflow-command context. A code carrying
+// `\n::stop-commands::` or `::add-mask::` would be command injection into the
+// consumer's own run.
+// ---------------------------------------------------------------------------
+function transportReturning(status: number, body: string | undefined) {
+  const requestFn: RequestFn = (_url, _options, callback) => {
+    const request = new EventEmitter() as unknown as ReturnType<RequestFn>;
+    // @ts-expect-error — test double implements only what postOnce() calls.
+    request.end = () => {
+      const response = new EventEmitter() as unknown as Parameters<typeof callback>[0];
+      response.statusCode = status;
+      // @ts-expect-error — test double implements only what postOnce() calls.
+      response.setEncoding = () => {};
+      // @ts-expect-error — test double implements only what postOnce() calls.
+      response.resume = () => {};
+      queueMicrotask(() => {
+        callback(response);
+        queueMicrotask(() => {
+          if (body !== undefined) response.emit("data", body);
+          response.emit("end");
+        });
+      });
+    };
+    // @ts-expect-error — test double implements only what postOnce() calls.
+    request.destroy = () => {};
+    return request;
+  };
+  return requestFn;
+}
+
+async function outcomeFor(status: number, body: string | undefined) {
+  const result = await submitWithRetries({
+    url: new URL("https://registry.example.com/api/v1/reports"),
+    token: "t",
+    payload: Buffer.from("{}"),
+    requestFn: transportReturning(status, body),
+  });
+  if (result.ok) throw new Error("expected a rejected submission");
+  return result.outcome;
+}
+
+describe("submit-report error-code surfacing", () => {
+  it("carries the registry's error code so the warning names the failing gate", async () => {
+    const outcome = await outcomeFor(403, '{"error":{"code":"owner_not_allowed","message":"x"}}');
+
+    expect(outcome).toMatchObject({ kind: "response", status: 403, code: "owner_not_allowed" });
+  });
+
+  it("strips workflow-command syntax out of a hostile code", async () => {
+    // The registry is reached through a consumer-supplied URL, so this body
+    // is attacker-controlled with respect to the consumer's log.
+    // String.raw so the JSON carries a two-character \n escape. Written as a
+    // plain literal it becomes a real newline inside a JSON string, which is
+    // invalid JSON and would make this pass for the wrong reason.
+    const outcome = await outcomeFor(403, String.raw`{"error":{"code":"a\n::stop-commands::x"}}`);
+
+    const code = "code" in outcome ? outcome.code : undefined;
+    expect(code).not.toMatch(/[\n\r:]/);
+    expect(code).toBe("astop-commandsx");
+  });
+
+  it("caps a code long enough to bury the rest of the log", async () => {
+    const outcome = await outcomeFor(403, `{"error":{"code":"${"a".repeat(300)}"}}`);
+
+    const code = "code" in outcome ? outcome.code : undefined;
+    expect(code).toHaveLength(64);
+  });
+
+  it("explains nothing from a body too large to have been read whole", async () => {
+    // Past the read cap the buffer is deliberately incomplete, so it is not
+    // valid JSON any more. Reporting the status alone is the honest outcome;
+    // guessing at a truncated document is not.
+    const outcome = await outcomeFor(403, `{"error":{"code":"${"a".repeat(5000)}"}}`);
+
+    expect(outcome).toMatchObject({ kind: "response", status: 403 });
+    expect("code" in outcome ? outcome.code : undefined).toBeUndefined();
+  });
+
+  it("says nothing extra when the body is not JSON", async () => {
+    // A gateway returning an HTML error page is the common case here.
+    const outcome = await outcomeFor(502, "<html>gateway</html>");
+
+    expect(outcome).toMatchObject({ kind: "response", status: 502 });
+    expect("code" in outcome ? outcome.code : undefined).toBeUndefined();
+  });
+
+  it("says nothing extra when the JSON carries no error code", async () => {
+    const outcome = await outcomeFor(403, '{"error":{"message":"no code here"}}');
+
+    expect("code" in outcome ? outcome.code : undefined).toBeUndefined();
+  });
+
+  it("says nothing extra when the response has no body at all", async () => {
+    const outcome = await outcomeFor(403, undefined);
+
+    expect("code" in outcome ? outcome.code : undefined).toBeUndefined();
+  });
+
+  it("still reports success on 2xx without reading a body", async () => {
+    const result = await submitWithRetries({
+      url: new URL("https://registry.example.com/api/v1/reports"),
+      token: "t",
+      payload: Buffer.from("{}"),
+      requestFn: transportReturning(201, undefined),
+    });
+
+    expect(result).toMatchObject({ ok: true, status: 201 });
+  });
+});

@@ -35,8 +35,52 @@ function warn(message) {
   }
 }
 
+// A rejected submission is explained to the consumer through one
+// `::warning::` line and nothing else. Carrying only the status makes
+// `owner_not_allowed` and `identity_mismatch` — different fixes, different
+// people — indistinguishable without reading the registry's source, which an
+// external consumer cannot do.
+//
+// The body is NOT trusted. `registry-url` is chosen by the caller, so the
+// response comes from whatever host that URL resolves to, and it flows into
+// a workflow-command context. A code carrying a newline and `::add-mask::`
+// or `::stop-commands::` would be command injection into the consumer's own
+// run. Hence a strict allowlist rather than escaping: every code in the
+// registry's taxonomy is a snake_case identifier, so nothing legitimate is
+// lost by discarding everything else.
+const MAX_ERROR_BODY_BYTES = 2048;
+const MAX_ERROR_CODE_LENGTH = 64;
+const DISALLOWED_IN_ERROR_CODE = /[^A-Za-z0-9_.-]/g;
+
 /**
- * @typedef {{ kind: "response", status: number }
+ * @param {unknown} value
+ * @returns {string | undefined}
+ */
+function sanitizeErrorCode(value) {
+  if (typeof value !== "string") return undefined;
+  const cleaned = value.replace(DISALLOWED_IN_ERROR_CODE, "").slice(0, MAX_ERROR_CODE_LENGTH);
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
+/**
+ * Never throws: a malformed body is simply a body that explains nothing,
+ * which is the pre-existing behaviour and not a reason to fail a submission
+ * that already failed.
+ *
+ * @param {string} body
+ * @returns {string | undefined}
+ */
+function errorCodeFrom(body) {
+  try {
+    const parsed = JSON.parse(body);
+    return sanitizeErrorCode(parsed?.error?.code);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * @typedef {{ kind: "response", status: number, code?: string }
  *   | { kind: "connect-error", message: string }
  *   | { kind: "timeout-exhausted" }} SubmitOutcome
  */
@@ -101,10 +145,39 @@ function postOnce({ url, token, payload, timeoutMs, requestFn = https.request })
         timeout: Math.max(1, timeoutMs),
       },
       (response) => {
-        // The outcome only needs the status; draining the body lets the
-        // socket close instead of leaking a half-read response.
-        response.resume();
-        settle({ kind: "response", status: response.statusCode ?? 0 });
+        const status = response.statusCode ?? 0;
+        // A success explains itself. Draining without reading lets the socket
+        // close instead of leaking a half-read response.
+        if (status >= 200 && status < 300) {
+          response.resume();
+          settle({ kind: "response", status });
+          return;
+        }
+
+        // A rejection is the one case worth reading, and only up to a cap:
+        // the far side is consumer-chosen and may answer with a megabyte of
+        // HTML. Chunks past the cap are still consumed — dropping them from
+        // the buffer is not the same as stopping the drain, and stopping it
+        // would hold the socket open until the request timeout.
+        let body = "";
+        let bytes = 0;
+        response.setEncoding("utf8");
+        response.on("data", (chunk) => {
+          const text = String(chunk);
+          if (bytes >= MAX_ERROR_BODY_BYTES) return;
+          bytes += text.length;
+          body += text;
+        });
+        response.on("end", () =>
+          settle({
+            kind: "response",
+            status,
+            code: errorCodeFrom(body.slice(0, MAX_ERROR_BODY_BYTES)),
+          }),
+        );
+        // A truncated response still told us the status, which is more than
+        // reporting a connection error would.
+        response.on("error", () => settle({ kind: "response", status }));
       },
     );
 
@@ -177,8 +250,15 @@ export function resolveIngestionUrl(registryUrlInput) {
 }
 
 /** @param {SubmitOutcome} outcome */
-function describeOutcome(outcome) {
-  if (outcome.kind === "response") return `the registry responded ${outcome.status}`;
+export function describeOutcome(outcome) {
+  if (outcome.kind === "response") {
+    // The code is what tells a consumer which gate rejected them, and
+    // therefore whose fix it is: `owner_not_allowed` is the registry
+    // operator's allowlist, `identity_mismatch` is the caller's `app` input.
+    return outcome.code
+      ? `the registry responded ${outcome.status} (${outcome.code})`
+      : `the registry responded ${outcome.status}`;
+  }
   if (outcome.kind === "connect-error") return `a connection error (${outcome.message})`;
   return "the 10s submission budget was exhausted";
 }
