@@ -13,16 +13,27 @@
 # no caller and no meaning. This repo audits itself through the `audit-self`
 # job in ci.yml, which calls this same workflow.
 #
-# `v1` tag status (RF-12 rollout, decided at design time — not re-opened
-# here): this change adds `registry-url` and `id-token: write`, both
-# additive by construction, so by the `v1` tag's own contract policy (see the
-# tag message) this WOULD qualify as a move rather than a `v2`. It is
-# deliberately NOT moved yet. The tag only moves after the
-# `zevaui-consumer-probe` run (M.4, maintainer-gated) re-validates with
-# `registry-url` unset — designed behavior is not the same as verified
-# behavior, and this file's own history already has one place where those
-# disagreed (ADR-0009's RF-UAW14). Until that probe runs, `v1` stays exactly
-# where it is and pulls in this change only once someone re-runs it.
+# `v1` tag status (RF-12 rollout). M.4 has now run, and the caution it
+# encoded was earned: the revision it tested claimed to be additive by
+# construction and was not. Requesting `id-token: write` in this file's own
+# permissions block made every caller that had not granted the permission
+# fail at startup, opt-in or not. Four probe runs on
+# `zevaui-consumer-probe` isolated it to that single line:
+#
+#   @v1,        no caller permissions          -> success
+#   @b553d02e1, no caller permissions          -> startup_failure, 2s
+#   @b553d02e1, caller grants id-token: write  -> success
+#
+# The permissions block above is the fix. With it, the same probe with
+# `registry-url` unset produces a report identical to the `@v1` control in
+# every field but `generatedAt` (a timestamp, so literal byte-identity was
+# never an achievable criterion), under the same artifact name, with both
+# submission steps `skipped`.
+#
+# `v1` may move once that re-verification runs against this revision. Until
+# then it stays where it is. Designed behavior is not the same as verified
+# behavior; this file's history now has two places where those disagreed
+# (ADR-0009's RF-UAW14, and this).
 name: DS usage audit
 
 on:
@@ -70,20 +81,43 @@ on:
           failed run. This value is only ever read through `env:`, never
           interpolated into a `run:` body, and is always upgraded to `https:`
           before any request leaves this job (see the submission step below).
+
+          Setting this requires one more line in YOUR job, because this
+          workflow deliberately does not request identity on your behalf:
+
+            permissions:
+              contents: read
+              id-token: write
+
+          Forgetting it is not fatal — the token step tolerates its own
+          failure and the run warns instead of submitting — but nothing will
+          ever reach the registry until it is there.
         required: false
         type: string
         default: ""
 
-# Read-only, plus one narrow, opt-in write of identity: `id-token` lets this
-# job request its OWN short-lived OIDC token when submission is enabled — it
-# grants no ability to write to the CALLER's repository. Reusable-workflow
-# permissions are intersected with the caller's job permissions, so a caller
-# that never wrote `permissions: id-token: write` cannot obtain a token here
-# even with `registry-url` set — submission then simply has nothing to send
-# and warns, per the fire-and-tolerate contract (D6).
+# Read-only, and deliberately WITHOUT `id-token: write`.
+#
+# An earlier revision of this file requested `id-token: write` here, on the
+# theory that reusable-workflow permissions are intersected with the caller's
+# and a caller that never granted it would simply get no token. That theory
+# is wrong, and M.4 measured it: GitHub refuses the run outright —
+# `startup_failure` in two seconds, before a single step — for every caller
+# that did not grant the permission. Adding an opt-in input would have broken
+# every existing consumer of this workflow, including consumers that never
+# intend to submit anything.
+#
+# So identity is requested by the CALLER, not by this file. A consumer that
+# opts into submission adds this to its own job, next to `uses:`:
+#
+#     permissions:
+#       contents: read
+#       id-token: write
+#
+# A consumer that does not opt in adds nothing and is unaffected, which is
+# what "additive by construction" has to mean to be worth claiming.
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   audit:
@@ -162,9 +196,18 @@ jobs:
       # defensible default in the meantime. `env:`, not string interpolation
       # into `script:` — the same shell-injection rule applies to splicing
       # caller-controlled text into embedded JS source.
+      # `continue-on-error` because this workflow no longer requests
+      # `id-token: write` itself (see the permissions block above): a consumer
+      # that sets registry-url but forgets to grant the permission in its own
+      # job makes `core.getIDToken()` throw here. That is a misconfiguration,
+      # and fire-and-tolerate (D6) says a misconfigured registry costs a
+      # warning, never the build. The step tolerates its own failure, the
+      # output below comes back empty, and submit-report.js already warns and
+      # returns on an empty token.
       - name: Mint an OIDC token for the registry audience
         if: inputs.registry-url != ''
         id: registry-token
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           result-encoding: string
