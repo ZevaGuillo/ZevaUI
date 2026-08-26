@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ViolationRule } from "@zevaui/constraints";
 import { z } from "zod";
@@ -18,6 +19,12 @@ const violationSchema = {
   message: z.string(),
 };
 
+// Resolved relative to the module so it works both from src/ (tests) and from
+// the compiled dist/ artifact — never hardcoded, so changesets bumps propagate.
+const { version } = createRequire(import.meta.url)("../package.json") as {
+  version: string;
+};
+
 const validateThemeInputSchema = {
   theme: z.enum(themeIds),
   colors: z.record(z.string(), z.string()).optional(),
@@ -29,7 +36,7 @@ const validateThemeOutputSchema = {
 };
 
 export function createServer(): McpServer {
-  const server = new McpServer({ name: "@zevaui/mcp", version: "0.0.0" });
+  const server = new McpServer({ name: "@zevaui/mcp", version });
 
   registerTokenResources(server);
   registerValidateThemeTool(server);
