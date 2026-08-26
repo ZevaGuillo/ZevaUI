@@ -14,6 +14,9 @@
     "format": "turbo run format",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "dev": "pnpm --filter @zevaui/dashboard dev",
+    "dev:storybook": "pnpm --filter @zevaui/storybook dev",
+    "db:migrate": "pnpm --filter @zevaui/dashboard db:migrate:local",
     "changeset": "changeset"
   },
   "devDependencies": {
