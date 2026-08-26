@@ -4,15 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
     "./report-schema": "./src/report-schema.js"
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "echo \"stage 1: build deferred (no dist)\"",
     "lint": "biome check .",

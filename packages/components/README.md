@@ -176,21 +176,24 @@ You may expect a `tone="danger"` dialog or an intent-colored menu. Neither
 exists, and the reason is measured rather than stylistic.
 
 An overlay carrying a color of intent needs a colored boundary to read as
-one. The only strong-enough neutral this system publishes,
-`color-border-strong`, **fails WCAG 1.4.11 non-text contrast**: 2.49:1 in
-the light theme and 2.66:1 in the dark theme, against a 3.0:1 floor (see
-`packages/constraints/README.md`). A boundary drawn with it would be exactly
-the kind of component edge that 1.4.11 requires to be perceivable, and it
-isn't.
+one. When ADR-0005 (D2) made this call, the only strong-enough neutral this
+system publishes, `color-border-strong`, **failed WCAG 1.4.11 non-text
+contrast** (2.49:1 light / 2.66:1 dark against a 3.0:1 floor), so shipping
+the variant would have meant shipping it inaccessible. ADR-0010 has since
+closed that contrast gap: the token now measures 4.63:1 / 4.16:1
+(light / dark) against `color-bg-canvas` and 4.84:1 / 3.67:1 against
+`color-bg-surface` (see `packages/constraints/README.md`).
 
-So both overlays separate themselves from the page with a shadow over an
-opaque surface instead — `shadow-modal` for `Dialog`, `shadow-dropdown` for
-`Menu` — and every variant axis they expose is geometric. Shipping the
-variant would have meant shipping it inaccessible.
+Both overlays still separate themselves from the page with a shadow over an
+opaque surface — `shadow-modal` for `Dialog`, `shadow-dropdown` for
+`Menu` — and every variant axis they expose is geometric. The contrast gap
+that motivated the call no longer exists, but the structural decision — no
+`tone` axis on overlays — stands for the reasons ADR-0005 records.
 
-`docs/adrs/0005-overlays-dialog-y-menu.md` (D2) records this, including the
-honest part: this is a design constraint the system worked *around*, not a
-gap it closed.
+`docs/adrs/0005-overlays-dialog-y-menu.md` (D2) records the original
+constraint, including the honest part: at the time, this was a design
+constraint the system worked *around*; the underlying token gap was later
+closed by ADR-0010, the overlay design was not revisited.
 
 ## Theming: override `--zui-*`, never fork
 

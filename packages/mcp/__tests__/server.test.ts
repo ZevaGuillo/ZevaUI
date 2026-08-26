@@ -25,6 +25,16 @@ async function connectedClient() {
   return client;
 }
 
+describe("createServer / server info", () => {
+  it("reports the version from package.json, never a hardcoded one", async () => {
+    const client = await connectedClient();
+    const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+      version: string;
+    };
+    expect(client.getServerVersion()?.version).toBe(pkg.version);
+  });
+});
+
 describe("createServer / tools", () => {
   it("registers exactly one tool named validate_theme", async () => {
     const client = await connectedClient();
