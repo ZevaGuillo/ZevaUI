@@ -264,6 +264,49 @@ como `export:registry` llegó roto a `main` en su momento. Si el script
 repusiera la variable desde el archivo, ese gate quedaría ciego. Para uso
 local, `db:migrate:local` pasa `--env-file` de forma explícita.
 
+### D12. El build de despliegue pasa por turbo, no por la app
+
+`apps/dashboard` **no puede construirse corriendo su propio script `build`**.
+Desde un checkout limpio falla:
+
+```
+Module not found: Can't resolve '@zevaui/components/components.manifest.json'
+```
+
+`src/app/deprecated/page.tsx` importa ese manifiesto, y el manifiesto es un
+**artefacto de build** de `@zevaui/components` — su mapa de exports apunta a
+`dist/components.manifest.json`, que escribe el build de ese paquete. El
+comportamiento por defecto de Vercel para una app Next es ejecutar el script
+`build` de la app dentro del Root Directory, que es exactamente el comando que
+falla.
+
+Por eso `apps/dashboard/vercel.json` enruta ambos comandos por la raíz del
+repositorio:
+
+```json
+"installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+"buildCommand":   "cd ../.. && pnpm turbo run build --filter=@zevaui/dashboard"
+```
+
+`turbo` resuelve `^build` y construye las dependencias del workspace antes que
+la app. El `--filter` evita construir el monorepo entero en cada despliegue.
+El `cd ../..` no es adorno: Vercel ejecuta los comandos desde el Root
+Directory, y un `pnpm install` ahí no resuelve ningún workspace.
+
+**Requiere una opción del panel de Vercel que este archivo no puede fijar:**
+`Root Directory = apps/dashboard`. Sin eso, `outputDirectory: ".next"` apunta
+al lugar equivocado.
+
+`vercel-build-command.test.ts` fija el contrato — build por turbo, filtrado a
+esta app, ambos comandos saliendo a la raíz, lockfile congelado — y además
+verifica que el import del manifiesto siga existiendo, para que las compuertas
+se re-justifiquen en vez de sobrevivir por inercia si ese import desaparece.
+
+**Verificado localmente, no contra Vercel.** El comando de build se ejecutó
+tal cual desde `apps/dashboard` con los `dist/` borrados: 5 tareas, `.next`
+generado. El cableado del lado de Vercel — detección del framework y Root
+Directory — no está verificado hasta el primer despliegue real (`M.1`).
+
 ## Divergencias respecto del diseño y el spec, registradas
 
 Diez reconciliaciones acumuladas entre `PR1` y las cuatro correcciones
