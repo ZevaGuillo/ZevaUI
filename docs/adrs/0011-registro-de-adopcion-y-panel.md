@@ -4,6 +4,7 @@
 |---|---|
 | Estado | Aceptada |
 | Fecha | 2026-08-23 |
+| Actualizada | 2026-08-25 — se agrega `D11` (runner de migraciones) y se cierra el pendiente "nada corrió jamás contra una base real" |
 | Autor | Guillermo Zevallos |
 | Decisores | Guillermo Zevallos |
 | Relacionado | `ADR-0009` (auditoría de uso como reusable workflow); `RF-12`, `RF-13`; `apps/dashboard`; `packages/audit`; `CONSTITUCION.md` |
@@ -209,6 +210,60 @@ por defecto (405 ms de compilación contra 24,1 s en webpack) y sus dos scripts
 de CLI corren con `tsx`, que resuelve como un bundler. Una sola convención en
 toda la app, y `--experimental-strip-types` ya no aparece en el repositorio.
 
+### D11. El esquema se aplica con un runner versionado, no a mano
+
+Las migraciones son SQL plano escrito a mano por `D2`, y el directorio
+`apps/dashboard/drizzle/` no tiene `meta/_journal.json`. Sin ese journal
+`drizzle-kit migrate` no puede conducirlas, así que hasta acá **no existía
+ningún camino para llevar el esquema a una base**: el registro entero estaba
+escrito contra un esquema que nadie podía crear salvo pegando SQL a mano.
+
+`apps/dashboard/scripts/migrate.ts` aplica cada `.sql` pendiente en orden
+lexicográfico, una transacción por migración, y registra cada una en
+`schema_migrations` con su `sha256`. Volver a correrlo no aplica nada.
+
+Se descartó pegar los dos archivos en el editor del proveedor. Es más rápido
+una vez y no deja rastro de qué se aplicó ni cuándo, en el único punto del
+sistema que todavía no tenía gobierno. Un proyecto cuya tesis es que la
+gobernanza es el producto no puede aplicar su propio esquema sin registro.
+
+Dos garantías que el runner sostiene, y por qué:
+
+- **Compuerta de inmutabilidad.** Una migración ya aplicada cuyos bytes
+  cambiaron, o cuyo archivo desapareció, detiene el runner antes de tocar
+  nada. Es el principio 5 de la constitución (*versiones inmutables*)
+  expresado como error de ejecución y no como convención: si el texto cambia,
+  toda base que ya corrió el texto viejo diverge en silencio y ninguna
+  migración posterior puede detectarlo.
+- **Advisory lock de sesión sobre un `Client` dedicado, no un `Pool`.** El
+  lock es de sesión, así que sólo serializa si todos los statements viajan por
+  la misma conexión. Con un `Pool` el lock existe y no protege nada.
+
+El orden usa un comparador de bytes explícito. `localeCompare` resuelve contra
+el locale del host, de modo que el orden de aplicación no sería el mismo en
+todas las máquinas, y el orden de las migraciones es un contrato de corrección.
+
+**Evidencia contra una base Postgres real**, no sólo por forma de query:
+
+| Verificación | Resultado |
+|---|---|
+| Primera corrida | aplicó `0000_init.sql` y `0001_oidc_jti.sql` |
+| Segunda corrida | aplicó 0, salteó 2 (idempotencia) |
+| `information_schema` | `submissions` (12 columnas), vista `report_latest`, `oidc_jti`, `schema_migrations` |
+| Las cinco query builders | ejecutan contra la base real |
+| Compuerta de monotonicidad | un reporte más nuevo mueve `generated_at`; uno más viejo no la mueve hacia atrás |
+
+La verificación de queries corrió dentro de una transacción revertida: cero
+filas persistidas. Esto cierra el pendiente que este mismo ADR declaraba en su
+seguimiento.
+
+El script **no carga `.env.local` por su cuenta**, deliberadamente. El gate de
+`cli-scripts-entrypoint.test.ts` borra `DATABASE_URL` del entorno para probar
+que el script falla por configuración y no por resolución de módulos — que es
+como `export:registry` llegó roto a `main` en su momento. Si el script
+repusiera la variable desde el archivo, ese gate quedaría ciego. Para uso
+local, `db:migrate:local` pasa `--env-file` de forma explícita.
+
 ## Divergencias respecto del diseño y el spec, registradas
 
 Diez reconciliaciones acumuladas entre `PR1` y las cuatro correcciones
@@ -309,7 +364,13 @@ a deprecarse para preservar un estilo de import que a esta app nunca le aplicó.
   `content-length` deliberadamente inconsistente.
 - **Sin poda de `oidc_jti`.** La tabla de replay crece sin límite; las filas
   vencidas no se borran. No es urgente al volumen esperado, pero no tiene dueño.
-- **Nada corrió jamás contra una base real.** Toda la capa de datos está probada
-  por forma de query (`.toSQL()` contra un Pool que nunca disca). Es sólido para
-  lo que es, y no reemplaza un `INSERT` que de verdad viaje. Bloqueado por
-  `M.1`–`M.4`: aprovisionar Vercel y Neon, y cargar los secrets.
+- ~~**Nada corrió jamás contra una base real.**~~ **Cerrado el 2026-08-25.**
+  Ver `D11`: el esquema se aplicó a una base Postgres real y las cinco query
+  builders se ejecutaron contra ella. Lo que sigue abierto no es la capa de
+  datos sino el alojamiento: `M.1` (proyecto en Vercel), `M.3` (variables de
+  entorno en Vercel) y `M.4` (revalidación del probe).
+- **`M.4` sigue sin correr, y congela el tag `v1`.** El contrato de `D6` dice
+  que un consumidor que nunca setea `registry-url` se comporta byte a byte
+  como antes. Está probado por construcción y a nivel de script, pero no por
+  una corrida real del workflow en `zevaui-consumer-probe`. Hasta que esa
+  corrida exista, `v1` no avanza.

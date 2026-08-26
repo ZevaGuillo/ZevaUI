@@ -64,3 +64,5 @@ Thumbs.db
 
 # Env
 .env*
+# The template carries names and shapes only, never a value.
+!.env.example
