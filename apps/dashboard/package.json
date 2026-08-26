@@ -32,6 +32,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate": "tsx scripts/migrate.ts",
+    "db:migrate:local": "tsx --env-file=../../.env.local scripts/migrate.ts",
     "export:registry": "tsx scripts/export-registry.ts"
   }
 }
