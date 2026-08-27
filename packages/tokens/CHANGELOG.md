@@ -1,6 +1,6 @@
 # @zevaui/tokens
 
-## 0.2.0
+## 0.2.0 (2026-08-22)
 
 ### Minor Changes
 
@@ -11,7 +11,7 @@
   - `@zevaui/components` — six core React components (Button, Input, Card, Alert, Dialog, Menu) that consume tokens exclusively through CSS custom properties.
   - `@zevaui/mcp` — an MCP server exposing `validate_theme`, so agents and theme editors can reject rule-breaking themes before saving them.
 
-## 0.1.0
+## 0.1.0 (2026-08-21)
 
 ### Minor Changes
 

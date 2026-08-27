@@ -1,6 +1,6 @@
 # @zevaui/mcp
 
-## 0.2.0
+## 0.2.0 (2026-08-22)
 
 ### Minor Changes
 
@@ -17,7 +17,7 @@
   - @zevaui/tokens@0.2.0
   - @zevaui/constraints@0.2.0
 
-## 0.1.0
+## 0.1.0 (2026-08-21)
 
 ### Minor Changes
 
