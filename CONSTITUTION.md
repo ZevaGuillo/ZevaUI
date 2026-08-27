@@ -1,8 +1,11 @@
 # Project Constitution — `design-system`
 
-> English translation of [CONSTITUCION.md](./CONSTITUCION.md). The Spanish
-> original is canonical: if the two ever diverge, the Spanish text governs.
-> Translated as of v0.2 (2026-08-27).
+> This is the canonical constitution of the project. It was originally
+> authored in Spanish (`CONSTITUCION.md`, v0.2, 2026-08-16); the English
+> text became the single canonical version on 2026-08-27 and the Spanish
+> original was retired — it remains available in git history. ADRs 0001–0020
+> predate the transition and reference the constitution in Spanish prose;
+> their file pointers were updated to this document.
 
 | Field | Value |
 |---|---|

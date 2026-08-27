@@ -6,7 +6,7 @@
 | Fecha | 2026-08-26 |
 | Autor | Guillermo Zevallos |
 | Decisores | Pendiente — se decidirá al programar la implementación |
-| Relacionado | `O6`, `RF-17`, `RNF-08`, §4 Límites de `CONSTITUCION.md`; `ADR-0010` (pares no textuales); `ADR-0003` (MCP `validate_theme`); `ADR-0020` (`propose_theme` como seed); `packages/constraints`, `packages/tokens`, `packages/components` |
+| Relacionado | `O6`, `RF-17`, `RNF-08`, §4 Límites de `CONSTITUTION.md`; `ADR-0010` (pares no textuales); `ADR-0003` (MCP `validate_theme`); `ADR-0020` (`propose_theme` como seed); `packages/constraints`, `packages/tokens`, `packages/components` |
 
 > Este ADR registra una propuesta de evolución con su análisis de viabilidad.
 > Nada de lo descrito está construido.

@@ -6,7 +6,7 @@
 | Fecha | 2026-08-16 |
 | Autor | Guillermo Zevallos |
 | Decisores | Guillermo Zevallos |
-| Relacionado | `ADR-0001` (D3, D5); `ADR-0004` (D1, D4, D5, D7); `@zevaui/constraints`; `CONSTITUCION.md` — RF-05, RF-07, RNF-01 |
+| Relacionado | `ADR-0001` (D3, D5); `ADR-0004` (D1, D4, D5, D7); `@zevaui/constraints`; `CONSTITUTION.md` — RF-05, RF-07, RNF-01 |
 
 ## Contexto
 

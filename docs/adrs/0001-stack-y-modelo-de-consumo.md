@@ -6,7 +6,7 @@
 | Fecha | 2026-08-16 |
 | Autor | Guillermo Zevallos |
 | Decisores | Guillermo Zevallos |
-| Relacionado | `CONSTITUCION.md` v0.2 — principios 1, 3, 4, 5, 6 |
+| Relacionado | `CONSTITUTION.md` v0.2 — principios 1, 3, 4, 5, 6 |
 
 ## Contexto
 
