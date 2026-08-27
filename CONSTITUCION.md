@@ -1,5 +1,9 @@
 # Constitución del Proyecto — `design-system`
 
+> Este documento es la fuente canónica. Existe una traducción al inglés en
+> [CONSTITUTION.md](./CONSTITUTION.md); si alguna vez divergen, gobierna este
+> texto en español.
+
 | Campo | Valor |
 |---|---|
 | Nombre | `design-system` |
