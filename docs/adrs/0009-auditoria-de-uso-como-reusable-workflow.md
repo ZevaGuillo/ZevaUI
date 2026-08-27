@@ -96,8 +96,12 @@ Dialog`.
 
 Por eso `WORKFLOW_DS_CHECKOUT_DIR` en `walk-source-tree.js` y el `path:` del
 segundo checkout tienen que ser idénticos. Cambiar uno sin el otro suma
-nuestros componentes al reporte de cada consumidor, en silencio. Está cubierto
-por test unitario.
+nuestros componentes al reporte de cada consumidor, en silencio. La poda está
+cubierta por test unitario, y desde el 2026-08-26 la identidad misma también:
+`checkout-dir-contract.test.ts` importa la constante real y la compara contra
+el texto del YAML (el `path:` del checkout, cada invocación de script y
+cualquier otra grafía del directorio en una directiva), así el desajuste falla
+en nuestro CI y no en el reporte de un consumidor.
 
 ### D5. Techo del parser, declarado y asertado ausente (RF-UAW05)
 
