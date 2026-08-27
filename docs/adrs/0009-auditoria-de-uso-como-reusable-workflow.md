@@ -111,12 +111,19 @@ la etapa 2 ubica los `import` reales en el texto saneado.
 
 Fuera de alcance en esta versión, y **asertado ausente** en el fixture, no
 funcionando por accidente: import de namespace, `import()` dinámico, import
-type-only, subpaths más allá de los tres exports declarados, y **re-exports de
-barril** (`export { Button } from "@zevaui/components"`).
+type-only, y subpaths más allá de los tres exports declarados. Los tres
+primeros comparten la misma razón: no llevan ningún NOMBRE de componente
+extraíble estáticamente, así que detectarlos solo agregaría ruido a nivel de
+specifier sin mover `components[]`.
 
-El re-export se suma a la lista en este ADR: no estaba en los tres huecos que
-`ceiling.tsx` documenta y lo encontró la lente de fiabilidad del review. Es un
-patrón común y hoy contribuye cero.
+El **re-export de barril** (`export { Button } from "@zevaui/components"`)
+salió de esa lista el 2026-08-26. Lo encontró la lente de fiabilidad del
+review como el hueco con costo real: sí lleva nombres, es un patrón común, y
+mientras estuvo asertado ausente subcontaba adopción. La etapa 2 ahora ancla
+en `import|export` y `export { … } from` extrae nombres con la misma regla de
+alias que un import (`export * from` queda a nivel de specifier — como el
+namespace, no hay nombres que leer). El fixture invirtió su tripwire: `Menu`
+llega al reporte esperado únicamente a través del re-export de `ceiling.tsx`.
 
 La heurística regex-vs-división es deliberadamente asimétrica: ante la duda
 elige división. Blanquear código real borra un import genuino y el audit

@@ -2,8 +2,11 @@
 // comments/strings/template literals/regex literals in place,
 // offset-preserving, so a decoy import hidden inside one is structurally
 // gone before stage 2 looks. Stage 2 (scanSource) locates genuine `import`
-// keywords in the sanitized text and re-parses each declaration from the
-// ORIGINAL source at that offset — the specifier string is real code there.
+// and `export` keywords in the sanitized text and re-parses each declaration
+// from the ORIGINAL source at that offset — the specifier string is real
+// code there. `export ... from` counts because a consumer whose components
+// flow through its own barrel uses them exactly as much as one that imports
+// them; asserting it absent undercounted real adoption (ADR-0009 D5).
 //
 // Specifier match is exact equality, never a prefix: `@zevaui/components`
 // exposes `./styles.css`/`./components.manifest.json` as real subpath
@@ -316,42 +319,38 @@ const IMPORT_DECLARATION =
  * @returns {ScannedImport | null}
  */
 function parseImportDeclaration(source, sanitized, start) {
-  const window = source.slice(start, start + 4000);
-  const afterImport = window.slice("import".length);
+  const afterImport = source.slice(start, start + 4000).slice("import".length);
 
   const sideEffect = /^\s*(["'])([^"']*)\1/.exec(afterImport);
   if (sideEffect) return { specifier: sideEffect[2], names: [] };
 
-  const typeOnly = /^\s+type\s/.exec(afterImport);
-  const rest = afterImport.slice(typeOnly ? typeOnly[0].length : 0);
-  const restOffset = start + "import".length + (typeOnly ? typeOnly[0].length : 0);
-  if (rest.trimStart().startsWith("(")) return null; // dynamic import(), not a declaration
+  return parseFromClause(sanitized, afterImport, start + "import".length, IMPORT_DECLARATION, {
+    // dynamic import(), not a declaration — bail before the clause even runs
+    rejectRest: (rest) => rest.trimStart().startsWith("("),
+    flagTripwire: "IMPORT_DECLARATION lost its `d` flag; named-list offsets are gone",
+  });
+}
 
-  const declaration = IMPORT_DECLARATION.exec(rest);
-  if (!declaration) return null;
-
-  const specifier = declaration[3];
-  if (typeOnly) return { specifier, names: [] }; // RF-UAW05: whole import is type-only
-
-  if (declaration.indices === undefined) {
-    // Impossible while IMPORT_DECLARATION carries its `d` flag — indices is
-    // what that flag produces. A guard that quietly fell back would classify
-    // every named import as default-shaped and silently undercount, so this
-    // tripwire is loud on purpose: it fires only if someone drops the flag.
-    throw new Error("IMPORT_DECLARATION lost its `d` flag; named-list offsets are gone");
-  }
-  const namedListRange = declaration.indices[1];
-  if (namedListRange === undefined) return { specifier, names: [] }; // default or namespace
-
-  // Read the list back out of the SANITIZED text at the very same offsets.
-  // Stage 1 preserves offsets precisely so this is possible, and this is the
-  // one place it has to be used: a comment inside the list is already blanked
-  // there, whereas in the ORIGINAL it rides in the same comma-separated chunk
-  // as the name that follows it and drags that name out of the report. The
-  // specifier still comes from the original, because stage 1 blanks the
-  // quotes too and there is nothing left to read there.
-  const names = sanitized
-    .slice(restOffset + namedListRange[0], restOffset + namedListRange[1])
+// Reads a `{ ... }` named list back out of the SANITIZED text at the very
+// same offsets. Stage 1 preserves offsets precisely so this is possible, and
+// this is the one place it has to be used: a comment inside the list is
+// already blanked there, whereas in the ORIGINAL it rides in the same
+// comma-separated chunk as the name that follows it and drags that name out
+// of the report. The specifier still comes from the original, because stage 1
+// blanks the quotes too and there is nothing left to read there.
+//
+// The alias rule reads the FIRST identifier: in `import { Button as Btn }`
+// and `export { Button as FancyButton } from ...` alike, the DS-exported
+// name is the one before `as` — the local binding is the consumer's business.
+/**
+ * @param {string} sanitized
+ * @param {number} from
+ * @param {number} to
+ * @returns {string[]}
+ */
+function namesFromList(sanitized, from, to) {
+  return sanitized
+    .slice(from, to)
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0 && !/^type\s/.test(entry))
@@ -360,8 +359,72 @@ function parseImportDeclaration(source, sanitized, start) {
       return alias ? alias[1] : entry;
     })
     .filter((name) => /^[A-Za-z_$][\w$]*$/.test(name));
+}
 
-  return { specifier, names };
+// The re-export clause, anchored at the `export` keyword: `{ ... } from` or
+// `* [as ns] from`, then the specifier. Same shape discipline as
+// IMPORT_DECLARATION — the clause itself delimits the declaration, so
+// `export const`/`export default`/a local `export { X }` with no `from` all
+// fail at the clause and never reach a later declaration's specifier. The
+// `d` flag serves the same offset re-read as in imports.
+const RE_EXPORT_DECLARATION =
+  /^\s*(?:\{([^}]*)\}\s*|\*\s*(?:as\s+[A-Za-z_$][\w$]*\s*)?)from\s*(["'])([^"']*)\2/d;
+
+/**
+ * @param {string} source
+ * @param {string} sanitized
+ * @param {number} start
+ * @returns {ScannedImport | null}
+ */
+function parseReExportDeclaration(source, sanitized, start) {
+  const afterExport = source.slice(start, start + 4000).slice("export".length);
+  return parseFromClause(sanitized, afterExport, start + "export".length, RE_EXPORT_DECLARATION, {
+    flagTripwire: "RE_EXPORT_DECLARATION lost its `d` flag; named-list offsets are gone",
+  });
+}
+
+// The shared tail of both declaration parsers, from the optional leading
+// `type` modifier through the clause match to the named-list re-read. Both
+// clause regexes agree by construction: group 1 is the named list, group 3
+// the specifier, and both carry the `d` flag whose indices let the list be
+// re-read from the SANITIZED text at the same offsets. A type-only
+// declaration keeps its specifier and drops every name (RF-UAW05: type-only
+// carries no runtime usage); a clause with no named list (namespace, star,
+// default) reports the specifier alone.
+/**
+ * @param {string} sanitized
+ * @param {string} afterKeyword the 4000-char window minus its keyword
+ * @param {number} keywordEnd absolute offset just past the keyword
+ * @param {RegExp} clause
+ * @param {{ rejectRest?: (rest: string) => boolean, flagTripwire: string }} options
+ * @returns {ScannedImport | null}
+ */
+function parseFromClause(sanitized, afterKeyword, keywordEnd, clause, options) {
+  const typeOnly = /^\s+type\s/.exec(afterKeyword);
+  const rest = afterKeyword.slice(typeOnly ? typeOnly[0].length : 0);
+  const restOffset = keywordEnd + (typeOnly ? typeOnly[0].length : 0);
+  if (options.rejectRest?.(rest)) return null;
+
+  const declaration = clause.exec(rest);
+  if (!declaration) return null;
+
+  const specifier = declaration[3];
+  if (typeOnly) return { specifier, names: [] };
+
+  if (declaration.indices === undefined) {
+    // Impossible while the clause carries its `d` flag — indices is what
+    // that flag produces. A guard that quietly fell back would classify
+    // every named list as absent and silently undercount, so this tripwire
+    // is loud on purpose: it fires only if someone drops the flag.
+    throw new Error(options.flagTripwire);
+  }
+  const namedListRange = declaration.indices[1];
+  if (namedListRange === undefined) return { specifier, names: [] };
+
+  return {
+    specifier,
+    names: namesFromList(sanitized, restOffset + namedListRange[0], restOffset + namedListRange[1]),
+  };
 }
 
 /**
@@ -370,13 +433,16 @@ function parseImportDeclaration(source, sanitized, start) {
  */
 export function scanSource(source) {
   const sanitized = blankSource(source);
-  const importKeyword = /\bimport\b/g;
+  const declarationKeyword = /\b(import|export)\b/g;
   const results = [];
-  let match = importKeyword.exec(sanitized);
+  let match = declarationKeyword.exec(sanitized);
   while (match) {
-    const parsed = parseImportDeclaration(source, sanitized, match.index);
+    const parsed =
+      match[1] === "import"
+        ? parseImportDeclaration(source, sanitized, match.index)
+        : parseReExportDeclaration(source, sanitized, match.index);
     if (parsed && TRACKED_SPECIFIERS.has(parsed.specifier)) results.push(parsed);
-    match = importKeyword.exec(sanitized);
+    match = declarationKeyword.exec(sanitized);
   }
   return results;
 }
