@@ -7,7 +7,7 @@ import { createPublicKey, verify as cryptoVerify, type JsonWebKey } from "node:c
 
 export const ISSUER = "https://token.actions.githubusercontent.com";
 export const JWKS_URI = `${ISSUER}/.well-known/jwks`;
-const CLOCK_SKEW_SECONDS = 60;
+export const CLOCK_SKEW_SECONDS = 60;
 
 export type JwksKey = JsonWebKey & { readonly kid?: string };
 

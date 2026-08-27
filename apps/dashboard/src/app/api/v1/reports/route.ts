@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { JWKS_URI, type JwksKey } from "../../../../auth/oidc";
+import { CLOCK_SKEW_SECONDS, JWKS_URI, type JwksKey } from "../../../../auth/oidc";
 import { getDb } from "../../../../db/client";
 import {
   allLatestReportsQuery,
   insertSubmissionQuery,
   latestGeneratedAtQuery,
+  pruneExpiredJtiQuery,
   recentSubmissionCountQuery,
 } from "../../../../db/queries";
 import { oidcJti } from "../../../../db/schema";
@@ -29,8 +30,13 @@ async function loadJwks(): Promise<{ keys?: JwksKey[] }> {
 }
 
 // D1 replay guard: an atomic insert-or-detect-conflict on the jti primary key.
+// Every authenticated submission also prunes rows past the verifier's skew
+// window, so the table's steady-state size is bounded by one traffic window
+// and needs no external cron owner.
 async function checkAndRecordReplay(jti: string, expiresAt: Date): Promise<boolean> {
-  const inserted = await getDb()
+  const db = getDb();
+  await pruneExpiredJtiQuery(db, new Date(Date.now() - CLOCK_SKEW_SECONDS * 1000));
+  const inserted = await db
     .insert(oidcJti)
     .values({ jti, expiresAt })
     .onConflictDoNothing({ target: oidcJti.jti })

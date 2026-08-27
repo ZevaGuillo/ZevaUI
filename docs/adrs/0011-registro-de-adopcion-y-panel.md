@@ -450,8 +450,12 @@ a deprecarse para preservar un estilo de import que a esta app nunca le aplicó.
   implementación `undici` de Node no aplica las restricciones de headers
   prohibidos del spec Fetch, así que un `Request` real puede llevar un
   `content-length` deliberadamente inconsistente.
-- **Sin poda de `oidc_jti`.** La tabla de replay crece sin límite; las filas
-  vencidas no se borran. No es urgente al volumen esperado, pero no tiene dueño.
+- ~~**Sin poda de `oidc_jti`.**~~ **Cerrado el 2026-08-26.** La poda ahora tiene
+  dueño: el propio camino de ingesta. Cada envío autenticado borra las filas con
+  `expires_at` anterior a `ahora − skew` (60 s, el mismo margen que tolera el
+  verificador) antes de registrar su `jti`, así el tamaño estable de la tabla
+  queda acotado por una ventana de tráfico sin cron externo. Query
+  `pruneExpiredJtiQuery` con su test de forma SQL en `queries.test.ts`.
 - ~~**Nada corrió jamás contra una base real.**~~ **Cerrado el 2026-08-25.**
   Ver `D11`: el esquema se aplicó a una base Postgres real y las cinco query
   builders se ejecutaron contra ella. Lo que sigue abierto no es la capa de

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   allLatestReportsQuery,
   latestGeneratedAtQuery,
+  pruneExpiredJtiQuery,
   recentSubmissionCountQuery,
   reportsForRepoQuery,
 } from "../src/db/queries";
@@ -39,6 +40,16 @@ describe("reportsForRepoQuery (D4: GET /api/v1/reports/{owner}/{repo}, task 4.0)
     expect(sql).toContain('"report_latest"."repository" = $1');
     expect(sql).toContain('order by "report_latest"."app_label" asc');
     expect(params).toEqual(["acme/web"]);
+  });
+});
+
+describe("pruneExpiredJtiQuery (D1 replay guard upkeep)", () => {
+  it("deletes oidc_jti rows whose expires_at is before the cutoff", () => {
+    const cutoff = new Date("2026-01-01T00:00:00.000Z");
+    const { sql, params } = pruneExpiredJtiQuery(db, cutoff).toSQL();
+    expect(sql).toContain('delete from "oidc_jti"');
+    expect(sql).toContain('"oidc_jti"."expires_at" < $1');
+    expect(params).toEqual([cutoff.toISOString()]);
   });
 });
 

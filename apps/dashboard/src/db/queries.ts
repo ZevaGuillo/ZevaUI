@@ -1,9 +1,9 @@
 // D4 query builders, injectable (callers pass `db`) so the SQL shape is
 // unit-testable over a lazy `pg` Pool -- no live Postgres needed for tests.
-import { and, asc, count, eq, gt } from "drizzle-orm";
+import { and, asc, count, eq, gt, lt } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { NewSubmission } from "./schema";
-import { reportLatest, submissions } from "./schema";
+import { oidcJti, reportLatest, submissions } from "./schema";
 
 // GET /api/v1/reports -- all latest rows, stably ordered. Also the export
 // script's data source.
@@ -44,4 +44,13 @@ export function recentSubmissionCountQuery(db: NodePgDatabase, repositoryId: num
 // D3 append-only insert -- never UPDATE/DELETE.
 export function insertSubmissionQuery(db: NodePgDatabase, values: NewSubmission) {
   return db.insert(submissions).values(values);
+}
+
+// D1 replay-guard upkeep: drop jti rows no verifier can accept anymore. The
+// append-only rule (D3) covers `submissions`; `oidc_jti` was always designed
+// to be pruned by its own `expires_at`. Callers pass a cutoff already backed
+// off by the verifier's clock skew, so a jti is only deleted once its token
+// would be rejected as expired anyway.
+export function pruneExpiredJtiQuery(db: NodePgDatabase, cutoff: Date) {
+  return db.delete(oidcJti).where(lt(oidcJti.expiresAt, cutoff));
 }
