@@ -200,24 +200,70 @@ describe("scanSource", () => {
     ]);
   });
 
-  // RF-UAW05's bar is "asserted absent", not "structurally argued absent".
-  // The scanner only ever anchors on the `import` keyword, so `export ... from`
-  // cannot match today — and these tests are the tripwire that notices the day
-  // that stops being true, so the ceiling can be re-documented instead of
-  // silently shifting under consumers pinned to a moving `ds-ref`.
-  it("does not detect a barrel re-export", () => {
-    expect(scanSource('export { Button } from "@zevaui/components";')).toEqual([]);
+  // Barrel re-exports moved from the RF-UAW05 ceiling into scope: a consumer
+  // whose components flow through its own barrel (`export { Button } from
+  // "@zevaui/components"`) uses those components exactly as much as one that
+  // imports them, and the old tripwires asserting absence undercounted real
+  // adoption (the gap ADR-0009 D5 records the reliability lens finding).
+  it("detects a barrel re-export's names like an import's", () => {
+    expect(scanSource('export { Button } from "@zevaui/components";')).toEqual([
+      { specifier: "@zevaui/components", names: ["Button"] },
+    ]);
   });
 
-  it("does not detect a star re-export, with or without a semicolon", () => {
+  it("reports an aliased re-export under its real (DS-exported) name", () => {
+    expect(scanSource('export { Button as FancyButton } from "@zevaui/components";')).toEqual([
+      { specifier: "@zevaui/components", names: ["Button"] },
+    ]);
+  });
+
+  it("strips an inline `type` modifier in a re-export list, keeps the value sibling", () => {
+    const source = 'export { type ButtonProps, Button } from "@zevaui/components";';
+    expect(scanSource(source)).toEqual([{ specifier: "@zevaui/components", names: ["Button"] }]);
+  });
+
+  it("drops a whole `export type { ... }` re-export's names entirely", () => {
+    const source = 'export type { ButtonProps } from "@zevaui/components";';
+    expect(scanSource(source)).toEqual([{ specifier: "@zevaui/components", names: [] }]);
+  });
+
+  it("records a star re-export at specifier level only, with or without a semicolon", () => {
     const source = 'export * from "@zevaui/components";\nexport * from "@zevaui/tokens"\n';
+    expect(scanSource(source)).toEqual([
+      { specifier: "@zevaui/components", names: [] },
+      { specifier: "@zevaui/tokens", names: [] },
+    ]);
+  });
+
+  it("records a namespace star re-export at specifier level only", () => {
+    expect(scanSource('export * as Zui from "@zevaui/components";')).toEqual([
+      { specifier: "@zevaui/components", names: [] },
+    ]);
+  });
+
+  it("does not detect a local export with no from clause", () => {
+    const source = "export { Button }\nexport const x = 1\nexport default Button\n";
     expect(scanSource(source)).toEqual([]);
   });
 
-  it("still finds a real import that follows a barrel re-export", () => {
+  it("ignores a re-export from an unrelated package", () => {
+    expect(scanSource('export { Button } from "some-unrelated-package";')).toEqual([]);
+  });
+
+  it("finds both a re-export and an import in the same file", () => {
     const source =
       'export { Menu } from "@zevaui/components";\nimport { Button } from "@zevaui/components";';
-    expect(scanSource(source)).toEqual([{ specifier: "@zevaui/components", names: ["Button"] }]);
+    expect(scanSource(source)).toEqual([
+      { specifier: "@zevaui/components", names: ["Menu"] },
+      { specifier: "@zevaui/components", names: ["Button"] },
+    ]);
+  });
+
+  it("ignores a re-export commented out or inside a string literal", () => {
+    const source =
+      '// export { Ghost } from "@zevaui/components";\n' +
+      "const s = 'export { Ghost } from \"@zevaui/components\";';";
+    expect(scanSource(source)).toEqual([]);
   });
 
   it("exposes the tracked specifier set for reuse", () => {

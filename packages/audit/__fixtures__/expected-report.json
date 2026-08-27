@@ -2,6 +2,14 @@
   "app": "zevaui-fixture-consumer",
   "dsVersion": "^1.2.0",
   "dsVersionSource": "declared",
-  "components": ["Alert", "Badge", "Button", "Card", "Dialog", "Tooltip"],
+  "components": [
+    "Alert",
+    "Badge",
+    "Button",
+    "Card",
+    "Dialog",
+    "Menu",
+    "Tooltip"
+  ],
   "generatedAt": "2026-01-01T00:00:00.000Z"
 }
