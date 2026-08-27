@@ -6,13 +6,21 @@
 // `#` package heading, `##` version headings, and `###` change-type
 // subheadings with top-level `- ` bullets underneath.
 
-const VERSION_HEADING = /^##\s+(\S+)\s*$/;
+// The optional `(YYYY-MM-DD)` suffix is the one admitted date shape
+// (ADR-0019: without committed dates there is nothing to derive time-based
+// metrics from). Anything else after the version still drops the section,
+// same as before -- this parser admits exactly what it documents.
+const VERSION_HEADING = /^##\s+(\S+)(?:\s+\((\d{4}-\d{2}-\d{2})\))?\s*$/;
 const CHANGE_TYPE_HEADING = /^###\s+(Major|Minor|Patch)\s+Changes\s*$/i;
 const TOP_LEVEL_BULLET = /^-\s+(.*)$/;
 const COMMIT_HASH_PREFIX = /^[0-9a-f]{7,40}:\s*/i;
 
 export type ChangelogChange = { readonly type: string; readonly text: string };
-export type ChangelogRelease = { readonly version: string; readonly changes: ChangelogChange[] };
+export type ChangelogRelease = {
+  readonly version: string;
+  readonly date?: string;
+  readonly changes: ChangelogChange[];
+};
 export type ParsedChangelog = { readonly package: string; readonly releases: ChangelogRelease[] };
 
 export function parseChangelog(markdown: string, packageName: string): ParsedChangelog {
@@ -23,7 +31,11 @@ export function parseChangelog(markdown: string, packageName: string): ParsedCha
   for (const line of markdown.split("\n")) {
     const versionMatch = VERSION_HEADING.exec(line);
     if (versionMatch) {
-      currentRelease = { version: versionMatch[1], changes: [] };
+      currentRelease = {
+        version: versionMatch[1],
+        ...(versionMatch[2] ? { date: versionMatch[2] } : {}),
+        changes: [],
+      };
       releases.push(currentRelease);
       currentType = null;
       continue;

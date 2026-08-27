@@ -64,4 +64,26 @@ describe("parseChangelog (RF-AP02: release log derived from committed CHANGELOG.
       releases: [],
     });
   });
+
+  it("captures a release date from a `## version (YYYY-MM-DD)` heading", () => {
+    // ADR-0019's central gap: without dates in the committed changelogs there
+    // is nothing to derive time-based adoption metrics from. The date rides
+    // in the version heading, in the one shape this parser admits.
+    const dated =
+      "# @zevaui/tokens\n\n## 0.2.0 (2026-08-22)\n\n### Minor Changes\n\n- abc1234: Initial public release.\n";
+    const result = parseChangelog(dated, "@zevaui/tokens");
+    expect(result.releases).toEqual([
+      {
+        version: "0.2.0",
+        date: "2026-08-22",
+        changes: [{ type: "minor", text: "Initial public release." }],
+      },
+    ]);
+  });
+
+  it("leaves date undefined for a bare `## version` heading", () => {
+    const result = parseChangelog(SAMPLE, "@zevaui/components");
+    expect(result.releases[0].version).toBe("0.2.0");
+    expect(result.releases[0].date).toBeUndefined();
+  });
 });
