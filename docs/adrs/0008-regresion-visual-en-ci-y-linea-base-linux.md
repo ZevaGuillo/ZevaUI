@@ -6,7 +6,7 @@
 | Fecha | 2026-08-18 |
 | Autor | Guillermo Zevallos |
 | Decisores | Guillermo Zevallos |
-| Relacionado | `ADR-0004` (D7, el mismo arnés Chromium; la puerta de accesibilidad y su fixture negativo); `ADR-0005` (D1 scrim, movimiento reducido); `ADR-0006` (D3, huecos registrados); `ADR-0007`; `CONSTITUCION.md` — RF-18, Principio 2 |
+| Relacionado | `ADR-0004` (D7, el mismo arnés Chromium; la puerta de accesibilidad y su fixture negativo); `ADR-0005` (D1 scrim, movimiento reducido); `ADR-0006` (D3, huecos registrados); `ADR-0007`; `CONSTITUTION.md` — RF-18, Principio 2 |
 
 ## Contexto
 

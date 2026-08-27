@@ -7,7 +7,7 @@
 | Actualizada | 2026-08-25 — `D11` (runner de migraciones), `D12` (build de despliegue), `D13` (permisos del reusable workflow); se cierran los pendientes "nada corrió jamás contra una base real" y "no verificado contra Vercel" |
 | Autor | Guillermo Zevallos |
 | Decisores | Guillermo Zevallos |
-| Relacionado | `ADR-0009` (auditoría de uso como reusable workflow); `RF-12`, `RF-13`; `apps/dashboard`; `packages/audit`; `CONSTITUCION.md` |
+| Relacionado | `ADR-0009` (auditoría de uso como reusable workflow); `RF-12`, `RF-13`; `apps/dashboard`; `packages/audit`; `CONSTITUTION.md` |
 
 ## Contexto
 

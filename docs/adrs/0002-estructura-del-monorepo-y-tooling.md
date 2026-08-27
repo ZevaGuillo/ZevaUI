@@ -6,7 +6,7 @@
 | Fecha | 2026-08-16 |
 | Autor | Guillermo Zevallos |
 | Decisores | Guillermo Zevallos |
-| Relacionado | `CONSTITUCION.md` v0.2 (RF-05 a RF-13); `ADR-0001` (D4, D6, D8) |
+| Relacionado | `CONSTITUTION.md` v0.2 (RF-05 a RF-13); `ADR-0001` (D4, D6, D8) |
 
 ## Contexto
 
@@ -41,7 +41,7 @@ design-system/
 ├── turbo.json
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
-├── CONSTITUCION.md
+├── CONSTITUTION.md
 └── README.md
 ```
 

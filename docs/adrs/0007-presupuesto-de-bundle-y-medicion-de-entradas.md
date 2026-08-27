@@ -6,7 +6,7 @@
 | Fecha | 2026-08-17 |
 | Autor | Guillermo Zevallos |
 | Decisores | Guillermo Zevallos |
-| Relacionado | `ADR-0001` (D3, split cliente/servidor); `ADR-0004` (D4 "derivar, nunca listar a mano"; G5/G6); `ADR-0006`; `CONSTITUCION.md` — RNF-02, RNF-05, Principio 2, Principio 4 |
+| Relacionado | `ADR-0001` (D3, split cliente/servidor); `ADR-0004` (D4 "derivar, nunca listar a mano"; G5/G6); `ADR-0006`; `CONSTITUTION.md` — RNF-02, RNF-05, Principio 2, Principio 4 |
 
 ## Contexto
 

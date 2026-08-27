@@ -25,5 +25,5 @@ pnpm typecheck
 
 ## Governance
 
-- [CONSTITUTION.md](./CONSTITUTION.md) — English translation ([Spanish original](./CONSTITUCION.md) is canonical)
+- [CONSTITUTION.md](./CONSTITUTION.md) — the project constitution (canonical)
 - [ADR index (English)](./docs/adrs/README.md) — every decision summarized; ADRs 0001–0020 are in Spanish, new ADRs are written in English

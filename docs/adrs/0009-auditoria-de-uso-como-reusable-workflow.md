@@ -6,7 +6,7 @@
 | Fecha | 2026-08-20 |
 | Autor | Guillermo Zevallos |
 | Decisores | Guillermo Zevallos |
-| Relacionado | `ADR-0002` (D6, que ya comprometió `uses: zevaui/design-system/.github/workflows/audit-ds-usage.yml@v1`); `ADR-0007` (precedente de puerta con fixture negativo); `CONSTITUCION.md` — RF-11, §6.4 Mecanismo A |
+| Relacionado | `ADR-0002` (D6, que ya comprometió `uses: zevaui/design-system/.github/workflows/audit-ds-usage.yml@v1`); `ADR-0007` (precedente de puerta con fixture negativo); `CONSTITUTION.md` — RF-11, §6.4 Mecanismo A |
 
 ## Contexto
 

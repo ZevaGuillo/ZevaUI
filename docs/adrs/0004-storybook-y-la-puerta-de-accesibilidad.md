@@ -20,7 +20,7 @@ Panda internamente y por qué (la decisión ya tomada en slices previas,
 pendiente de registrar con evidencia medida), cómo Storybook resuelve
 `@zevaui/components` sin reintroducir el acoplamiento a `src` que el propio
 paquete ya cerró en su build, cómo convertir "la accesibilidad es un
-requisito funcional" (CONSTITUCION.md, principio 3) en una puerta que de
+requisito funcional" (CONSTITUTION.md, principio 3) en una puerta que de
 verdad puede fallar un build en vez de en una casilla de buenas intenciones,
 y qué costo real tiene esa puerta.
 

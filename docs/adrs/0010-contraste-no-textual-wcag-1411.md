@@ -6,7 +6,7 @@
 | Fecha | 2026-08-22 |
 | Autor | Guillermo Zevallos |
 | Decisores | Guillermo Zevallos |
-| Relacionado | `ADR-0004` (D7, caveat de axe); `ADR-0005` (D2, Seguimiento); `ADR-0006` (D2, D3, Seguimiento); `@zevaui/constraints`; `CONSTITUCION.md` — RNF-01 |
+| Relacionado | `ADR-0004` (D7, caveat de axe); `ADR-0005` (D2, Seguimiento); `ADR-0006` (D2, D3, Seguimiento); `@zevaui/constraints`; `CONSTITUTION.md` — RNF-01 |
 
 ## Contexto
 
