@@ -37,6 +37,13 @@ jobs:
       # publish, not an optimization. Correctness is already gated by ci.yml on
       # the PRs that reached main — this step only materializes dist/.
       - run: pnpm turbo run build
+      # npm resolves OIDC trusted publishing — the flow that exchanges this
+      # job's id-token for a short-lived registry credential — only from
+      # 11.5.1 onward. Node 22 bundles npm 10.x, which skips OIDC entirely and
+      # falls back to NPM_TOKEN; against an account that requires 2FA the
+      # registry then answers EOTP and nothing publishes. Pinning the major
+      # keeps that resolution available without tracking npm's tip.
+      - run: npm install -g npm@^11.5.1
       # One action, two modes: with pending changesets it maintains the Version
       # Packages PR; with none it publishes every public package whose version
       # is not yet on npm and pushes one git tag per published package.
