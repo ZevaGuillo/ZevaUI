@@ -41,9 +41,9 @@ jobs:
       # job's id-token for a short-lived registry credential — only from
       # 11.5.1 onward. Node 22 bundles npm 10.x, which skips OIDC entirely and
       # falls back to NPM_TOKEN; against an account that requires 2FA the
-      # registry then answers EOTP and nothing publishes. The version is
-      # pinned exactly, like every other third-party artifact this job pulls.
-      - run: npm install -g npm@11.19.1
+      # registry then answers EOTP and nothing publishes. Version-pinned and
+      # script-free, matching how this job treats every other install.
+      - run: npm install -g npm@11.19.1 --ignore-scripts
       # One action, two modes: with pending changesets it maintains the Version
       # Packages PR; with none it publishes every public package whose version
       # is not yet on npm and pushes one git tag per published package.
