@@ -39,10 +39,13 @@ jobs:
       - run: pnpm turbo run build
       # npm resolves OIDC trusted publishing — the flow that exchanges this
       # job's id-token for a short-lived registry credential — only from
-      # 11.5.1 onward. Node 22 bundles npm 10.x, which skips OIDC entirely and
-      # falls back to NPM_TOKEN; against an account that requires 2FA the
-      # registry then answers EOTP and nothing publishes. Version-pinned and
-      # script-free, matching how this job treats every other install.
+      # 11.5.1 onward. Node 22 bundles npm 10.x, which skips OIDC entirely, so
+      # this upgrade is what makes the publish below work at all. The version
+      # is pinned exactly, like every other third-party artifact this job
+      # pulls. --ignore-scripts is belt-and-braces, not a behaviour change:
+      # `npm view npm@11.19.1 scripts` declares no install/prepare hook, only a
+      # prepack that runs when the tarball is built, and bin shims come from
+      # the declared bin map rather than a script. Verified before adding.
       - run: npm install -g npm@11.19.1 --ignore-scripts
       # One action, two modes: with pending changesets it maintains the Version
       # Packages PR; with none it publishes every public package whose version
