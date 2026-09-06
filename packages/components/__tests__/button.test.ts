@@ -237,7 +237,9 @@ describe("Button icon slots", () => {
     const ratios: Record<string, string> = { sm: "0.375", md: "0.5", lg: "0.75" };
     for (const size of Object.keys(buttonRecipe.variants.size)) {
       const body = ruleBody(css, variantClassName(buttonRecipe.className, "size", size));
-      const emitted = /gap:\s*([^;]+)/.exec(body)?.[1]?.trim() ?? "";
+      // `subject.match(pattern)`, not the other spelling: identical for a non-global regex, and
+      // `G12` in test-hygiene-gates.test.ts explains why the spelling is not free here.
+      const emitted = body.match(/gap:\s*([^;]+)/)?.[1]?.trim() ?? "";
       expect({ [size]: emitted }).toEqual({
         [size]: `calc(var(--zuip-spacing-button-px) * ${ratios[size]})`,
       });

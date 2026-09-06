@@ -1,35 +1,31 @@
 // The one place a per-component test reads the emitted stylesheet from disk.
 //
-// WHY THIS MODULE EXISTS, and it is not tidiness. Every component test used to import `node:fs`,
-// `node:path` and `node:url` itself, purely to read `dist/styles.css`. Those imports trip the
-// review risk classifier's `process_boundary` / `shell_process` signal, so any change to a
-// component's own test file was classified `high` and drew the full four-lens review — three
-// consecutive times on this repository (#70, #74, #76), and the risk lens ruled it a false positive
-// every time, because nothing here starts a process.
+// WHY THIS MODULE EXISTS — DE-DUPLICATION, and the honest version of that claim.
 //
-// WHAT WAS ACTUALLY MEASURED, stated without guessing at the classifier's internals:
-//   * A candidate touching only `src/button/Button.tsx` classifies `medium`, one consolidated lens.
-//   * The same candidate plus an edit to `button.test.ts` classifies `high`, four lenses, and the
-//     signal names that path specifically.
-//   * The signal is attributed PER CHANGED PATH, not per package.
-// One thing this module's own commit demonstrates, and it is worth knowing before trusting the fix:
-// the candidate that DELETED these imports from `button.test.ts` still classified `high` and still
-// named that path, even though the resulting file contains no `node:` import at all. So the signal
-// is not read purely from the candidate-side file content. Whether it reads the diff, the base
-// side, or a union of both is not something this comment claims to know.
+// Five component tests each carried their own copy of the same `packageRoot` computation and the
+// same `readFileSync(join(packageRoot, "dist", "styles.css"), "utf8")`, and `button.test.ts` had
+// grown private copies of two helpers besides. The readability lens flagged that duplication as
+// waiting to drift. One owner for the read is the whole justification.
 //
-// The fix therefore rests on the part that IS established: the `node:` imports live HERE, in a file
-// component work does not touch, so a component PR's diff stops involving them entirely. This
-// module still trips the signal when IT changes — which is correct, and rare.
+// A CORRECTION WORTH LEAVING IN PLACE, because the wrong version of it was briefly committed and
+// someone will otherwise re-derive it: this module was originally written to stop test files
+// tripping the review risk classifier's `shell_process` signal, on the theory that the `node:`
+// imports were what tripped it. THAT THEORY WAS WRONG. The trigger is a call to
+// `RegExp.prototype.exec`, misread as process execution. Measured: a file carrying `node:` imports
+// and no such call classifies `medium`, while adding one line that calls it to a file with no
+// `node:` import at all makes that file `high`. Moving these imports here changes the
+// classification of nothing. `G12` in `test-hygiene-gates.test.ts` owns that concern and holds the
+// measurements.
 //
-// SECOND REASON, independent of the first: this is a FUNCTION, so a caller may read lazily. A read
-// at module scope fails the whole FILE when `dist` is unbuilt — including the DOM tests that need
-// no stylesheet at all — and a stale `dist` passes green while claiming to have checked the shipped
+// So the `node:` imports living here is a consequence of centralising the read, not a purpose.
+//
+// SECOND REASON, and this one is real: it is a FUNCTION, so a caller may read lazily. A read at
+// module scope fails the whole FILE when `dist` is unbuilt — including the DOM tests that need no
+// stylesheet at all — and a stale `dist` passes green while claiming to have checked the shipped
 // CSS. `button.test.ts` calls it from inside the tests that need it, for exactly that reason. The
-// other component tests still call it once at module scope: moving their reads inside would mean
-// restructuring shared helper functions, which is a different change from this one and does not
-// belong in a commit whose whole point is to shrink review cost. The capability is here when they
-// want it.
+// other component tests still call it once at module scope; moving their reads inside would mean
+// restructuring shared helper functions, which is a separate change. The capability is here when
+// they want it.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
