@@ -12,6 +12,6 @@ A full-width button was not awkward before this — it was impossible. `Button`'
 
 Spelled as an axis rather than a `fullWidth` boolean, to match `Menu`'s existing `width: auto | trigger`. Two components with a width concern should spell it the same way, and an axis has room for a third value that a boolean would have to be deprecated to grow.
 
-`minor`, not `patch`: this is new public API. Existing call sites are unaffected — `auto` is the default and emits `width: auto`, which is what an `inline-flex` button already computed.
+`minor`, not `patch`: this is new public API. Rendered width is unchanged at every existing call site — `auto` is the default and emits `width: auto`, which is what an `inline-flex` button already computed. The emitted output does change in two ways worth naming, though. Every button now carries an extra `zui-button--width_auto` class, so an assertion on the exact class string needs updating. And `auto` places a `width` declaration inside `@layer recipes` where the button previously carried none, so a consumer's own `width` rule in an earlier layer — the emitted sheet declares `@layer reset, base, tokens, recipes, utilities` — is now suppressed regardless of its specificity. Unlayered CSS and the `utilities` layer still win.
 
 This is the first of the layout affordances that make `className: never` livable rather than merely strict. The reasoning behind keeping that restriction, and what a consumer *can* still do, is in the README.
