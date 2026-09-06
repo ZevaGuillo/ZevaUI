@@ -21,6 +21,24 @@ and are compiled at build time — never at runtime — into:
 Components in `@zevaui/components` consume these tokens exclusively through
 `var(--zui-*)` references — no literal color, spacing, or radius values.
 
+Importing the custom properties defines them; it paints nothing. Two of them
+are the page's own, and your app has to apply them:
+
+```css
+body {
+  background-color: var(--zui-color-bg-canvas);
+  color: var(--zui-color-text-default);
+}
+```
+
+`color-bg-canvas` is the background every theme is designed against — it is
+what the contrast floors below are measured on. Component text that sits on
+the page rather than on a component's own surface is coloured for it, so a
+page that never paints it leaves that text on the browser's white instead.
+In the dark theme that lands at 1.05:1 against a 4.5:1 floor. The contrast
+guarantees are a property of theme values applied as intended, not a promise
+that any background you choose will pass.
+
 ## Guarantees
 
 Every theme in this package is validated against the machine-readable contract
