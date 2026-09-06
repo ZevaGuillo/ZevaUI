@@ -4,9 +4,6 @@
 // package's Vitest setup does not need a JSX transform plugin, exactly as `dialog.test.ts`
 // explains. `React.createElement` gives the same excess-property/type-mismatch checking the
 // `@ts-expect-error` assertions below rely on.
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, isValidElement } from "react";
@@ -18,9 +15,9 @@ import { slotRecipeClassNames } from "../src/internal/slot-recipe-class.js";
 import { Menu } from "../src/menu/Menu.js";
 import { menuRecipe } from "../src/menu/menu.recipe.js";
 import type { MenuItemDescriptor, MenuProps } from "../src/menu/menu.types.js";
+import { emittedStylesheet } from "./support/emitted-css.js";
 
-const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const css = readFileSync(join(packageRoot, "dist", "styles.css"), "utf8");
+const css = emittedStylesheet();
 
 // jsdom ships no global `CSS` object, and react-aria 3.51.0 calls `CSS.escape` when it resolves
 // the DOM node of the focused collection item (`getItemElement`, used by every arrow-key move and

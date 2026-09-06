@@ -5,9 +5,6 @@
 // dependency here, and adding it just for tests would be an extra build-pipeline dependency).
 // `React.createElement` gives the exact same excess-property/type-mismatch checking the
 // `@ts-expect-error` assertions below rely on, without that extra dependency.
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, isValidElement, type ReactNode } from "react";
@@ -16,6 +13,7 @@ import { Button } from "../src/button/Button.js";
 import { buttonRecipe } from "../src/button/button.recipe.js";
 import type { ButtonProps } from "../src/button/button.types.js";
 import { recipeClassName, variantClassName } from "../src/internal/recipe-class.js";
+import { emittedStylesheet, ruleBody } from "./support/emitted-css.js";
 
 afterEach(() => {
   cleanup();
@@ -26,33 +24,6 @@ afterEach(() => {
 function renderButton(props: Omit<ButtonProps, "children">, children: ReactNode) {
   return render(createElement(Button, { ...props, children }));
 }
-
-// Read lazily, inside the test that needs it, rather than in a `describe` body. A read at
-// collection time fails the WHOLE file when `dist` is unbuilt — including the DOM tests that
-// need no stylesheet at all — and a stale `dist` passes green while claiming to have checked
-// the shipped CSS. Scoped here, an unbuilt or stale build fails only the tests that read it.
-const emittedStylesheet = () =>
-  readFileSync(
-    join(dirname(dirname(fileURLToPath(import.meta.url))), "dist", "styles.css"),
-    "utf8",
-  );
-
-/**
- * The declaration body of the rule whose head is exactly `.<className> {`, or "" when the
- * stylesheet has no such rule.
- *
- * Matched on the exact head rather than on the class name alone, because `.zui-button` is a
- * prefix of `.zui-button--size_md` and a bare search would hand back the wrong rule's body. A
- * rule Panda collapsed into a comma-separated selector list is deliberately NOT found: every
- * caller here asserts on a specific declaration, and silently reading a shared block would be
- * the more dangerous answer.
- */
-const ruleBody = (css: string, className: string): string => {
-  const head = `.${className} {`;
-  const start = css.indexOf(head);
-  if (start === -1) return "";
-  return css.slice(start + head.length, css.indexOf("}", start));
-};
 
 describe("Button", () => {
   it('renders a native <button> with type="button" by default', () => {

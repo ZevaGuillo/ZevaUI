@@ -5,9 +5,6 @@
 // dependency here, and adding it just for tests would be an extra build-pipeline dependency).
 // `React.createElement` gives the exact same excess-property/type-mismatch checking the
 // `@ts-expect-error` assertions below rely on, without that extra dependency.
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement, isValidElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
@@ -16,9 +13,9 @@ import { alertRecipe } from "../src/alert/alert.recipe.js";
 import type { AlertProps } from "../src/alert/alert.types.js";
 import { classSelectorPattern } from "../src/internal/consumed-tokens.js";
 import { recipeClassName } from "../src/internal/recipe-class.js";
+import { emittedStylesheet } from "./support/emitted-css.js";
 
-const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const css = readFileSync(join(packageRoot, "dist", "styles.css"), "utf8");
+const css = emittedStylesheet();
 
 afterEach(() => {
   cleanup();
