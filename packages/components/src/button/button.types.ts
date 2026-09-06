@@ -15,6 +15,21 @@ export type ButtonProps = {
    * no `className` to reach for, by design (see the README's "No `className`, no `style`").
    */
   readonly width?: ButtonWidth;
+  /**
+   * Decorative icon rendered before the label, inside a box the design system owns and spaces.
+   *
+   * A slot rather than something the caller puts in `children`, because `children` guarantees the
+   * system neither order nor spacing: `<Button><Icon />Save</Button>` and
+   * `<Button>Save<Icon /></Button>` both type-check and mean different things. Same rule `Dialog`
+   * and `Menu` already follow — the caller supplies content, the system supplies structure.
+   *
+   * DECORATIVE, and enforced: the wrapper is `aria-hidden`, so an icon carrying its own title or
+   * `aria-label` cannot append a second word to the button's accessible name. That name comes
+   * from `children`, or from `aria-label` when the label alone is not descriptive enough.
+   */
+  readonly iconStart?: ReactNode;
+  /** Decorative icon rendered after the label. Same contract as {@link ButtonProps.iconStart}. */
+  readonly iconEnd?: ReactNode;
   readonly isDisabled?: boolean;
   readonly type?: "button" | "submit" | "reset";
   readonly onPress?: () => void;

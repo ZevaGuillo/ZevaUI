@@ -27,6 +27,33 @@ function renderButton(props: Omit<ButtonProps, "children">, children: ReactNode)
   return render(createElement(Button, { ...props, children }));
 }
 
+// Read lazily, inside the test that needs it, rather than in a `describe` body. A read at
+// collection time fails the WHOLE file when `dist` is unbuilt — including the DOM tests that
+// need no stylesheet at all — and a stale `dist` passes green while claiming to have checked
+// the shipped CSS. Scoped here, an unbuilt or stale build fails only the tests that read it.
+const emittedStylesheet = () =>
+  readFileSync(
+    join(dirname(dirname(fileURLToPath(import.meta.url))), "dist", "styles.css"),
+    "utf8",
+  );
+
+/**
+ * The declaration body of the rule whose head is exactly `.<className> {`, or "" when the
+ * stylesheet has no such rule.
+ *
+ * Matched on the exact head rather than on the class name alone, because `.zui-button` is a
+ * prefix of `.zui-button--size_md` and a bare search would hand back the wrong rule's body. A
+ * rule Panda collapsed into a comma-separated selector list is deliberately NOT found: every
+ * caller here asserts on a specific declaration, and silently reading a shared block would be
+ * the more dangerous answer.
+ */
+const ruleBody = (css: string, className: string): string => {
+  const head = `.${className} {`;
+  const start = css.indexOf(head);
+  if (start === -1) return "";
+  return css.slice(start + head.length, css.indexOf("}", start));
+};
+
 describe("Button", () => {
   it('renders a native <button> with type="button" by default', () => {
     renderButton({}, "Click me");
@@ -106,11 +133,6 @@ describe("Button", () => {
 // is a class that does nothing. The declaration is also honest: `auto` is the initial value this
 // restores when a consumer sets the axis back.
 describe("Button width axis", () => {
-  const css = readFileSync(
-    join(dirname(dirname(fileURLToPath(import.meta.url))), "dist", "styles.css"),
-    "utf8",
-  );
-
   it("defaults to width=auto, so an existing call site keeps shrink-wrapping", () => {
     renderButton({}, "Auto");
     const button = screen.getByRole("button", { name: "Auto" });
@@ -135,15 +157,127 @@ describe("Button width axis", () => {
   // emitted per variant value; a rule that emitted the wrong width would satisfy it and still ship
   // a button that does not stretch.
   it("emits width:100% for full and width:auto for auto", () => {
-    const ruleFor = (className: string) => {
-      const match = new RegExp(`\\.${className}\\s*\\{([^}]*)\\}`).exec(css);
-      return match?.[1] ?? "";
-    };
-    expect(ruleFor(variantClassName(buttonRecipe.className, "width", "full"))).toMatch(
+    const css = emittedStylesheet();
+    expect(ruleBody(css, variantClassName(buttonRecipe.className, "width", "full"))).toMatch(
       /width:\s*100%/,
     );
-    expect(ruleFor(variantClassName(buttonRecipe.className, "width", "auto"))).toMatch(
+    expect(ruleBody(css, variantClassName(buttonRecipe.className, "width", "auto"))).toMatch(
       /width:\s*auto/,
+    );
+  });
+});
+
+// Icons arrive as typed slots (`iconStart`/`iconEnd`), not as `children` next to a `gap`. With
+// `children` the system can guarantee neither order nor spacing — `<Button><Icon/>Save</Button>`
+// and `<Button>Save<Icon/></Button>` both type-check and mean different things — and a design
+// system that never receives the icon as a value cannot reason about it later. This is the rule
+// `Dialog` and `Menu` already follow: the consumer supplies content, the system supplies
+// structure.
+//
+// THE WRAPPER CARRIES `data-zui-icon`, NOT A CLASS, and that is a constraint rather than a taste
+// call. `G5 (reverse)` in css-gates.test.ts fails any emitted `zui-button__*` class no registered
+// recipe declares, and Button's recipe is flat: only a SLOT recipe derives `__slot` classes. The
+// alternative — converting Button to a slot recipe — renames `.zui-button` to `.zui-button__root`,
+// which breaks every consumer stylesheet and `Menu`, which renders a `Button`. An attribute hook
+// costs no class-contract change and matches the `&[data-disabled]` selectors the recipe already
+// uses. It also stays out of a consumer's reach on purpose: `className` is `never` here, so the
+// icon box is structure the system owns, not a styling seam.
+describe("Button icon slots", () => {
+  const iconStart = createElement("svg", { "data-testid": "start-icon" });
+  const iconEnd = createElement("svg", { "data-testid": "end-icon" });
+
+  // `:scope >` restricts the match to the button's OWN icon boxes. A bare descendant query would
+  // also count a `data-zui-icon` that happened to appear inside consumer-supplied icon content,
+  // and would then report a wrapper the component never rendered.
+  const iconSlots = (button: HTMLElement) =>
+    [...button.querySelectorAll(":scope > [data-zui-icon]")].map((el) =>
+      el.getAttribute("data-zui-icon"),
+    );
+
+  it("renders iconStart before the label and iconEnd after it", () => {
+    renderButton({ iconStart, iconEnd }, "Save");
+    const button = screen.getByRole("button", { name: "Save" });
+    expect(iconSlots(button)).toEqual(["start", "end"]);
+    expect(button.firstElementChild?.getAttribute("data-zui-icon")).toBe("start");
+    expect(button.lastElementChild?.getAttribute("data-zui-icon")).toBe("end");
+  });
+
+  it("renders only the slot that was supplied", () => {
+    renderButton({ iconEnd }, "One");
+    expect(iconSlots(screen.getByRole("button", { name: "One" }))).toEqual(["end"]);
+  });
+
+  it("adds no wrapper element at all when neither slot is supplied", () => {
+    renderButton({}, "Plain");
+    expect(iconSlots(screen.getByRole("button", { name: "Plain" }))).toEqual([]);
+  });
+
+  // Omitting the prop is NOT the only way a caller says "no icon", and the difference is a real
+  // defect rather than a technicality. `iconStart={isSaving && <Spinner />}` passes `false`, and
+  // `iconStart={icon ?? null}` passes `null`. React renders nothing for either, so wrapping them
+  // would put an empty flex item in the button — and because `gap` lives on the button, that
+  // empty box shifts the label sideways by a full gap with nothing visible in it.
+  it.each([
+    ["false, from `cond && <Icon/>`", false],
+    ["null, from `icon ?? null`", null],
+    ["undefined, from an omitted prop", undefined],
+    ["the empty string", ""],
+  ])("renders no icon box for %s", (_label, value) => {
+    renderButton({ iconStart: value, iconEnd: value }, "Nothing");
+    expect(iconSlots(screen.getByRole("button", { name: "Nothing" }))).toEqual([]);
+  });
+
+  // The counterpart, so the guard above cannot be "fixed" into swallowing everything: `0` renders
+  // the text "0" in React, so a box around it is correct and must survive.
+  it("still renders a box for 0, which React renders as text", () => {
+    renderButton({ iconStart: 0 }, "Zero");
+    expect(iconSlots(screen.getByRole("button", { name: "Zero" }))).toEqual(["start"]);
+  });
+
+  // The icon is decoration: the accessible name comes from the label, and `aria-hidden` on the
+  // wrapper keeps a consumer's icon — which may well carry its own title or aria-label — from
+  // appending a second, duplicated word to that name. `getByRole` with an exact name is the
+  // assertion; it would not match if the icon leaked into the computed name.
+  it("keeps the accessible name coming from the label, never from the icon", () => {
+    renderButton({ iconStart: createElement("svg", { "aria-label": "floppy disk" }) }, "Save");
+    const button = screen.getByRole("button", { name: "Save" });
+    expect(button.querySelector("[data-zui-icon]")?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  // NOT a tautology against `recipeClassName`: it compares the class string one button renders
+  // WITH icons against the string the SAME configuration renders without them. Icons are
+  // structure, so the class contract must not move — the lesson from the `width` axis, where a
+  // new default variant silently added a class to every button that already existed.
+  it("leaves the rendered class string identical to the same button without icons", () => {
+    renderButton({ visual: "danger", size: "lg" }, "Save");
+    const plain = screen.getByRole("button", { name: "Save" }).className;
+    cleanup();
+    renderButton({ visual: "danger", size: "lg", iconStart, iconEnd }, "Save");
+    expect(screen.getByRole("button", { name: "Save" }).className).toBe(plain);
+  });
+
+  // Every assertion above passes with no stylesheet at all, so none of them can tell a spaced
+  // icon from one glued to the label. These two read what actually ships.
+  // Reads the emitted RATIO per size, not merely that some `gap` exists. Presence alone would be
+  // satisfied by a recipe regression that gave all three sizes one identical gap, which is exactly
+  // the claim this axis makes — that the gap scales with the button — left unproved.
+  it("emits a gap on every size, scaled by that size's own ratio", () => {
+    const css = emittedStylesheet();
+    const ratios: Record<string, string> = { sm: "0.375", md: "0.5", lg: "0.75" };
+    for (const size of Object.keys(buttonRecipe.variants.size)) {
+      const body = ruleBody(css, variantClassName(buttonRecipe.className, "size", size));
+      const emitted = /gap:\s*([^;]+)/.exec(body)?.[1]?.trim() ?? "";
+      expect({ [size]: emitted }).toEqual({
+        [size]: `calc(var(--zuip-spacing-button-px) * ${ratios[size]})`,
+      });
+    }
+  });
+
+  // `flex-shrink: 0` is not decoration either: with `width="full"` and a long label the icon is a
+  // flex item like any other, and would be squashed by the label without it.
+  it("emits a rule that keeps the icon from being squashed by a long label", () => {
+    expect(emittedStylesheet()).toMatch(
+      /\.zui-button\s*>\s*\[data-zui-icon\][^{]*\{[^}]*flex-shrink:\s*0/,
     );
   });
 });
