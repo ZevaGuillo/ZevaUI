@@ -444,7 +444,8 @@ describe("G5 (reverse): every emitted single-class rule is declared by some regi
     const names = new Set<string>();
     for (const match of source.matchAll(/([^{}]*)\{/g)) {
       for (const part of match[1].split(",")) {
-        const single = /^\.(zui-[\w-]+)$/.exec(part.trim());
+        // `subject.match(pattern)`, not the other spelling: identical for a non-global regex; see G12.
+        const single = part.trim().match(/^\.(zui-[\w-]+)$/);
         if (single) names.add(single[1]);
       }
     }
