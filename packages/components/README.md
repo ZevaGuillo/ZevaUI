@@ -47,10 +47,19 @@ receive compiled CSS, compiled JS, and types — never Panda itself.
 | `children` | `ReactNode` | — (required) |
 | `visual` | `"solid" \| "subtle" \| "danger"` | `"solid"` |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` |
+| `width` | `"auto" \| "full"` | `"auto"` |
 | `isDisabled` | `boolean` | `false` |
 | `type` | `"button" \| "submit" \| "reset"` | — |
 | `onPress` | `() => void` | — |
 | `aria-label` | `string` | — |
+
+`width` is the supported way to stretch a button, and it exists because
+there is no other one: the base is `inline-flex`, so a button shrink-wraps
+its label, and `className`/`style` are `never` by design. Measured in a bare
+consumer app, the only wrapper that stretched a 54px button to its 600px
+container was `display: grid` — `display: block` and both flex spellings
+left it untouched. A contract that depends on a consumer knowing that is not
+a contract, so this is real API instead.
 
 `size` is not six independent tokens per axis — `sm`/`lg` are `md`'s two
 spacing tokens scaled by fixed ratios (`0.75`/`1.5`) in the recipe itself.

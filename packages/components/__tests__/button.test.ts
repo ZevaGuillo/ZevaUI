@@ -5,6 +5,9 @@
 // dependency here, and adding it just for tests would be an extra build-pipeline dependency).
 // `React.createElement` gives the exact same excess-property/type-mismatch checking the
 // `@ts-expect-error` assertions below rely on, without that extra dependency.
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, isValidElement, type ReactNode } from "react";
@@ -12,7 +15,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Button } from "../src/button/Button.js";
 import { buttonRecipe } from "../src/button/button.recipe.js";
 import type { ButtonProps } from "../src/button/button.types.js";
-import { recipeClassName } from "../src/internal/recipe-class.js";
+import { recipeClassName, variantClassName } from "../src/internal/recipe-class.js";
 
 afterEach(() => {
   cleanup();
@@ -82,6 +85,66 @@ describe("Button", () => {
   it("renders children inside the button", () => {
     renderButton({}, "Child text");
     expect(screen.getByRole("button").textContent).toBe("Child text");
+  });
+});
+
+// The `width` axis exists because a full-width button was not merely awkward before it — it was
+// impossible. `Button` is `inline-flex`, so it shrink-wraps its label, and the package types
+// `className` and `style` as `never`, so a consumer has no way to stretch one. Measured in a bare
+// consumer app: the only wrapper that worked was `display: grid`, which stretched a 54px button
+// to its 600px container. `display: block` and both flex spellings left it at 54px. Making the
+// contract depend on a consumer knowing that grid stretches its children — and only grid — is not
+// a contract; hence a real prop.
+//
+// `width: auto | full`, not a `fullWidth` boolean, mirrors `Menu`'s existing `width: auto | trigger`
+// axis. Two components with a width concern should spell it the same way, and an axis leaves room
+// for a third value later where a boolean would have to be deprecated to grow one.
+//
+// `auto` carries an explicit `width: auto` rather than an empty style object. An empty variant
+// value emits no rule at all, and `G5` in `css-gates.test.ts` fails any declared variant value the
+// stylesheet has no rule for — correctly, since a class the component renders but nothing styles
+// is a class that does nothing. The declaration is also honest: `auto` is the initial value this
+// restores when a consumer sets the axis back.
+describe("Button width axis", () => {
+  const css = readFileSync(
+    join(dirname(dirname(fileURLToPath(import.meta.url))), "dist", "styles.css"),
+    "utf8",
+  );
+
+  it("defaults to width=auto, so an existing call site keeps shrink-wrapping", () => {
+    renderButton({}, "Auto");
+    const button = screen.getByRole("button", { name: "Auto" });
+    expect(button.className).toBe(recipeClassName(buttonRecipe, { width: "auto" }));
+  });
+
+  it("applies exactly the width=full variant class and no others", () => {
+    renderButton({ width: "full" }, "Full");
+    const button = screen.getByRole("button", { name: "Full" });
+    expect(button.className).toBe(recipeClassName(buttonRecipe, { width: "full" }));
+  });
+
+  it("composes with the other two axes rather than replacing them", () => {
+    renderButton({ visual: "danger", size: "lg", width: "full" }, "All three");
+    const button = screen.getByRole("button", { name: "All three" });
+    expect(button.className).toBe(
+      recipeClassName(buttonRecipe, { visual: "danger", size: "lg", width: "full" }),
+    );
+  });
+
+  // Asserting the emitted declaration, not just that a rule exists. `G5` already proves a rule is
+  // emitted per variant value; a rule that emitted the wrong width would satisfy it and still ship
+  // a button that does not stretch.
+  it("emits width:100% for full and width:auto for auto", () => {
+    const ruleFor = (className: string) => {
+      const match = new RegExp(`\\.${className}\\s*\\{([^}]*)\\}`).exec(css);
+      return match?.[1] ?? "";
+    };
+    expect(ruleFor(variantClassName(buttonRecipe.className, "width", "full"))).toMatch(
+      /width:\s*100%/,
+    );
+    expect(ruleFor(variantClassName(buttonRecipe.className, "width", "auto"))).toMatch(
+      /width:\s*auto/,
+    );
   });
 });
 
