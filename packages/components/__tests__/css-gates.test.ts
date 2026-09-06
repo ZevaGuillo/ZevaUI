@@ -470,3 +470,82 @@ describe("G5 (reverse): every emitted single-class rule is declared by some regi
     expect(unowned).toEqual([]);
   });
 });
+
+// G11 exists because of a defect that every gate above was structurally unable to see, found by
+// installing the PUBLISHED tarballs into a bare Vite app rather than by running anything in this
+// repo. `Card` declared no `color` and no `fontFamily` anywhere in its recipe, so its text fell
+// through to whatever the consumer's page happened to set. On a page that sets nothing — which is
+// exactly what the README's Quick Path produces, since it asks only for the two stylesheet
+// imports — that is the User Agent's black, and the dark theme paints the card's own surface
+// `bg.surface` underneath it: measured 1.18:1 against a 4.5:1 AA floor, i.e. invisible.
+//
+// Nothing caught it. The token gates (G1/G4) only constrain declarations that EXIST; a component
+// that declares nothing satisfies them vacuously. G5 asks whether every declared variant renders
+// a rule, not whether the rules say anything about text. The themed a11y and visual gates run
+// under `.storybook/preview.ts`'s consumer-page scaffold, which sets `bg-canvas`/`text-default`
+// on `document.body` — its own comment names this exact failure as the reason it exists — so the
+// one environment that reproduces the bug is the one environment no test in this repo ran in.
+//
+// The gate is therefore deliberately WEAK AND EXACT: it asks only whether a component owns ANY
+// text colour and ANY font family at all, package-wide across its own namespace. It does not
+// attempt to prove that every slot is covered, because the slots that legitimately need their own
+// declarations differ per component — Input styles `label`/`input`/`description` individually and
+// leaves `root` bare, Card covers all four zones by inheriting from `root` — and a gate that
+// guessed at that shape would redden correct recipes. What it does catch is the root class that
+// actually shipped: a component that owns NO typography whatsoever and silently defers the whole
+// question to the consumer's page. If a future component styles only its footer, this gate will
+// pass and it will still be wrong; that is a known and accepted limit, not an oversight.
+//
+// Reading the emitted stylesheet rather than the recipe object is deliberate: the recipe is the
+// input to Panda, the stylesheet is what a consumer's browser actually cascades, and only the
+// second one is evidence.
+describe("G11: no component defers its entire typography to the consumer's page", () => {
+  /**
+   * Every declaration body of every rule whose selector mentions a class in `recipe`'s own
+   * namespace. Reuses `classSelectorPattern` (not a bare `.class {` match) for the same reason
+   * `hasRule` does: Panda collapses identical blocks into comma-separated selector lists, and a
+   * slot's styles routinely land in a compound rule (`.zui-x__input[data-hovered]`).
+   */
+  function declarationBodies(recipe: GateRecipe): string[] {
+    const patterns = requiredSelectors(recipe).map((className) => classSelectorPattern(className));
+    const bodies: string[] = [];
+    for (const match of css.matchAll(/([^{}]*)\{/g)) {
+      if (!patterns.some((pattern) => pattern.test(match[1]))) continue;
+      const matchIndex = match.index ?? -1;
+      if (matchIndex === -1) continue;
+      bodies.push(extractBlockAt(css, matchIndex + match[0].length - 1));
+    }
+    return bodies;
+  }
+
+  // Split on the declaration separator and compare against the START of each trimmed segment,
+  // rather than searching the body for the property name. `background-color:` and
+  // `border-bottom-color:` both CONTAIN "color:", and a substring search would report them as a
+  // text colour — which would make this gate pass on the exact recipe that motivated it, since
+  // Card already declared `backgroundColor` and `borderBottomColor`. Splitting first makes the
+  // boundary structural instead of a regex escape nobody re-reads.
+  const declares = (bodies: readonly string[], property: string) =>
+    bodies.some((body) =>
+      body.split(";").some((declaration) => declaration.trim().startsWith(`${property}:`)),
+    );
+
+  it("finds rules for every registered component (sanity check)", () => {
+    for (const { name, recipe } of componentRegistry) {
+      expect({ [name]: declarationBodies(recipe).length > 0 }).toEqual({ [name]: true });
+    }
+  });
+
+  it("every component declares its own text colour somewhere in its namespace", () => {
+    for (const { name, recipe } of componentRegistry) {
+      expect({ [name]: declares(declarationBodies(recipe), "color") }).toEqual({ [name]: true });
+    }
+  });
+
+  it("every component declares its own font family somewhere in its namespace", () => {
+    for (const { name, recipe } of componentRegistry) {
+      expect({ [name]: declares(declarationBodies(recipe), "font-family") }).toEqual({
+        [name]: true,
+      });
+    }
+  });
+});
