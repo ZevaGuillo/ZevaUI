@@ -59,6 +59,16 @@ export const Disabled: Story = {
   args: { isDisabled: true, children: "Disabled button" },
 };
 
+// The only story here whose point is the box rather than the label, and the
+// only one whose baseline is meaningless without a container to stretch
+// against — the story canvas is the container, so a full-width button spans
+// it while every story above shrink-wraps. That contrast IS the assertion:
+// if `width: full` ever stopped stretching, this baseline would collapse to
+// the same shape as `SolidMedium` and the visual gate would catch it.
+export const FullWidth: Story = {
+  args: { width: "full", children: "Full width" },
+};
+
 // Tabs focus onto the button and asserts the focus-visible outline path
 // (`&[data-focus-visible]` in button.recipe.ts) is reachable by keyboard,
 // without giving up the accessible name.

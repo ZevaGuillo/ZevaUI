@@ -5,9 +5,9 @@ import { recipeClassName } from "../internal/recipe-class.js";
 import { buttonRecipe } from "./button.recipe.js";
 import type { ButtonProps } from "./button.types.js";
 
-export function Button({ visual, size, children, ...behaviour }: ButtonProps) {
+export function Button({ visual, size, width, children, ...behaviour }: ButtonProps) {
   return (
-    <AriaButton {...behaviour} className={recipeClassName(buttonRecipe, { visual, size })}>
+    <AriaButton {...behaviour} className={recipeClassName(buttonRecipe, { visual, size, width })}>
       {children}
     </AriaButton>
   );
