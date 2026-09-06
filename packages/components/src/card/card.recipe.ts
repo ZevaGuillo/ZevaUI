@@ -30,6 +30,23 @@ export const CARD_RECIPE_KEY = "card";
  * hairlines and the outlined boundary both use `border.default`, exactly as Dialog already does
  * for its own header/footer hairlines.
  *
+ * TYPOGRAPHY IS DECLARED ON `root`, NOT PER ZONE, AND IT IS NOT OPTIONAL. `root` already paints
+ * `bg.surface`, so the moment this component owns the background behind text it also owns that
+ * text's colour: leaving `color` to inheritance means the card's own surface is composited
+ * against whatever the consumer's page last set. It shipped that way in 0.2.0 and the failure was
+ * measured from a bare consumer app — no page colours set, exactly what the README's Quick Path
+ * produces — at 1.18:1 against a 4.5:1 AA floor in the dark theme: User-Agent black on
+ * `bg.surface`'s dark value. Light and high-contrast "passed" only by the accident of UA black
+ * landing on a light surface, which is luck, not a contract.
+ *
+ * The five declarations sit on `root` rather than being repeated across `header`/`body`/`footer`
+ * because all five are inherited CSS properties, so one declaration covers every zone including
+ * any future one. This differs from Input, which declares its own on `label`/`input`/`description`
+ * individually — it has to, because `input` is a replaced element that does NOT inherit font from
+ * its ancestors. Card has no such element, so the inherited spelling is both correct and smaller.
+ * The token choices mirror Alert's exactly (`text.default` + the four `body` type tokens): a card
+ * is body copy on a surface, the same as an alert is.
+ *
  * `satisfies` (not a type annotation) preserves the literal slot/variant shape, which
  * `card.types.ts` derives `CardSurface` from.
  */
@@ -41,6 +58,11 @@ export const cardRecipe = {
       borderRadius: "card",
       backgroundColor: "bg.surface",
       overflow: "hidden",
+      color: "text.default",
+      fontFamily: "body",
+      fontSize: "body",
+      fontWeight: "body",
+      lineHeight: "body",
     },
     header: {
       paddingInline: "card.px",
