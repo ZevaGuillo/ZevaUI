@@ -29,6 +29,24 @@ export const buttonRecipe = {
       cursor: "not-allowed",
       opacity: 0.5,
     },
+    /**
+     * The box `Button.tsx` wraps `iconStart`/`iconEnd` in. Selected by ATTRIBUTE, not by class,
+     * and that is a constraint rather than a preference: `G5 (reverse)` fails any emitted
+     * `zui-button__*` class no registered recipe declares, and only a SLOT recipe derives `__slot`
+     * classes — this recipe is flat. Converting it would rename `.zui-button` to
+     * `.zui-button__root` and break every consumer stylesheet plus `Menu`, which renders a
+     * `Button`. The attribute costs no class-contract change and reads like the `&[data-disabled]`
+     * hook right above it.
+     *
+     * `flexShrink: 0` is the load-bearing declaration. With `width="full"` and a long label the
+     * icon is an ordinary flex item, and the label would squash it; the other two only keep an
+     * `svg` centred on the label's baseline box rather than sitting on the text baseline.
+     */
+    "& > [data-zui-icon]": {
+      display: "flex",
+      alignItems: "center",
+      flexShrink: 0,
+    },
   },
   variants: {
     visual: {
@@ -54,18 +72,50 @@ export const buttonRecipe = {
         "&[data-pressed]:not([data-disabled])": { backgroundColor: "danger.subtle" },
       },
     },
+    /**
+     * `gap` rides on `size` rather than on `base` so the space between an icon and its label
+     * scales with the button, the same way the padding already does. Each value is
+     * `spacing.button.px` times HALF that size's own padding ratio (0.75 -> 0.375, 1 -> 0.5,
+     * 1.5 -> 0.75), which keeps the gap visibly tighter than the horizontal padding at every
+     * size — an icon that sits as far from its label as the label sits from the button edge
+     * reads as two separate things rather than one.
+     *
+     * DERIVED IN THE RECIPE, NOT A TOKEN, deliberately. The alternative — a semantic
+     * `space.button.gap` — would have to be declared in all three themes and would then be ONE
+     * value that does not scale across `sm`/`md`/`lg` unless it were three. This mirrors how
+     * `sm`/`lg` already derive their padding from `md`'s tokens by fixed ratio. The trade is
+     * real and worth naming: because `className` is `never`, a consumer cannot retune this gap.
+     * If that ever needs to be themeable, three tokens are the answer, not one.
+     *
+     * WHAT THIS CHANGES FOR BUTTONS THAT ALREADY EXIST, stated precisely rather than reassuringly.
+     * A text-only button is a single anonymous flex item, and `gap` between one item and nothing
+     * has no effect, so the overwhelmingly common call site is untouched. But `children` is an
+     * unrestricted `ReactNode`, so a caller who already passes MULTIPLE element children —
+     * `<Button><span>a</span><span>b</span></Button>` — now gets this gap between them where they
+     * had none. That is a real, if narrow, visual change and it is disclosed in the README and the
+     * changeset rather than described here as "no effect".
+     *
+     * The second consequence is cascade, not layout: `gap` is a declaration this component did not
+     * previously emit, and it lands in `@layer recipes`. A consumer rule setting `gap` on
+     * `.zui-button` from an earlier layer (`reset`, `base`, `tokens`) is now suppressed regardless
+     * of its specificity. Unlayered CSS and the `utilities` layer still win. Same shape as the
+     * `width` axis before it, and named for the same reason.
+     */
     size: {
       sm: {
         paddingInline: "calc({spacing.button.px} * 0.75)",
         paddingBlock: "calc({spacing.button.py} * 0.75)",
+        gap: "calc({spacing.button.px} * 0.375)",
       },
       md: {
         paddingInline: "button.px",
         paddingBlock: "button.py",
+        gap: "calc({spacing.button.px} * 0.5)",
       },
       lg: {
         paddingInline: "calc({spacing.button.px} * 1.5)",
         paddingBlock: "calc({spacing.button.py} * 1.5)",
+        gap: "calc({spacing.button.px} * 0.75)",
       },
     },
     /**

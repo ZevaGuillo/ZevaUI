@@ -48,6 +48,8 @@ receive compiled CSS, compiled JS, and types — never Panda itself.
 | `visual` | `"solid" \| "subtle" \| "danger"` | `"solid"` |
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` |
 | `width` | `"auto" \| "full"` | `"auto"` |
+| `iconStart` | `ReactNode` | — |
+| `iconEnd` | `ReactNode` | — |
 | `isDisabled` | `boolean` | `false` |
 | `type` | `"button" \| "submit" \| "reset"` | — |
 | `onPress` | `() => void` | — |
@@ -60,6 +62,42 @@ consumer app, the only wrapper that stretched a 54px button to its 600px
 container was `display: grid` — `display: block` and both flex spellings
 left it untouched. A contract that depends on a consumer knowing that is not
 a contract, so this is real API instead.
+
+`iconStart` and `iconEnd` are slots, not something you put in `children`:
+
+```tsx
+<Button iconStart={<SaveIcon />} onPress={save}>Save</Button>
+```
+
+Passing the icon as a child would type-check in either order and leave both
+the order and the spacing to you. As a slot, the system owns the box: it
+spaces the icon from the label (a gap that scales with `size`), keeps it from
+being squashed when `width="full"` meets a long label, and marks it
+`aria-hidden`. That last one is the part worth knowing — **the icon never
+contributes to the button's accessible name**, even if it carries its own
+`<title>` or `aria-label`. The name comes from `children`, or from
+`aria-label` when the visible label is not descriptive on its own. Icons here
+are decoration; if the icon *is* the message, put that message in
+`aria-label`.
+
+The icon inherits the button's text colour, so an icon drawn with
+`currentColor` needs nothing per `visual`.
+
+A slot you leave out costs nothing: no wrapper element is rendered for
+`undefined`, `null`, `false` or `""`, so `iconStart={isSaving && <Spinner />}`
+adds no empty box and no stray spacing when `isSaving` is false.
+
+**Two things changed for buttons that already exist**, and neither is visible
+in the common case:
+
+- The button now declares `gap`. A text-only button is a single flex item, so
+  it is unaffected — but if you already pass *multiple element children*
+  (`<Button><span>a</span><span>b</span></Button>`), you now get that gap
+  between them where you had none.
+- That `gap` is a declaration this component did not emit before, and it lands
+  in `@layer recipes`. If you set `gap` on `.zui-button` yourself from an
+  earlier layer (`reset`, `base`, `tokens`), your rule is now suppressed no
+  matter its specificity. Unlayered CSS and the `utilities` layer still win.
 
 `size` is not six independent tokens per axis — `sm`/`lg` are `md`'s two
 spacing tokens scaled by fixed ratios (`0.75`/`1.5`) in the recipe itself.
