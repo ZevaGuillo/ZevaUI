@@ -18,7 +18,19 @@ receive compiled CSS, compiled JS, and types — never Panda itself.
    The order matters. `@zevaui/components/styles.css` is a chain of
    `var(--zui-*)` pointers — see [Theming](#theming) — and those variables
    only exist once the token layer has loaded.
-3. Use the component:
+3. **Paint the page.** This package styles components, never your page, so
+   the canvas behind them is yours to set — and it is not optional:
+
+   ```css
+   body {
+     background-color: var(--zui-color-bg-canvas);
+     color: var(--zui-color-text-default);
+   }
+   ```
+
+   See [The page is yours to paint](#the-page-is-yours-to-paint) for what
+   breaks when you skip it.
+4. Use the component:
 
    ```tsx
    import { Button } from "@zevaui/components";
@@ -195,6 +207,42 @@ constraint, including the honest part: at the time, this was a design
 constraint the system worked *around*; the underlying token gap was later
 closed by ADR-0010, the overlay design was not revisited.
 
+## The page is yours to paint
+
+Every component in this package owns the colours it draws on its own box.
+What none of them own is the page **behind** them, and that split is
+deliberate: a design system that painted your `body` would be a global
+reset, which this package does not ship (`G3` fails the build on one).
+
+The consequence is a real obligation, not a nicety. Components that render
+text directly onto the page rather than onto a surface of their own — the
+label and description of `Input`, most visibly — colour that text for
+`color-bg-canvas`, because that is the background the design system assumes
+is behind them. If your page never paints it, the browser's white shows
+through instead, and in the dark theme that text is **1.05:1 against a
+4.5:1 AA floor**: invisible. Measured in a bare consumer app.
+
+The light and high-contrast themes appear to survive without the two
+declarations. They do not survive by design — they survive because the
+browser's white happens to sit near `color-bg-canvas` in those themes. That
+is luck, and it evaporates the moment a user switches to dark.
+
+```css
+body {
+  background-color: var(--zui-color-bg-canvas);
+  color: var(--zui-color-text-default);
+}
+```
+
+`color` belongs there with `background-color`. Components that paint their
+own surface — `Card`, `Alert`, `Dialog`, `Menu` — also set their own text
+colour and do not depend on this rule. Setting it anyway costs nothing and
+covers your own copy sitting between them.
+
+Anything scoping the theme class (`.theme-dark`, `.theme-high-contrast`)
+below `<html>` also needs to paint the canvas at that same scope, for the
+same reason.
+
 ## Theming: override `--zui-*`, never fork
 
 Every visual value a component renders resolves through a `--zui-*` custom
@@ -255,6 +303,10 @@ this trade-off was made deliberately, not incidentally.
 
 - [ ] You import `@zevaui/tokens/styles.css` before
       `@zevaui/components/styles.css`, once, at your app root.
+- [ ] Your page paints `--zui-color-bg-canvas` and `--zui-color-text-default`
+      on `body`, and you checked the dark theme — that is the one where
+      skipping it stops being invisible-in-theory and becomes
+      invisible-on-screen.
 - [ ] You theme by overriding `--zui-*` custom properties, not by forking
       component source or reaching for `className`/`style` (there isn't
       one).
