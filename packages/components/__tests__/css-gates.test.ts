@@ -52,6 +52,31 @@ describe("G1: the token layer is a pure zuip -> zui var() bridge", () => {
   it("actually lands the zuip cssVar prefix", () => {
     expect(tokenDeclarations.some((declaration) => declaration.startsWith("--zuip-"))).toBe(true);
   });
+
+  // THE BRIDGE MUST BE DECLARED ON EVERY ELEMENT, NOT ONLY THE ROOT, and that is a correctness
+  // requirement rather than a stylistic one.
+  //
+  // A custom property substitutes its `var()` at the element that DECLARES it, then inherits
+  // ALREADY RESOLVED. Panda's default `cssVarRoot` is `:where(:root, :host)`, which resolved every
+  // `--zuip-*` against the ROOT's `--zui-*` exactly once. Redeclaring a `--zui-*` further down the
+  // tree could not reach it, so the README's documented escape hatch — override tokens "scoped to
+  // a selector, a theme class, whatever your app needs" — silently did nothing, and so did
+  // `@zevaui/tokens`'s own `theme-*` class on any element other than `<html>`.
+  //
+  // Measured in Chromium against the two shipped stylesheets, before and after: a `subtle` Button
+  // inside a nested `.theme-dark` section painted IDENTICALLY to one outside it with the root
+  // bridge, and paints the dark surface with the universal one. `panda.config.ts` sets
+  // `cssVarRoot: ":where(*)"` for exactly this reason.
+  //
+  // Asserted on the emitted selector rather than on the config value: the config is the input, the
+  // stylesheet is what a consumer's browser cascades, and only the second one is evidence. The
+  // storybook story `ThemeContract > AppliesAScopedThemeClass` asserts the rendered consequence in
+  // a real browser; this gate is the cheap local guard that fails the moment the config drifts.
+  it("declares the bridge on a selector that matches every element, not just the root", () => {
+    const bridgeSelector = css.match(/@layer tokens\{\s*([^{]+)\{/)?.[1]?.trim() ?? "";
+
+    expect({ bridgeSelector }).toEqual({ bridgeSelector: ":where(*)" });
+  });
 });
 
 describe("G2: no foreign palette or literal colors leak into the emitted CSS", () => {

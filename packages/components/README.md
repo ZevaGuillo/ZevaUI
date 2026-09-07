@@ -308,6 +308,28 @@ color, size, or radius — only `var(--zui-*)` references, enforced by a build
 gate (`G1` in `__tests__/css-gates.test.ts`) that fails the build if any
 declaration in the component layer isn't a zero-literal-payload pointer.
 
+**Scoped overrides work anywhere in the tree**, including a `theme-*` class on
+a section rather than on `<html>`:
+
+```html
+<section class="theme-dark">
+  <!-- components in here paint dark, on an otherwise light page -->
+</section>
+```
+
+That is worth stating explicitly because it was broken until `0.2.3`. The
+component layer bridges each `--zui-*` into an internal `--zuip-*`, and a CSS
+custom property substitutes its `var()` at the element that *declares* it —
+so a bridge declared once on `:root` resolved every value against the root and
+inherited it already resolved, and no override further down the tree could
+reach it. Overriding at `:root` worked; overriding on a wrapper silently did
+nothing, and so did a nested `theme-*` class. The bridge is now declared on
+every element, so each one re-resolves against the `--zui-*` it actually
+inherits.
+
+You never need to name `--zuip-*` yourself. It is internal, its names differ
+from the public ones, and overriding it is not supported.
+
 ## No `className`, no `style` — by design
 
 No component in this package accepts `className` or `style` — not `Button`,
