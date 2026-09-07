@@ -9,6 +9,8 @@ export type {
 } from "./button/button.types.js";
 export { Card } from "./card/Card.js";
 export type { CardPartProps, CardProps, CardSurface } from "./card/card.types.js";
+export { Checkbox } from "./checkbox/Checkbox.js";
+export type { CheckboxProps, CheckboxSize } from "./checkbox/checkbox.types.js";
 export { Dialog } from "./dialog/Dialog.js";
 export type { DialogPlacement, DialogProps, DialogSize } from "./dialog/dialog.types.js";
 export { Input } from "./input/Input.js";

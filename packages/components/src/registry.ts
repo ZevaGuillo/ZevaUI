@@ -2,6 +2,7 @@ import type { RecipeConfig, SlotRecipeConfig } from "@pandacss/dev";
 import { ALERT_RECIPE_KEY, alertRecipe } from "./alert/alert.recipe.js";
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
 import { CARD_RECIPE_KEY, cardRecipe } from "./card/card.recipe.js";
+import { CHECKBOX_RECIPE_KEY, checkboxRecipe } from "./checkbox/checkbox.recipe.js";
 import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
@@ -130,5 +131,15 @@ export const componentRegistry = [
     recipe: alertRecipe,
     modulePath: "alert/Alert.js",
     clientOnly: false,
+  },
+  // The first markable control, and the shape Switch and RadioGroup are meant to inherit. A slot
+  // recipe like Input, but its state lands on the ROOT rather than on the styled part, because
+  // that is where react-aria-components puts it — see the argument in checkbox.recipe.ts.
+  {
+    name: "Checkbox",
+    recipeKey: CHECKBOX_RECIPE_KEY,
+    recipe: checkboxRecipe,
+    modulePath: "checkbox/Checkbox.js",
+    clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
