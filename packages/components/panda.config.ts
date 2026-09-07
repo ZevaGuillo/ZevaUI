@@ -56,6 +56,7 @@ export default defineConfig({
   // `prefix.className` here double-prefixes every recipe selector into
   // ".zui-zui-button" — verified against real 1.12.0 output, not assumed.
   prefix: { cssVar: "zuip" },
+  cssVarRoot: ":where(*)",
   include: ["./src/**/*.{ts,tsx}"],
   outdir: "styled-system",
   outExtension: "js",
