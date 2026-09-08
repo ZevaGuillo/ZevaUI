@@ -12,7 +12,13 @@ import { slotRecipeClassNames } from "../src/internal/slot-recipe-class.js";
 import { Switch } from "../src/switch/Switch.js";
 import { switchRecipe } from "../src/switch/switch.recipe.js";
 import type { SwitchProps } from "../src/switch/switch.types.js";
-import { emittedStylesheet } from "./support/emitted-css.js";
+import {
+  ancestorStateSelectors,
+  emittedStylesheet,
+  hoverSelectorsFor,
+  hoverSelectorsNotExcludingInvalid,
+  selectorsMentioning,
+} from "./support/emitted-css.js";
 
 afterEach(() => {
   cleanup();
@@ -231,36 +237,17 @@ describe("Switch state attributes are stamped on the track the recipe styles", (
   // an invalid switch loses its red border the moment the pointer touches it.
   it("never lets the hover tint outrank the invalid border", () => {
     const css = emittedStylesheet();
-    const hoverSelectors = [...css.matchAll(/([^{}]*)\{/g)]
-      .flatMap((match) => match[1].split(","))
-      .map((selector) => selector.trim())
-      .filter(
-        (selector) => selector.includes("zui-switch__track") && selector.includes("[data-hovered]"),
-      );
-
-    expect(hoverSelectors.length).toBeGreaterThan(0);
-    for (const selector of hoverSelectors) {
-      expect({ selector, excludesInvalid: selector.includes(":not([data-invalid])") }).toEqual({
-        selector,
-        excludesInvalid: true,
-      });
-    }
+    // Guarded against vacuity first, and the guard has to be on HOVER rules specifically: an
+    // empty offender list reads as a pass, so proving only that the class is mentioned somewhere
+    // proves nothing — base rules for it always exist. Review caught that exact hole here.
+    expect(hoverSelectorsFor(css, "zui-switch__track").length).toBeGreaterThan(0);
+    expect(hoverSelectorsNotExcludingInvalid(css, "zui-switch__track")).toEqual([]);
   });
 
   it("emits no rule that could reach a switch from an ancestor's state", () => {
     const css = emittedStylesheet();
-    const switchRules = [...css.matchAll(/([^{}]*)\{/g)]
-      .map((match) => match[1].trim())
-      .filter((selector) => selector.includes("zui-switch"));
-
-    expect(switchRules.length).toBeGreaterThan(0);
-    for (const selector of switchRules) {
-      for (const part of selector.split(",")) {
-        // Any state attribute must be attached directly to a zui-switch class, never standing
-        // alone as an ancestor condition.
-        expect(part.trim()).not.toMatch(/(^|\s)\[data-[a-z-]+\]/);
-      }
-    }
+    expect(selectorsMentioning(css, "zui-switch").length).toBeGreaterThan(0);
+    expect(ancestorStateSelectors(css, "zui-switch")).toEqual([]);
   });
 });
 

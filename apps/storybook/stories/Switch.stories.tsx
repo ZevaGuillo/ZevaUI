@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Switch } from "@zevaui/components";
 import { expect, userEvent, within } from "storybook/test";
+import { assertHoverDoesNotOutrankInvalid } from "./support/markable-control.js";
 
 // Every story here carries a real label, so the whole file must pass the blocking a11y gate —
 // including axe's color-contrast rule, which only executes in browser mode (ADR-0004 D7). The
@@ -158,35 +159,11 @@ export const HoveringAnInvalidSwitchKeepsItRed: Story = {
     </>
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const trackOf = (name: string) =>
-      canvas
-        .getByRole("switch", { name })
-        .closest("label")
-        ?.querySelector(".zui-switch__track") as HTMLElement;
-
-    const hoveredInvalid = trackOf("Invalid, will be hovered");
-    const restingInvalid = trackOf("Invalid, left alone");
-    const hoveredValid = trackOf("Valid, will be hovered");
-
-    // THE HOVER IS SET DIRECTLY, NOT SIMULATED, for the reason the equivalent Checkbox story
-    // records: `userEvent.hover` does not drive react-aria's hover state in this runner, so
-    // asserting through it would produce a test that passes for the wrong reason. `data-hovered`
-    // on this track is not react-aria's attribute anyway — `Switch.tsx` stamps it from the
-    // render prop precisely so the recipe's rules stay local. The stimulus is synthetic; the
-    // measurement is not, since `getComputedStyle` resolves the real stylesheet in a real
-    // browser, which is the only place a specificity bug is ever visible.
-    hoveredInvalid.setAttribute("data-hovered", "true");
-    hoveredValid.setAttribute("data-hovered", "true");
-
-    expect(restingInvalid).not.toHaveAttribute("data-hovered");
-
-    const borderOf = (track: HTMLElement) => getComputedStyle(track).borderColor;
-
-    // Compared against other rendered controls rather than a colour literal: the tokens differ
-    // per theme, so any hard-coded expectation would be wrong in two of the three theme runs.
-    expect(borderOf(hoveredInvalid)).toBe(borderOf(restingInvalid));
-    expect(borderOf(hoveredInvalid)).not.toBe(borderOf(hoveredValid));
+    assertHoverDoesNotOutrankInvalid(canvasElement, "switch", ".zui-switch__track", {
+      hoveredInvalid: "Invalid, will be hovered",
+      restingInvalid: "Invalid, left alone",
+      hoveredValid: "Valid, will be hovered",
+    });
   },
 };
 

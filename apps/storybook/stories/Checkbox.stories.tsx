@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Checkbox } from "@zevaui/components";
 import { expect, userEvent, within } from "storybook/test";
+import { assertHoverDoesNotOutrankInvalid } from "./support/markable-control.js";
 
 // Every story here carries a real label, so the whole file must pass the blocking a11y gate —
 // including axe's color-contrast rule, which only executes in browser mode (ADR-0004 D7). For a
@@ -114,40 +115,11 @@ export const HoveringAnInvalidCheckboxKeepsItRed: Story = {
     </>
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const boxOf = (name: string) =>
-      canvas
-        .getByRole("checkbox", { name })
-        .closest("label")
-        ?.querySelector(".zui-checkbox__control") as HTMLElement;
-
-    const hoveredInvalid = boxOf("Invalid, will be hovered");
-    const restingInvalid = boxOf("Invalid, left alone");
-    const hoveredValid = boxOf("Valid, will be hovered");
-
-    // THE HOVER IS SET DIRECTLY, NOT SIMULATED, and that is a measured decision rather than a
-    // shortcut. `userEvent.hover` does not drive react-aria's hover state in this runner:
-    // `data-hovered` stayed null after hovering the box AND after hovering the root `<label>`
-    // react-aria actually listens on. Asserting through a stimulus that does not arrive would
-    // have produced a test that passes for the wrong reason.
-    //
-    // `data-hovered` on this box is not react-aria's attribute anyway — `Checkbox.tsx` stamps it
-    // from the render prop, precisely so the recipe's rules can be local. Setting it here
-    // exercises the contract this story is about: given a box carrying both `data-hovered` and
-    // `data-invalid`, which rule wins the cascade. The stimulus is synthetic; the measurement is
-    // not — `getComputedStyle` resolves the real stylesheet in a real browser, which is the only
-    // place the specificity bug was ever visible.
-    hoveredInvalid.setAttribute("data-hovered", "true");
-    hoveredValid.setAttribute("data-hovered", "true");
-
-    expect(restingInvalid).not.toHaveAttribute("data-hovered");
-
-    const borderOf = (box: HTMLElement) => getComputedStyle(box).borderColor;
-
-    // Compared against other rendered controls rather than a colour literal: the tokens differ
-    // per theme, so any hard-coded expectation would be wrong in two of the three theme runs.
-    expect(borderOf(hoveredInvalid)).toBe(borderOf(restingInvalid));
-    expect(borderOf(hoveredInvalid)).not.toBe(borderOf(hoveredValid));
+    assertHoverDoesNotOutrankInvalid(canvasElement, "checkbox", ".zui-checkbox__control", {
+      hoveredInvalid: "Invalid, will be hovered",
+      restingInvalid: "Invalid, left alone",
+      hoveredValid: "Valid, will be hovered",
+    });
   },
 };
 
