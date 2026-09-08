@@ -22,3 +22,5 @@ export type {
   MenuSize,
   MenuWidth,
 } from "./menu/menu.types.js";
+export { Switch } from "./switch/Switch.js";
+export type { SwitchProps, SwitchSize } from "./switch/switch.types.js";
