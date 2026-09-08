@@ -202,6 +202,29 @@ describe("Switch state attributes are stamped on the track the recipe styles", (
     expect(pill?.hasAttribute("data-disabled")).toBe(false);
   });
 
+  // The `control` slot is the one place this recipe styles state it does NOT stamp itself: the
+  // `&[data-disabled]` and `&[data-readonly]` rules rely on react-aria-components putting those
+  // attributes on the `SwitchButton` label. Every other stateful rule keys off an attribute
+  // `Switch.tsx` writes explicitly, so this is the only assumption in the file about upstream
+  // behaviour — and an unasserted assumption is exactly how a rule stops applying in silence
+  // when a dependency changes. Measured against RAC 1.20 rather than assumed, after a first
+  // measurement that omitted `cleanup()` between renders reported `data-disabled` on a read-only
+  // control and was wrong.
+  it("lets react-aria stamp disabled and read-only on the control the recipe styles", () => {
+    renderSwitch({ children: "Enable notifications", isDisabled: true });
+    expect(document.querySelector("label")?.getAttribute("data-disabled")).toBe("true");
+
+    cleanup();
+    renderSwitch({ children: "Enable notifications", isReadOnly: true });
+    const control = document.querySelector("label");
+    // Read-only is its OWN state, not a flavour of disabled: the rules differ (`cursor: default`
+    // rather than `not-allowed` plus `opacity: 0.5`), and a read-only control stays focusable.
+    expect(control?.getAttribute("data-readonly")).toBe("true");
+    expect(control?.hasAttribute("data-disabled")).toBe(false);
+    expect(document.querySelector("input")?.getAttribute("aria-readonly")).toBe("true");
+    expect(document.querySelector("input")?.hasAttribute("disabled")).toBe(false);
+  });
+
   // The same specificity bug review caught on Checkbox, guarded before it can be re-introduced:
   // `[data-hovered]:not([data-disabled])` scores (0,3,0) against `[data-invalid]`'s (0,2,0),
   // because a `:not()` argument carries its own weight. Without the `:not([data-invalid])` guard
