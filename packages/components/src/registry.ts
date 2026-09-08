@@ -6,6 +6,7 @@ import { CHECKBOX_RECIPE_KEY, checkboxRecipe } from "./checkbox/checkbox.recipe.
 import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
+import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
 
 /**
  * One declaration per component, consumed by everything that used to hardcode "Button":
@@ -140,6 +141,17 @@ export const componentRegistry = [
     recipeKey: CHECKBOX_RECIPE_KEY,
     recipe: checkboxRecipe,
     modulePath: "checkbox/Checkbox.js",
+    clientOnly: true,
+  },
+  // The second markable control. It inherits Checkbox's shape — a slot recipe whose state
+  // attributes are stamped on the styled part rather than read from an ancestor — but is built on
+  // SwitchField + SwitchButton, because RAC 1.20 deprecates the flat `Switch` AND omits
+  // `isRequired`/`isInvalid` from its props. See the argument in Switch.tsx.
+  {
+    name: "Switch",
+    recipeKey: SWITCH_RECIPE_KEY,
+    recipe: switchRecipe,
+    modulePath: "switch/Switch.js",
     clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
