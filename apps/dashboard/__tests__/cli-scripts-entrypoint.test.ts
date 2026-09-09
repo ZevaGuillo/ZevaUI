@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // These are the only tests in the suite that spawn the real npm script
 // entrypoints as a child process, the way `pnpm run <script>` does. Every
@@ -20,6 +20,27 @@ const packageJson: { scripts: Record<string, string> } = JSON.parse(
   readFileSync(path.join(appRoot, "package.json"), "utf8"),
 );
 
+/**
+ * THE CHILD'S BUDGET AND THE TEST'S BUDGET ARE ONE NUMBER, because they were two and they drifted.
+ *
+ * Every test in this file starts a real `node`/`tsx` process, and starting one — module
+ * resolution included — is not fast. `spawnSync`'s timeout is what bounds a HUNG CHILD; Vitest's
+ * per-test timeout is what bounds the TEST. Leaving the second at its 5 s default made the first
+ * unreachable: a test was killed at 5 s while its child still held 25 s of budget it could never
+ * use, so the larger number was dead letter.
+ *
+ * It surfaced as a flake rather than a failure, which is why it survived. MEASURED, not supposed:
+ * run alone the spawn takes ~2 s and passes; run under `turbo run test`, with every other
+ * package's suite competing for the machine, it crosses 5 s and the test dies.
+ *
+ * Set for the whole file rather than per test, because the property belongs to the file — these
+ * are "the only tests in the suite that spawn the real npm script entrypoints", as the comment
+ * above says. A per-test argument would also force the three-argument `it` form and reindent
+ * every body here, hiding a two-line fix inside sixty lines of churn.
+ */
+const CHILD_BUDGET_MS = 30_000;
+vi.setConfig({ testTimeout: CHILD_BUDGET_MS + 5_000 });
+
 /** Spawns a package.json script string exactly as pnpm/npm would invoke it. */
 function spawnScript(command: string, env: NodeJS.ProcessEnv) {
   return spawnSync(command, {
@@ -27,7 +48,7 @@ function spawnScript(command: string, env: NodeJS.ProcessEnv) {
     shell: true,
     encoding: "utf8",
     env,
-    timeout: 30_000,
+    timeout: CHILD_BUDGET_MS,
   });
 }
 
