@@ -239,10 +239,12 @@ function requiredSelectors(recipe: GateRecipe): string[] {
   ];
 }
 
-const missingSelectors = (source: string, recipe: GateRecipe): string[] => {
-  const heads = headsOf(source);
-  return requiredSelectors(recipe).filter((className) => !hasRule(heads, className));
-};
+const missingFrom = (heads: readonly string[], recipe: GateRecipe): string[] =>
+  requiredSelectors(recipe).filter((className) => !hasRule(heads, className));
+
+/** For a one-off source. The registry gate reads its heads ONCE and calls `missingFrom` instead. */
+const missingSelectors = (source: string, recipe: GateRecipe): string[] =>
+  missingFrom(headsOf(source), recipe);
 
 describe("G5: every declared recipe variant renders a matching rule", () => {
   it("has at least one registered component to gate (sanity check)", () => {
@@ -256,8 +258,13 @@ describe("G5: every declared recipe variant renders a matching rule", () => {
   });
 
   it("emits every rule the registered recipes owe, driven off the recipes themselves", () => {
+    // Read ONCE, outside the loop, and that is the whole point rather than tidiness: every
+    // component the registry gains would otherwise re-scan the same stylesheet, which is the
+    // grow-with-the-component-count curve `selectorSegments` exists to flatten. Scanning per
+    // component would be a milder version of the defect this gate's own timeout came from.
+    const heads = headsOf(css);
     for (const { name, recipe } of componentRegistry) {
-      expect({ [name]: missingSelectors(css, recipe) }).toEqual({ [name]: [] });
+      expect({ [name]: missingFrom(heads, recipe) }).toEqual({ [name]: [] });
     }
   });
 });

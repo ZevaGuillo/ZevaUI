@@ -41,6 +41,16 @@ export type MarkableControl = {
  * Vacuity is guarded FIRST, and specifically on hover rules: an empty offender list reads as a
  * pass, so proving only that the class is mentioned somewhere proves nothing — base rules for it
  * always exist. Review caught that exact hole.
+ *
+ * THIS IS THE CHEAP HALF, and the other half is not optional. What is asserted here is the
+ * emitted SELECTOR; the rendered consequence is measured in a real browser by each control's own
+ * hovering-an-invalid-control story — `HoveringAnInvalidCheckboxKeepsItRed` and
+ * `HoveringAnInvalidSwitchKeepsItRed` — through `assertHoverDoesNotOutrankInvalid` in the
+ * stories' own support module. The split is the same
+ * two-altitude reasoning G1 and the ThemeContract story use: the selector is the input, the
+ * painted border is what a user actually sees, and only `getComputedStyle` in a real browser
+ * resolves the cascade. Losing the pointer between the two halves was raised by review when
+ * these assertions were extracted here, so it is written down rather than remembered.
  */
 export const assertHoverDoesNotOutrankInvalid = (css: string, control: MarkableControl): void => {
   expect(hoverSelectorsFor(css, control.statefulPart).length).toBeGreaterThan(0);
@@ -60,7 +70,10 @@ export const assertNoAncestorReachesTheControl = (css: string, control: Markable
 
 /** Both cascade guards, as tests, against the real emitted stylesheet. */
 export const itGuardsTheCascade = (control: MarkableControl): void => {
-  it("never lets the hover tint outrank the invalid border", () => {
+  // Both titles name the control, so the two callers never emit the same one. Vitest scopes by
+  // file and describe anyway, but anything that aggregates results by bare title — a flaky-test
+  // tracker, a dashboard — would otherwise fold `Checkbox`'s guard and `Switch`'s into one row.
+  it(`never lets the hover tint outrank an invalid ${control.name}'s border`, () => {
     assertHoverDoesNotOutrankInvalid(emittedStylesheet(), control);
   });
 
