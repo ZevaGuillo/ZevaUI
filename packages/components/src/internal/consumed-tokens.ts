@@ -8,6 +8,8 @@
 // `--zuip-x: var(--zui-y)`. So this selects the rule blocks belonging to the component's own
 // class names, then walks each `--zuip-*` reference back through the bridge.
 
+import { selectorSegments } from "./selector-segments.js";
+
 // A class name ends where an identifier character stops, so `.zui-card` never matches
 // `.zui-card-header` and never swallows a sibling component's rules.
 const CLASS_NAME_BOUNDARY = "(?![A-Za-z0-9_-])";
@@ -60,24 +62,11 @@ export function consumedTokens(css: string, classNames: readonly string[]): stri
   const selectorMatchers = classNames.map(classSelectorPattern);
 
   const tokens = new Set<string>();
-  // A selector is everything since the previous brace, either kind. The
-  // obvious /([^{}]*)\{/g spelling of that is super-linear (Sonar S8786):
-  // inside a huge brace-free rule body every position retries the scan to
-  // the body's end, and the manifest test's 64 KiB body took ~3 s. One
-  // explicit pass tracks the same segment boundary in linear time.
-  let segmentStart = 0;
-  for (let i = 0; i < css.length; i += 1) {
-    const ch = css[i];
-    if (ch === "}") {
-      segmentStart = i + 1;
-      continue;
-    }
-    if (ch !== "{") continue;
-    const selectorText = css.slice(segmentStart, i);
-    segmentStart = i + 1;
-    if (!selectorMatchers.some((matcher) => matcher.test(selectorText))) continue;
+  // `selectorSegments` owns the scan and the measured reason it has to be one linear pass.
+  for (const { selector, openBraceIndex } of selectorSegments(css)) {
+    if (!selectorMatchers.some((matcher) => matcher.test(selector))) continue;
 
-    const body = blockAt(css, i);
+    const body = blockAt(css, openBraceIndex);
     for (const reference of body.matchAll(/var\((--zuip-[a-z0-9-]+)\)/g)) {
       const upstream = bridge.get(reference[1]);
       if (upstream !== undefined) tokens.add(upstream);

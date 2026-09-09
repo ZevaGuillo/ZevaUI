@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { classSelectorPattern } from "../src/internal/consumed-tokens.js";
 import { variantClassName } from "../src/internal/recipe-class.js";
+import { selectorSegments } from "../src/internal/selector-segments.js";
 import { emittedSlotClassNames } from "../src/internal/slot-recipe-class.js";
 import { componentRegistry, isSlotRecipe } from "../src/registry.js";
 
@@ -194,12 +195,21 @@ describe("G4: every var(--zui-*) reference resolves against @zevaui/tokens", () 
 // before the brace. Matching on `\.<class>\s*\{` sees only the last member of such a list and
 // redlights a perfectly styled variant. Slot recipes hit this constantly, because per-slot
 // variant styles are so often identical across two values of the same axis.
-const hasRule = (source: string, className: string): boolean => {
+//
+// THE HEADS ARE READ ONCE PER SOURCE, and that is a CI-stability fix rather than a
+// micro-optimisation. Scanning inside `hasRule` re-read the whole stylesheet once PER CLASS with
+// the super-linear `/([^{}]*)\{/g`, so the gate cost O(classes x stylesheet). That is invisible
+// with one component and fatal with several: the registry now owes ~159 class checks against
+// ~23 KB of CSS, which timed out at Vitest's 5 s default on CI, where this file measured 8.1 s.
+// Every component added makes it worse, so raising the timeout would only postpone the failure.
+// `selectorSegments` is the linear pass `consumedTokens` already needed for the same reason —
+// shared rather than spelled a third way, since a copy that drifts stops matching the gate.
+const headsOf = (source: string): string[] =>
+  selectorSegments(source).map(({ selector }) => selector);
+
+const hasRule = (heads: readonly string[], className: string): boolean => {
   const pattern = classSelectorPattern(className);
-  for (const match of source.matchAll(/([^{}]*)\{/g)) {
-    if (pattern.test(match[1])) return true;
-  }
-  return false;
+  return heads.some((head) => pattern.test(head));
 };
 
 type GateRecipe = {
@@ -229,8 +239,10 @@ function requiredSelectors(recipe: GateRecipe): string[] {
   ];
 }
 
-const missingSelectors = (source: string, recipe: GateRecipe): string[] =>
-  requiredSelectors(recipe).filter((className) => !hasRule(source, className));
+const missingSelectors = (source: string, recipe: GateRecipe): string[] => {
+  const heads = headsOf(source);
+  return requiredSelectors(recipe).filter((className) => !hasRule(heads, className));
+};
 
 describe("G5: every declared recipe variant renders a matching rule", () => {
   it("has at least one registered component to gate (sanity check)", () => {

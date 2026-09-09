@@ -12,6 +12,7 @@ import { Card } from "../src/card/Card.js";
 import { cardRecipe } from "../src/card/card.recipe.js";
 import type { CardPartProps, CardProps } from "../src/card/card.types.js";
 import { classSelectorPattern } from "../src/internal/consumed-tokens.js";
+import { selectorSegments } from "../src/internal/selector-segments.js";
 import { emittedSlotClassNames, slotRecipeClassNames } from "../src/internal/slot-recipe-class.js";
 import { emittedStylesheet } from "./support/emitted-css.js";
 
@@ -143,9 +144,12 @@ describe("Card public API surface (type-level)", () => {
 // styles `root` alone here, so the emitted set is 4 base slot rules + 2 root variant rules, NOT
 // 4 slots x 2 values. See `slot-recipe-class.ts` for the measured rule this pins.
 describe("the emitted CSS has exactly the base + root-variant rules Card owes", () => {
+  // One linear pass over the emitted sheet, shared with the CSS gates: the obvious regex
+  // spelling is super-linear, and a per-class rescan is what timed the gates out on CI.
+  const heads = selectorSegments(css).map((segment) => segment.selector);
   const hasRule = (className: string): boolean => {
     const pattern = classSelectorPattern(className);
-    return [...css.matchAll(/([^{}]*)\{/g)].some((match) => pattern.test(match[1]));
+    return heads.some((head) => pattern.test(head));
   };
 
   it("emits all 4 base slot rules and exactly 2 root variant rules", () => {
