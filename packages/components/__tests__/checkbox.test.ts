@@ -12,13 +12,7 @@ import { Checkbox } from "../src/checkbox/Checkbox.js";
 import { checkboxRecipe } from "../src/checkbox/checkbox.recipe.js";
 import type { CheckboxProps } from "../src/checkbox/checkbox.types.js";
 import { slotRecipeClassNames } from "../src/internal/slot-recipe-class.js";
-import {
-  ancestorStateSelectors,
-  emittedStylesheet,
-  hoverSelectorsFor,
-  hoverSelectorsNotExcludingInvalid,
-  selectorsMentioning,
-} from "./support/emitted-css.js";
+import { itGuardsTheCascade } from "./support/markable-control-css.js";
 
 afterEach(() => {
   cleanup();
@@ -226,30 +220,10 @@ describe("Checkbox state attributes are stamped on the box the recipe styles", (
     expect(box?.hasAttribute("data-invalid")).toBe(false);
   });
 
-  // The hover tint must never outrank the invalid border. Found by the review, not by me, and it
-  // was real: `[data-hovered]:not([data-disabled])` scores (0,3,0) against `[data-invalid]`'s
-  // (0,2,0) — a `:not()` argument carries its own weight — so an invalid checkbox lost its red
-  // border the moment the pointer touched it, which is the one moment the user is looking at it.
-  //
-  // This is the cheap local guard on the emitted selector. The rendered consequence is asserted
-  // in a real browser by the `HoveringAnInvalidCheckboxKeepsItRed` story, for the same
-  // two-altitude reason G1 and the ThemeContract story split that work: the selector is the
-  // input, the painted border is what a user sees.
-  it("never lets the hover tint outrank the invalid border", () => {
-    const css = emittedStylesheet();
-    // Guarded against vacuity first, and the guard has to be on HOVER rules specifically: an
-    // empty offender list reads as a pass, so proving only that the class is mentioned somewhere
-    // proves nothing — base rules for it always exist. Review caught that exact hole here.
-    expect(hoverSelectorsFor(css, "zui-checkbox__control").length).toBeGreaterThan(0);
-    expect(hoverSelectorsNotExcludingInvalid(css, "zui-checkbox__control")).toEqual([]);
-  });
-
-  it("emits no rule that could reach a checkbox from an ancestor's state", () => {
-    const css = emittedStylesheet();
-    // Every checkbox rule that mentions a state attribute must qualify it with the control's own
-    // class. A bare `[data-selected] .zui-checkbox__control` is exactly the regression.
-    expect(selectorsMentioning(css, "zui-checkbox").length).toBeGreaterThan(0);
-    expect(ancestorStateSelectors(css, "zui-checkbox")).toEqual([]);
+  itGuardsTheCascade({
+    name: "checkbox",
+    classPrefix: "zui-checkbox",
+    statefulPart: "zui-checkbox__control",
   });
 });
 
