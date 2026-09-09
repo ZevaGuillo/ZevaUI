@@ -51,13 +51,14 @@ export const assertHoverDoesNotOutrankInvalid = (
   const canvas = within(canvasElement);
   // Resolved, then CHECKED, rather than cast. The optional chain can legitimately yield null —
   // the control may have no `label` ancestor, or `partSelector` may stop matching — and casting
-  // that away would defer the failure to the `setAttribute` below, which throws an opaque
-  // TypeError from inside a helper two components now share. Since extraction concentrated the
-  // failure point, it has to say what it could not find. Named by review as the cost of sharing.
+  // that away would defer the failure to the `dataset` write below, which throws a TypeError
+  // naming only `null` from inside a helper two components now share. Since extraction
+  // concentrated the failure point, it has to say WHAT it could not find, which is why the throw
+  // here carries the selector and the accessible name. Named by review as the cost of sharing.
   const partOf = (name: string): HTMLElement => {
     const part = canvas.getByRole(role, { name }).closest("label")?.querySelector(partSelector);
     if (!(part instanceof HTMLElement)) {
-      throw new Error(
+      throw new TypeError(
         `No element matching "${partSelector}" inside the <label> of the ${role} named "${name}". ` +
           `The control's DOM structure or its part class changed.`,
       );
@@ -69,8 +70,8 @@ export const assertHoverDoesNotOutrankInvalid = (
   const restingInvalid = partOf(names.restingInvalid);
   const hoveredValid = partOf(names.hoveredValid);
 
-  hoveredInvalid.setAttribute("data-hovered", "true");
-  hoveredValid.setAttribute("data-hovered", "true");
+  hoveredInvalid.dataset.hovered = "true";
+  hoveredValid.dataset.hovered = "true";
 
   expect(restingInvalid).not.toHaveAttribute("data-hovered");
 

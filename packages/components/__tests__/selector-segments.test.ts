@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { classSelectorPattern } from "../src/internal/consumed-tokens.js";
 import { selectorSegments } from "../src/internal/selector-segments.js";
 
 const selectorsOf = (css: string): string[] =>
@@ -42,5 +43,39 @@ describe("selectorSegments: one linear pass over a stylesheet's rule heads", () 
 
   it("ignores a trailing head that never opens a brace", () => {
     expect(selectorsOf(".a{color:red}.b")).toEqual([".a"]);
+  });
+
+  // A stray closing brace before any rule resets a boundary that was never open, which is a
+  // no-op rather than an off-by-one. Worth pinning because the reset is unconditional.
+  it("survives a closing brace before any rule opens", () => {
+    expect(selectorsOf("}.a{color:red}")).toEqual([".a"]);
+  });
+});
+
+// KNOWN LIMITATION, MEASURED AND PINNED rather than papered over or silently fixed.
+//
+// The scan does not parse strings, comments or url() literals, so a brace inside one is read as
+// a real boundary. Both prior implementations behaved identically — this is the shared version of
+// a limitation that already shipped, not a regression the extraction introduced.
+//
+// It is left unfixed deliberately. The input is `dist/styles.css`, which Panda generates, and
+// string-literal braces would have to appear in a `content` or `url()` value to matter. Teaching
+// the scanner to parse CSS strings would buy nothing the callers can observe, and the second test
+// below is the reason: a spurious head is INERT, because it names no class, so every caller —
+// all of which ask "does this head name my class?" — skips it.
+describe("selectorSegments and braces inside literals", () => {
+  it("splits inside a string literal, producing a head that is not a selector", () => {
+    expect(selectorsOf('.a{content:"{"}.b{color:red}')).toEqual([".a", 'content:"', ".b"]);
+  });
+
+  it("still answers the only question its callers ask, because a spurious head names no class", () => {
+    const css = '.zui-x{content:"{"}.zui-y{background:url(a{b)}';
+    const heads = selectorSegments(css).map(({ selector }) => selector);
+    const names = (className: string) =>
+      heads.some((head) => classSelectorPattern(className).test(head));
+
+    expect(names("zui-x")).toBe(true);
+    expect(names("zui-y")).toBe(true);
+    expect(heads.filter((head) => head.includes("."))).toEqual([".zui-x", ".zui-y"]);
   });
 });
