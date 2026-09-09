@@ -12,13 +12,7 @@ import { slotRecipeClassNames } from "../src/internal/slot-recipe-class.js";
 import { Switch } from "../src/switch/Switch.js";
 import { switchRecipe } from "../src/switch/switch.recipe.js";
 import type { SwitchProps } from "../src/switch/switch.types.js";
-import {
-  ancestorStateSelectors,
-  emittedStylesheet,
-  hoverSelectorsFor,
-  hoverSelectorsNotExcludingInvalid,
-  selectorsMentioning,
-} from "./support/emitted-css.js";
+import { itGuardsTheCascade } from "./support/markable-control-css.js";
 
 afterEach(() => {
   cleanup();
@@ -231,23 +225,10 @@ describe("Switch state attributes are stamped on the track the recipe styles", (
     expect(document.querySelector("input")?.hasAttribute("disabled")).toBe(false);
   });
 
-  // The same specificity bug review caught on Checkbox, guarded before it can be re-introduced:
-  // `[data-hovered]:not([data-disabled])` scores (0,3,0) against `[data-invalid]`'s (0,2,0),
-  // because a `:not()` argument carries its own weight. Without the `:not([data-invalid])` guard
-  // an invalid switch loses its red border the moment the pointer touches it.
-  it("never lets the hover tint outrank the invalid border", () => {
-    const css = emittedStylesheet();
-    // Guarded against vacuity first, and the guard has to be on HOVER rules specifically: an
-    // empty offender list reads as a pass, so proving only that the class is mentioned somewhere
-    // proves nothing — base rules for it always exist. Review caught that exact hole here.
-    expect(hoverSelectorsFor(css, "zui-switch__track").length).toBeGreaterThan(0);
-    expect(hoverSelectorsNotExcludingInvalid(css, "zui-switch__track")).toEqual([]);
-  });
-
-  it("emits no rule that could reach a switch from an ancestor's state", () => {
-    const css = emittedStylesheet();
-    expect(selectorsMentioning(css, "zui-switch").length).toBeGreaterThan(0);
-    expect(ancestorStateSelectors(css, "zui-switch")).toEqual([]);
+  itGuardsTheCascade({
+    name: "switch",
+    classPrefix: "zui-switch",
+    statefulPart: "zui-switch__track",
   });
 });
 
