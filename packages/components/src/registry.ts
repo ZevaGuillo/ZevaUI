@@ -6,6 +6,7 @@ import { CHECKBOX_RECIPE_KEY, checkboxRecipe } from "./checkbox/checkbox.recipe.
 import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
+import { RADIO_GROUP_RECIPE_KEY, radioGroupRecipe } from "./radio-group/radio-group.recipe.js";
 import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
 
 /**
@@ -152,6 +153,16 @@ export const componentRegistry = [
     recipeKey: SWITCH_RECIPE_KEY,
     recipe: switchRecipe,
     modulePath: "switch/Switch.js",
+    clientOnly: true,
+  },
+  // The third markable control, and the first that is a GROUP: `isRequired`/`isInvalid` live on
+  // the group rather than on any one option, which is where RAC 1.20 puts them and the opposite
+  // of what Checkbox and Switch do. See the argument in radio-group.recipe.ts.
+  {
+    name: "RadioGroup",
+    recipeKey: RADIO_GROUP_RECIPE_KEY,
+    recipe: radioGroupRecipe,
+    modulePath: "radio-group/RadioGroup.js",
     clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
