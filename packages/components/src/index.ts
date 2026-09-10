@@ -22,5 +22,12 @@ export type {
   MenuSize,
   MenuWidth,
 } from "./menu/menu.types.js";
+export { RadioGroup } from "./radio-group/RadioGroup.js";
+export type {
+  RadioGroupOrientation,
+  RadioGroupProps,
+  RadioGroupSize,
+  RadioOptionDescriptor,
+} from "./radio-group/radio-group.types.js";
 export { Switch } from "./switch/Switch.js";
 export type { SwitchProps, SwitchSize } from "./switch/switch.types.js";

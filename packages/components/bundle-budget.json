@@ -11,55 +11,61 @@
   },
   "entries": {
     "Card": {
-      "measuredGzipBytes": 710,
-      "measuredAtCommit": "63ee97124ce09f26aae78c6243776d63672e91a1",
+      "measuredGzipBytes": 711,
+      "measuredAtCommit": "341819654b5de129e13625e505b643ff609e8f4a",
       "maxGzipBytes": 842
     },
     "Checkbox": {
       "imports": ["Checkbox"],
       "measuredGzipBytes": 15921,
-      "measuredAtCommit": "63ee97124ce09f26aae78c6243776d63672e91a1",
+      "measuredAtCommit": "341819654b5de129e13625e505b643ff609e8f4a",
       "maxGzipBytes": 17505
     },
     "Alert": {
       "measuredGzipBytes": 494,
-      "measuredAtCommit": "63ee97124ce09f26aae78c6243776d63672e91a1",
+      "measuredAtCommit": "341819654b5de129e13625e505b643ff609e8f4a",
       "maxGzipBytes": 618
     },
     "Button": {
       "imports": ["Button"],
       "measuredGzipBytes": 13771,
-      "measuredAtCommit": "63ee97124ce09f26aae78c6243776d63672e91a1",
+      "measuredAtCommit": "341819654b5de129e13625e505b643ff609e8f4a",
       "maxGzipBytes": 14973
     },
     "Input": {
       "imports": ["Input"],
       "measuredGzipBytes": 12353,
-      "measuredAtCommit": "63ee97124ce09f26aae78c6243776d63672e91a1",
+      "measuredAtCommit": "341819654b5de129e13625e505b643ff609e8f4a",
       "maxGzipBytes": 13589
     },
     "Dialog": {
       "imports": ["Dialog"],
       "measuredGzipBytes": 25811,
-      "measuredAtCommit": "63ee97124ce09f26aae78c6243776d63672e91a1",
+      "measuredAtCommit": "341819654b5de129e13625e505b643ff609e8f4a",
       "maxGzipBytes": 28233
     },
     "Menu": {
       "imports": ["Menu"],
       "measuredGzipBytes": 51232,
-      "measuredAtCommit": "63ee97124ce09f26aae78c6243776d63672e91a1",
+      "measuredAtCommit": "341819654b5de129e13625e505b643ff609e8f4a",
       "maxGzipBytes": 56195
+    },
+    "RadioGroup": {
+      "imports": ["RadioGroup"],
+      "measuredGzipBytes": 19136,
+      "measuredAtCommit": "341819654b5de129e13625e505b643ff609e8f4a",
+      "maxGzipBytes": 21050
     },
     "Switch": {
       "imports": ["Switch"],
       "measuredGzipBytes": 15583,
-      "measuredAtCommit": "63ee97124ce09f26aae78c6243776d63672e91a1",
+      "measuredAtCommit": "341819654b5de129e13625e505b643ff609e8f4a",
       "maxGzipBytes": 17142
     },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 59928,
-      "measuredAtCommit": "63ee97124ce09f26aae78c6243776d63672e91a1",
+      "measuredGzipBytes": 61973,
+      "measuredAtCommit": "341819654b5de129e13625e505b643ff609e8f4a",
       "maxGzipBytes": 62534
     }
   }
