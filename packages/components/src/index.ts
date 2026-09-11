@@ -29,6 +29,12 @@ export type {
   RadioGroupSize,
   RadioOptionDescriptor,
 } from "./radio-group/radio-group.types.js";
+export { Select } from "./select/Select.js";
+export type {
+  SelectOptionDescriptor,
+  SelectProps,
+  SelectSize,
+} from "./select/select.types.js";
 export { Switch } from "./switch/Switch.js";
 export type { SwitchProps, SwitchSize } from "./switch/switch.types.js";
 export { Textarea } from "./textarea/Textarea.js";
