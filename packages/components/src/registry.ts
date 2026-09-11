@@ -7,6 +7,7 @@ import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
 import { RADIO_GROUP_RECIPE_KEY, radioGroupRecipe } from "./radio-group/radio-group.recipe.js";
+import { SELECT_RECIPE_KEY, selectRecipe } from "./select/select.recipe.js";
 import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
 import { TEXTAREA_RECIPE_KEY, textareaRecipe } from "./textarea/textarea.recipe.js";
 
@@ -175,6 +176,19 @@ export const componentRegistry = [
     recipeKey: TEXTAREA_RECIPE_KEY,
     recipe: textareaRecipe,
     modulePath: "textarea/Textarea.js",
+    clientOnly: true,
+  },
+  // The first entry that is BOTH a field and an overlay: it owes Input its resting appearance and
+  // Menu its raised surface, and is the first collection in this package that exposes SELECTION,
+  // so `[data-selected]` on a row is styled here for the first time (menu.recipe.ts documents it
+  // as unreachable for Menu). It is also the first control of any kind with an open/closed state:
+  // `[data-open]` lands on the ROOT, so Select.tsx stamps it onto the trigger and the chevron
+  // rather than reading it off an ancestor — see the argument in select.recipe.ts.
+  {
+    name: "Select",
+    recipeKey: SELECT_RECIPE_KEY,
+    recipe: selectRecipe,
+    modulePath: "select/Select.js",
     clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
