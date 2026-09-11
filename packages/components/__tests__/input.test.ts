@@ -12,6 +12,11 @@ import { Input } from "../src/input/Input.js";
 import { inputRecipe } from "../src/input/input.recipe.js";
 import type { InputProps } from "../src/input/input.types.js";
 import { slotRecipeClassNames } from "../src/internal/slot-recipe-class.js";
+import {
+  emittedStylesheet,
+  hoverSelectorsFor,
+  hoverSelectorsNotExcludingInvalid,
+} from "./support/emitted-css.js";
 
 afterEach(() => {
   cleanup();
@@ -165,6 +170,21 @@ describe("Input", () => {
     // does not depend on @testing-library/jest-dom.
     expect(document.activeElement).toBe(input);
     expect(input.getAttribute("data-focus-visible")).toBe("true");
+  });
+
+  // Input carried the unguarded hover spelling for its whole life: `[data-hovered]:not(
+  // [data-disabled])` scores (0,3,0) against the invalid rule's (0,2,0), so hovering an invalid
+  // field repainted its border from red back to accent. Review caught the defect on `Checkbox`,
+  // Input never received the fix, and `Textarea` then inherited it by being written from this
+  // file. Both text surfaces now read the rule from `internal/text-surface.ts`; this pins that
+  // Input actually emits the fixed form.
+  //
+  // Vacuity is guarded FIRST: with no hover rule emitted at all the emptiness assertion below
+  // would pass while checking nothing.
+  it("never lets the hover tint outrank an invalid input's border", () => {
+    const css = emittedStylesheet();
+    expect(hoverSelectorsFor(css, "zui-input__input").length).toBeGreaterThan(0);
+    expect(hoverSelectorsNotExcludingInvalid(css, "zui-input__input")).toEqual([]);
   });
 });
 
