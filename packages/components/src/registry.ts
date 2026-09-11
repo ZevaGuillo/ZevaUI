@@ -8,6 +8,7 @@ import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
 import { RADIO_GROUP_RECIPE_KEY, radioGroupRecipe } from "./radio-group/radio-group.recipe.js";
 import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
+import { TEXTAREA_RECIPE_KEY, textareaRecipe } from "./textarea/textarea.recipe.js";
 
 /**
  * One declaration per component, consumed by everything that used to hardcode "Button":
@@ -163,6 +164,17 @@ export const componentRegistry = [
     recipeKey: RADIO_GROUP_RECIPE_KEY,
     recipe: radioGroupRecipe,
     modulePath: "radio-group/RadioGroup.js",
+    clientOnly: true,
+  },
+  // The second text surface, and the first entry added after three markable controls in a row.
+  // It goes back to Input's shape — a slot recipe wrapping RAC's `TextField` — because `TextArea`
+  // reuses `InputRenderProps` verbatim in RAC 1.20, so the two share their state attributes
+  // exactly. Its own recipe all the same: see the argument in textarea.recipe.ts.
+  {
+    name: "Textarea",
+    recipeKey: TEXTAREA_RECIPE_KEY,
+    recipe: textareaRecipe,
+    modulePath: "textarea/Textarea.js",
     clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
