@@ -12,7 +12,11 @@ import { slotRecipeClassNames } from "../src/internal/slot-recipe-class.js";
 import { Textarea } from "../src/textarea/Textarea.js";
 import { textareaRecipe } from "../src/textarea/textarea.recipe.js";
 import type { TextareaProps } from "../src/textarea/textarea.types.js";
-import { emittedStylesheet, hoverSelectorsNotExcludingInvalid } from "./support/emitted-css.js";
+import {
+  emittedStylesheet,
+  hoverSelectorsFor,
+  hoverSelectorsNotExcludingInvalid,
+} from "./support/emitted-css.js";
 
 afterEach(() => {
   cleanup();
@@ -210,9 +214,13 @@ describe("Textarea", () => {
   // on Checkbox; `Input` still carries the unguarded spelling, which is why this assertion reads
   // the real emitted stylesheet rather than trusting the recipe object.
   it("never lets the hover tint outrank an invalid textarea's border", () => {
-    expect(
-      hoverSelectorsNotExcludingInvalid(emittedStylesheet(), "zui-textarea__textarea"),
-    ).toEqual([]);
+    const css = emittedStylesheet();
+    // Vacuity is guarded FIRST, the same order `assertHoverDoesNotOutrankInvalid` uses: with no
+    // hover rule emitted at all — a deleted rule, a renamed slot, a stale stylesheet — the
+    // emptiness assertion below passes while checking nothing. Review caught that exact hole
+    // once, and the targeted validator caught this test missing it.
+    expect(hoverSelectorsFor(css, "zui-textarea__textarea").length).toBeGreaterThan(0);
+    expect(hoverSelectorsNotExcludingInvalid(css, "zui-textarea__textarea")).toEqual([]);
   });
 });
 

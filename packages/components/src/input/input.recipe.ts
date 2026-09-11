@@ -1,4 +1,12 @@
 import type { SlotRecipeConfig } from "@pandacss/dev";
+import {
+  textFieldDescription,
+  textFieldError,
+  textFieldLabel,
+  textFieldRoot,
+  textSurfaceBase,
+  textSurfacePadding,
+} from "../internal/text-surface.js";
 
 export const INPUT_RECIPE_KEY = "input";
 
@@ -12,97 +20,32 @@ export const INPUT_RECIPE_KEY = "input";
 //   input -> data-hovered, data-focused, data-focus-visible, data-disabled, data-invalid
 //   label / description / error carry no state attributes, so anything state-dependent on them
 //   has to be driven from the input itself.
+//
+// The shared declarations live in `../internal/text-surface.js`, which `Textarea` reads from too.
+// That module carries the argument for why this one pair shares a source while the other eight
+// recipes import nothing but Panda's type — short version: these two drifted, and the drift
+// shipped the hover/invalid specificity bug twice.
 export const inputRecipe = {
   className: "zui-input",
   slots: ["root", "label", "input", "description", "error"],
   base: {
-    root: {
-      display: "flex",
-      flexDirection: "column",
-      // No generic spacing scale is exposed (only component-scoped space tokens), so the field's
-      // internal rhythm is derived from its own vertical padding rather than a foreign token.
-      gap: "calc({spacing.input.py} * 0.5)",
-    },
-    label: {
-      fontFamily: "body",
-      fontSize: "body",
-      fontWeight: "body",
-      lineHeight: "body",
-      color: "text.default",
-    },
+    root: textFieldRoot,
+    label: textFieldLabel,
     input: {
       width: "100%",
-      boxSizing: "border-box",
-      borderRadius: "input",
-      borderWidth: "1px",
-      borderStyle: "solid",
-      // `border.strong` (not `border.default`) because this boundary is what identifies the
-      // control, which is exactly what WCAG 1.4.11 measures. It now clears the 3.0 floor
-      // against both backgrounds the input can sit on (4.84 light / 3.67 dark against
-      // bg-surface, its own background; 4.63 light / 4.16 dark against bg-canvas), since the
-      // PR2 token repoint — see packages/constraints/README.md and docs/adrs/0010.
-      borderColor: "border.strong",
-      backgroundColor: "bg.surface",
-      color: "text.default",
-      fontFamily: "body",
-      fontSize: "body",
-      fontWeight: "body",
-      lineHeight: "body",
-      "&[data-hovered]:not([data-disabled])": {
-        borderColor: "accent.default",
-      },
-      "&[data-focus-visible]": {
-        outlineWidth: "2px",
-        outlineStyle: "solid",
-        outlineColor: "focusRing",
-        outlineOffset: "2px",
-      },
-      // Colour is not the sole invalid signal: FieldError renders real text, and RAC sets
-      // aria-invalid plus aria-describedby on the input, so the state survives without it.
-      "&[data-invalid]": {
-        borderColor: "danger.default",
-      },
-      "&[data-disabled]": {
-        cursor: "not-allowed",
-        opacity: 0.5,
-      },
+      ...textSurfaceBase,
     },
-    description: {
-      fontFamily: "body",
-      fontSize: "body",
-      lineHeight: "body",
-      color: "text.secondary",
-    },
-    error: {
-      fontFamily: "body",
-      fontSize: "body",
-      lineHeight: "body",
-      color: "text.danger",
-    },
+    description: textFieldDescription,
+    error: textFieldError,
   },
   variants: {
     // Styles the `input` slot only. Panda therefore emits `--size_*` rules for that slot alone,
     // which is why slotRecipeClassNames filters per slot instead of stamping every axis onto
     // every slot.
     size: {
-      sm: {
-        input: {
-          paddingInline: "calc({spacing.input.px} * 0.75)",
-          paddingBlock: "calc({spacing.input.py} * 0.75)",
-        },
-      },
-      md: {
-        input: {
-          paddingInline: "input.px",
-          paddingBlock: "input.py",
-        },
-      },
-      lg: {
-        input: {
-          paddingInline: "calc({spacing.input.px} * 1.5)",
-          paddingBlock: "calc({spacing.input.py} * 1.5)",
-        },
-      },
+      sm: { input: textSurfacePadding.sm },
+      md: { input: textSurfacePadding.md },
+      lg: { input: textSurfacePadding.lg },
     },
   },
   defaultVariants: {
