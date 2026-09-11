@@ -31,3 +31,9 @@ export type {
 } from "./radio-group/radio-group.types.js";
 export { Switch } from "./switch/Switch.js";
 export type { SwitchProps, SwitchSize } from "./switch/switch.types.js";
+export { Textarea } from "./textarea/Textarea.js";
+export type {
+  TextareaProps,
+  TextareaResize,
+  TextareaSize,
+} from "./textarea/textarea.types.js";
