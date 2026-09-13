@@ -29,6 +29,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { classSelectorPattern } from "../../src/internal/consumed-tokens.js";
+import { selectorSegments } from "../../src/internal/selector-segments.js";
 
 const packageRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
@@ -133,3 +135,28 @@ export const hoverSelectorsNotExcludingInvalid = (css: string, styledClass: stri
   hoverSelectorsFor(css, styledClass).filter(
     (selector) => !selector.includes(":not([data-invalid])"),
   );
+
+/**
+ * A predicate over class names: true when the stylesheet emits a rule whose selector mentions
+ * `.<className>` as a whole class rather than as the prefix of a longer one.
+ *
+ * A FACTORY rather than a plain `(css, className)` helper, and that shape is the whole point.
+ * Four test files had each grown the same body — one `selectorSegments` pass hoisted to describe
+ * scope, then a closure testing `classSelectorPattern` against it. Written as a two-argument call
+ * it would rescan the sheet once per class, which is the super-linear shape that timed the CSS
+ * gates out on CI and the reason those files hoisted the pass by hand in the first place. Taking
+ * the sheet once and returning the closure keeps that single linear scan with one owner instead
+ * of four copies.
+ *
+ * The callers named their local copies differently — `hasRule` where the subject is a component's
+ * own class, `isStyled` where it is a manifest entry being checked for any styling at all. Both
+ * ask the same question of the same sheet, so both now call this; the name stays at the call site
+ * where it carries the meaning.
+ */
+export const styledClassPredicate = (css: string): ((className: string) => boolean) => {
+  const heads = selectorSegments(css).map((segment) => segment.selector);
+  return (className: string): boolean => {
+    const pattern = classSelectorPattern(className);
+    return heads.some((head) => pattern.test(head));
+  };
+};
