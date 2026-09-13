@@ -1,5 +1,6 @@
 import type { CssKeyframes, RecipeConfig, SlotRecipeConfig } from "@pandacss/dev";
 import { ALERT_RECIPE_KEY, alertRecipe } from "./alert/alert.recipe.js";
+import { BADGE_RECIPE_KEY, badgeRecipe } from "./badge/badge.recipe.js";
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
 import { CARD_RECIPE_KEY, cardRecipe } from "./card/card.recipe.js";
 import { CHECKBOX_RECIPE_KEY, checkboxRecipe } from "./checkbox/checkbox.recipe.js";
@@ -236,5 +237,17 @@ export const componentRegistry = [
     modulePath: "progress/Progress.js",
     clientOnly: true,
     keyframes: progressKeyframes,
+  },
+  // The first component since Alert that is neither a control nor a container: a short label with
+  // a background and nothing else. It is also the first `clientOnly: false` entry added after five
+  // client components in a row, which is the half of ADR-0001 D3 that had only Card and Alert
+  // exercising it. Its tone is a BACKGROUND only — never a text colour — for the contrast reason
+  // measured on Alert; see badge.recipe.ts.
+  {
+    name: "Badge",
+    recipeKey: BADGE_RECIPE_KEY,
+    recipe: badgeRecipe,
+    modulePath: "badge/Badge.js",
+    clientOnly: false,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];

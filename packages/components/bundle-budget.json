@@ -70,6 +70,11 @@
       "measuredAtCommit": "7dfe1f76a425d03e2b3e4829429e697b5f78d985",
       "maxGzipBytes": 6663
     },
+    "Badge": {
+      "measuredGzipBytes": 522,
+      "measuredAtCommit": "7dfe1f76a425d03e2b3e4829429e697b5f78d985",
+      "maxGzipBytes": 653
+    },
     "barrel": {
       "imports": "*",
       "measuredGzipBytes": 73682,
