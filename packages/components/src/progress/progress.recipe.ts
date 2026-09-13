@@ -39,12 +39,15 @@ export const progressKeyframes = {
 //    of a token this package already bridges. A theme that RAISES `radius.input` only rounds it
 //    further, and `overflow: hidden` on the track keeps the fill inside that shape either way.
 //
-// 3. THE TRACK AND FILL CARRY THEIR OWN `data-indeterminate`, for the reason checkbox.recipe.ts
-//    argues at length: react-aria-components puts the state on the ROOT (as the absence of
-//    `aria-valuenow` — its documented selector is `:not([aria-valuenow])`), and repainting a
-//    descendant from an ancestor's state needs a bare `[data-indeterminate] .zui-progress__fill`,
-//    which matches ANY ancestor carrying that attribute. So `Progress.tsx` stamps the flag onto
-//    the two parts that react to it and every rule below is a LOCAL `&[data-indeterminate]`.
+// 3. THE FILL CARRIES ITS OWN `data-indeterminate`, for the reason checkbox.recipe.ts argues at
+//    length: react-aria-components puts the state on the ROOT (as the absence of `aria-valuenow`
+//    — its documented selector is `:not([aria-valuenow])`), and repainting a descendant from an
+//    ancestor's state needs a bare `[data-indeterminate] .zui-progress__fill`, which matches ANY
+//    ancestor carrying that attribute. So `Progress.tsx` stamps the flag onto the fill, the one
+//    part that repaints between the two states, and the rule below is a LOCAL
+//    `&[data-indeterminate]`. The track gets NO flag of its own: nothing about it changes between
+//    the states, and an attribute no rule reads is markup shipped for nobody — which
+//    progress.test.ts asserts, so this stays true rather than merely being written down.
 //
 // 4. THE INDETERMINATE SWEEP ANIMATES `inset-inline-start`, NOT `transform`. `translateX` is the
 //    compositor-friendly spelling and it is also PHYSICAL: in a right-to-left document the sweep
