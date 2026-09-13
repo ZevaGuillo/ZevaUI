@@ -13,6 +13,7 @@
       "maxGzipBytes": 842,
       "measuredGzipBytes": 673
     },
+    "Badge": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Button": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Checkbox": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Dialog": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
