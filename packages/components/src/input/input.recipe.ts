@@ -22,9 +22,10 @@ export const INPUT_RECIPE_KEY = "input";
 //   has to be driven from the input itself.
 //
 // The shared declarations live in `../internal/text-surface.js`, which `Textarea` reads from too.
-// That module carries the argument for why this one pair shares a source while the other eight
-// recipes import nothing but Panda's type — short version: these two drifted, and the drift
-// shipped the hover/invalid specificity bug twice.
+// That module carries the argument for why these two share a source while the other eight recipes
+// import nothing but Panda's type — short version: these two drifted, and the drift shipped the
+// hover/invalid specificity bug twice. `Select` reads the field chrome from there as well, but not
+// `textSurfaceBase`: only these two are driven by one `InputRenderProps` contract.
 export const inputRecipe = {
   className: "zui-input",
   slots: ["root", "label", "input", "description", "error"],

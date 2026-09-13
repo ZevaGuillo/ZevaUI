@@ -131,6 +131,48 @@ hueco medido en la ADR en vez de esconderlo. **Disparadores de revisión**:
 ya está diseñada y es de una línea: declarar entradas `Menu`/`Dialog`/
 `Input` con `imports` explícito en `bundle-budget.json` (ver D3).
 
+### D8. Toda entrada de componente se deriva del registro; `imports` sobrevive solo en el barrel
+
+*(2026-09-12 — cierra el residuo que dejó D7.)*
+
+D7 dejó la reparación escrita: declarar entradas `Menu`/`Dialog`/`Input` con
+`imports` explícito. Esa reparación se aplicó, y con `Checkbox`, `Switch`,
+`RadioGroup`, `Textarea` y `Select` los nueve componentes cliente acabaron
+declarados a mano. El hueco de COBERTURA quedó cerrado así; **el residuo no
+era la cobertura sino el silencio**: `budgetEntries` derivaba del registro
+solo los componentes `clientOnly: false`, de modo que una entrada server
+ausente era un fallo del gate y una entrada client ausente era un salto
+silencioso.
+
+Eso no es una hipótesis. `Select` llegó a rama pusheada y PR abierto sin
+presupuesto propio y con `size` en verde, porque nadie escribió su entrada a
+mano y nada la reclamó. La asimetría contradecía además el nombre del propio
+test del gate — *"derives entries and enforces ceilings without a
+hand-maintained list"* — mientras las entradas cliente eran, precisamente,
+una lista a mano.
+
+Ahora **todo** componente del registro es una entrada derivada. `clientOnly`
+elige la CLASE, que es lo que selecciona el multiplicador del techo; no
+decide si el componente se mide. Su entrada en `bundle-budget.json` conserva
+solo el ledger y el techo, y el campo `imports` sobrevive únicamente donde no
+hay nada de dónde derivar: el `"*"` del barrel. Medido antes de quitarlo, los
+nueve `imports` de componente eran exactamente `[su propio nombre]`, así que
+la lista a mano no expresaba nada que el registro no dijera ya.
+
+Dos consecuencias que se ganan de arriba:
+
+- Un componente **borrado** del registro deja una entrada huérfana y sin
+  `imports`, que es exactamente el caso "stale" que el gate ya fallaba en voz
+  alta.
+- El fixture negativo necesita una entrada por componente registrado. Su
+  ausencia hacía que `budgetEntries` lanzara — saliendo 1, indistinguible de
+  un techo excedido si solo se lee el código de salida, e invisible para
+  `isCrash`, que únicamente mira `null` o `>= 126`. Por eso
+  `assert-budget-fails.js` ya no acepta un código distinto de cero como
+  evidencia: exige que el veredicto del gate nombre `Card` y `CardAndButton`.
+  Un fixture desactualizado es ahora un FAIL ruidoso, no un gate verde que no
+  midió nada.
+
 ## Alternativas consideradas
 
 | Alternativa | Descartada porque |
@@ -178,12 +220,12 @@ ya está diseñada y es de una línea: declarar entradas `Menu`/`Dialog`/
 
 ## Seguimiento (decisiones diferidas)
 
-- **Cerrar el punto ciego de D7**: declarar entradas `Menu`, `Dialog` e
-  `Input` en `bundle-budget.json` con `imports` explícito, usando la misma
-  mecánica de detección de grafo ya probada por el fixture negativo
-  (`CardAndButton`). Disparador: una regresión del barrel que ninguna de las
-  cuatro entradas actuales explique, o el aterrizaje de un quinto componente
-  cliente.
+- **Cerrar el punto ciego de D7** — cerrado (2026-09-12). El disparador se
+  cumplió con creces: aterrizaron cinco componentes cliente (`Checkbox`,
+  `Switch`, `RadioGroup`, `Textarea`, `Select`) y sus entradas se declararon
+  a mano como estaba previsto. Lo que la reparación por declaración no cubría
+  era su propio olvido, y eso dejó pasar a `Select` sin presupuesto: D8
+  sustituye la declaración a mano por derivación desde el registro.
 - **Revisar los multiplicadores +25 % / +10 %** contra el primer bump real
   de dependencias que los ejercite, en vez de dejarlos como supuestos sin
   validar indefinidamente.

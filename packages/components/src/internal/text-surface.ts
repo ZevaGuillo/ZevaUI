@@ -1,5 +1,13 @@
 // The declarations `Input` and `Textarea` genuinely share, in one place.
 //
+// `Select` reads the FIELD CHROME below as well — the root's rhythm, the label, the description,
+// the error, and the padding steps — because a select stands in a column beside an input and must
+// not drift away from it. It deliberately does not read `textSurfaceBase`: that export's
+// justification is the shared `InputRenderProps` contract described further down, and a Select
+// trigger is a RAC `Button` that does not have it. `select.recipe.ts` decision 5 argues that
+// split, and the name of this module stays accurate because the text SURFACE is still the part
+// only the two text fields share.
+//
 // This is the ONLY cross-recipe import in the package, and it needed an argument to earn the
 // exception. Eight of the nine other recipes import nothing but Panda's type, and the near-
 // identical markable controls (Checkbox, Switch, RadioGroup) deliberately kept separate recipes
