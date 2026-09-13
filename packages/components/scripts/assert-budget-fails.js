@@ -27,13 +27,13 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { isCrash, reportCrash, runNode } from "@zevaui/config/gate-harness";
+import { overBudgetNames, VERDICT_MARKER } from "./bundle-budget.js";
 
 const LABEL = "bundle-budget-gate";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(scriptDir, "..");
 const checkScriptPath = path.join(scriptDir, "check-bundle-budget.js");
 const fixturePath = path.join(packageRoot, "__fixtures__", "budget-over.json");
-const VERDICT_MARKER = "[bundle-budget] OVER budget:";
 /** The two defects planted in the fixture. Both must appear in the gate's own verdict line. */
 const PLANTED_ENTRIES = ["Card", "CardAndButton"];
 
@@ -55,11 +55,12 @@ function main() {
     return;
   }
 
-  const verdictLine = (result.stderr ?? "")
-    .split("\n")
-    .find((line) => line.includes(VERDICT_MARKER));
+  // Exact names, parsed in the pure module: `Card` is a prefix of `CardAndButton`, so a substring
+  // test here would accept a verdict that named only the second and never notice the first had
+  // stopped firing. See `overBudgetNames`.
+  const overNames = overBudgetNames(result.stderr);
 
-  if (verdictLine === undefined) {
+  if (overNames === null) {
     console.error(
       `\n[${LABEL}] FAILED: check-bundle-budget.js exited ${result.status} but never printed ` +
         `its "${VERDICT_MARKER}" verdict, so it failed for some reason other than the planted ` +
@@ -70,10 +71,10 @@ function main() {
     return;
   }
 
-  const unnamed = PLANTED_ENTRIES.filter((name) => !verdictLine.includes(name));
+  const unnamed = PLANTED_ENTRIES.filter((name) => !overNames.includes(name));
   if (unnamed.length > 0) {
     console.error(
-      `\n[${LABEL}] FAILED: the verdict named ${verdictLine.trim()} but did not flag ` +
+      `\n[${LABEL}] FAILED: the verdict named ${overNames.join(", ")} but did not flag ` +
         `${unnamed.join(", ")}. Each planted entry proves a different property — Card the ` +
         "ceiling comparison, CardAndButton the multi-import measurement — so catching only " +
         "one of them leaves the other unproven.",

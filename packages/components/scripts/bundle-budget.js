@@ -96,6 +96,36 @@ export function verdict(entries, measurements) {
   });
 }
 
+/** The marker `check-bundle-budget.js` prints to stderr ahead of the entries it found OVER. */
+export const VERDICT_MARKER = "[bundle-budget] OVER budget:";
+
+/**
+ * The entry names in the gate's own OVER-budget verdict line, or `null` when the checker never
+ * printed one at all.
+ *
+ * EXACT names, never a substring test, and that distinction is the only reason this is a function
+ * here rather than an `includes` call at the call site. `Card` is a prefix of `CardAndButton`, so
+ * `stderr.includes("Card")` is satisfied by a verdict naming only `CardAndButton` — and the
+ * negative fixture plants both precisely because each proves a different property (the ceiling
+ * comparison, and the multi-import measurement). A prefix match would let the standalone ceiling
+ * comparison stop firing with nothing noticing: the same silent pass that `budgetEntries` above
+ * was changed to stop allowing, reintroduced one layer up in the gate that checks it.
+ *
+ * Returning `null` rather than an empty array keeps "printed no verdict" distinguishable from
+ * "printed a verdict naming nothing", because only the first means the checker failed for some
+ * other reason and proved nothing about ceilings.
+ */
+export function overBudgetNames(stderr) {
+  const line = (stderr ?? "").split("\n").find((candidate) => candidate.includes(VERDICT_MARKER));
+  if (line === undefined) return null;
+
+  return line
+    .slice(line.indexOf(VERDICT_MARKER) + VERDICT_MARKER.length)
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+}
+
 const REPORT_COLUMNS = [
   { header: "entry", cell: (row) => row.name },
   { header: "kind", cell: (row) => row.kind },

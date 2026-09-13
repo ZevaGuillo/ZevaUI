@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { budgetEntries, formatReport, verdict } from "../scripts/bundle-budget.js";
+import {
+  budgetEntries,
+  formatReport,
+  overBudgetNames,
+  VERDICT_MARKER,
+  verdict,
+} from "../scripts/bundle-budget.js";
 
 // A synthetic registry, not the real componentRegistry: this gate's pure logic is exercised
 // against a small, stable fixture so the test never drifts when a real component is added or
@@ -90,6 +96,43 @@ describe("G10: the bundle-budget gate derives entries and enforces ceilings with
       };
 
       expect(() => budgetEntries(registry, budget)).toThrow(/Ghost/);
+    });
+  });
+
+  // What `assert-budget-fails.js` reads to decide WHICH failure the checker reported. A nonzero
+  // exit alone cannot tell a caught overrun from `budgetEntries` throwing, so the gate that proves
+  // this gate has teeth depends on parsing this line correctly.
+  describe("overBudgetNames", () => {
+    it("returns the exact entry names the checker flagged", () => {
+      expect(overBudgetNames(`\n${VERDICT_MARKER} Card, CardAndButton`)).toEqual([
+        "Card",
+        "CardAndButton",
+      ]);
+    });
+
+    // The regression. `Card` is a prefix of `CardAndButton`, so a substring test would read this
+    // line as naming both and let the standalone ceiling comparison stop firing unnoticed.
+    it("does not let one name satisfy another it is a prefix of", () => {
+      const names = overBudgetNames(`${VERDICT_MARKER} CardAndButton`);
+
+      expect(names).toEqual(["CardAndButton"]);
+      expect(names).not.toContain("Card");
+    });
+
+    it("finds the verdict among the checker's other output lines", () => {
+      const stderr = ["some unrelated warning", `${VERDICT_MARKER} barrel`, ""].join("\n");
+
+      expect(overBudgetNames(stderr)).toEqual(["barrel"]);
+    });
+
+    // `null`, not `[]`: "printed no verdict" means the checker failed for some other reason and
+    // proved nothing about ceilings, which is a different outcome from flagging nothing.
+    it("returns null when the checker printed no verdict at all", () => {
+      expect(overBudgetNames('Error: bundle-budget.json is missing an entry for "Select"')).toBe(
+        null,
+      );
+      expect(overBudgetNames("")).toBe(null);
+      expect(overBudgetNames(undefined)).toBe(null);
     });
   });
 
