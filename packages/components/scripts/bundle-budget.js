@@ -6,13 +6,23 @@
 /**
  * Resolves the budget's declared entries against the component registry.
  *
- * A registry component with `clientOnly: false` is a DERIVED entry (ADR-0004 D4 "derive, never
- * hand-list"): it must have a matching `bundle-budget.json` entry, and a new server component
- * cannot land without one — its absence is a failure, not a skip.
+ * EVERY registry component is a DERIVED entry (ADR-0004 D4 "derive, never hand-list"): it must
+ * have a matching `bundle-budget.json` entry carrying its ledger and ceiling, and no component —
+ * server or client — can land without one. Its absence is a failure, not a skip. `clientOnly`
+ * only picks the entry's KIND, which is what selects the ceiling multiplier; it does not decide
+ * whether the component is measured at all.
  *
- * Any other budget entry is DECLARED: it must carry an explicit `imports` array (or `"*"` for
- * the whole barrel), because it has no registry counterpart to derive from. An entry that is
- * neither derived nor carries `imports` is stale — the budget names a bundle nothing produces.
+ * Client components used to be DECLARED instead, each hand-listing `imports: ["X"]`. The cost of
+ * that was measured rather than argued: a missing client entry was a silent skip, so `Select`
+ * reached a pushed branch and an open PR with no budget of its own and no gate said a word —
+ * the exact outcome the doctrine above exists to prevent. Every client entry's `imports` was
+ * `[itsOwnName]`, so nothing was expressed by hand-listing it that the registry did not already
+ * say.
+ *
+ * Any remaining budget entry is DECLARED: it must carry an explicit `imports` array (or `"*"`
+ * for the whole barrel), because it has no registry counterpart to derive from. An entry that is
+ * neither derived nor carries `imports` is stale — the budget names a bundle nothing produces,
+ * which is also what a DELETED component now leaves behind, and it fails loudly.
  */
 export function budgetEntries(registry, budget) {
   const declaredEntries = budget.entries ?? {};
@@ -20,18 +30,17 @@ export function budgetEntries(registry, budget) {
   const resolved = [];
 
   for (const component of registry) {
-    if (component.clientOnly !== false) continue;
     derivedNames.add(component.name);
     const entry = declaredEntries[component.name];
     if (entry === undefined) {
       throw new Error(
         `bundle-budget.json is missing an entry for "${component.name}" ` +
-          "(registered with clientOnly: false)",
+          `(registered in componentRegistry with clientOnly: ${component.clientOnly})`,
       );
     }
     resolved.push({
       name: component.name,
-      kind: "server",
+      kind: component.clientOnly === false ? "server" : "client",
       imports: [component.name],
       maxGzipBytes: entry.maxGzipBytes,
       measuredGzipBytes: entry.measuredGzipBytes,

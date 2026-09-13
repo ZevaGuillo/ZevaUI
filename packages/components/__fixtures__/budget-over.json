@@ -12,6 +12,15 @@
       "imports": ["Card", "Button"],
       "maxGzipBytes": 842,
       "measuredGzipBytes": 673
-    }
+    },
+    "Button": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Checkbox": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Dialog": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Input": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Menu": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "RadioGroup": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Select": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Switch": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Textarea": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 }
   }
 }

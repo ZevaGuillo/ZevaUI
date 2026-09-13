@@ -11,8 +11,10 @@ import {
 export const TEXTAREA_RECIPE_KEY = "textarea";
 
 // The multi-line sibling of Input. Both read their shared declarations from
-// `../internal/text-surface.js`, which carries the argument for why this one pair shares a source
-// while the other eight recipes import nothing but Panda's type.
+// `../internal/text-surface.js`, which carries the argument for why these two share a source while
+// the other eight recipes import nothing but Panda's type. `Select` reads the field chrome from
+// there as well, but not `textSurfaceBase`: only these two are driven by one `InputRenderProps`
+// contract.
 //
 // State is expressed through RAC's data attributes rather than variant axes, matching Input.
 // `TextArea` reuses `InputRenderProps` in react-aria-components 1.20, so the attributes below are

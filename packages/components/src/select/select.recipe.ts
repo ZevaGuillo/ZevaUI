@@ -1,4 +1,11 @@
 import type { SlotRecipeConfig } from "@pandacss/dev";
+import {
+  textFieldDescription,
+  textFieldError,
+  textFieldLabel,
+  textFieldRoot,
+  textSurfacePadding,
+} from "../internal/text-surface.js";
 
 export const SELECT_RECIPE_KEY = "select";
 
@@ -44,6 +51,23 @@ export const SELECT_RECIPE_KEY = "select";
 //
 //    The tint excludes hover for the reason decision 3 gives: `&[data-hovered]` would outrank
 //    `&[data-selected]` and the chosen row would lose its tint under the pointer.
+//
+// 5. THE SHARED FIELD CHROME IS READ FROM `internal/text-surface.ts`; THE TEXT SURFACE ITSELF IS
+//    NOT. That module exists because `Input` and `Textarea` drifted and the drift shipped the
+//    hover/invalid bug twice, and it holds the package's only cross-recipe import. Select reads
+//    the declarations whose correctness depends on nothing but appearance: the field column's
+//    rhythm, the label, the help text, the error text, and the trigger's padding steps.
+//
+//    It deliberately does NOT spread `textSurfaceBase`. The argument that earned that export is
+//    that `TextArea` reuses `InputRenderProps` verbatim in RAC 1.20, so one set of state rules is
+//    provably correct for both. That premise does not reach this trigger: it is a RAC `Button`
+//    whose own render props are only hover/press/focus/disabled, `data-invalid` arrives solely
+//    because `Select.tsx` stamps it off the root (decision 2), it owns a state neither text
+//    surface has (`data-open`), and it announces strictly less than they do (see the
+//    `aria-invalid` note in `Select.tsx`). Sharing declarations whose justification does not hold
+//    would seat a false premise inside a module whose entire purpose is one TRUE source. The
+//    drift is caught the way `Checkbox`, `Switch` and `RadioGroup` catch theirs instead — by
+//    contract: `select.test.ts` asserts the guard in decision 3 against the emitted stylesheet.
 export const selectRecipe = {
   className: "zui-select",
   slots: [
@@ -61,20 +85,11 @@ export const selectRecipe = {
     "itemDescription",
   ],
   base: {
-    root: {
-      display: "flex",
-      flexDirection: "column",
-      // No generic spacing scale is exposed (only component-scoped space tokens), so the field's
-      // internal rhythm is derived from its own vertical padding — exactly as Input does.
-      gap: "calc({spacing.input.py} * 0.5)",
-    },
-    label: {
-      fontFamily: "body",
-      fontSize: "body",
-      fontWeight: "body",
-      lineHeight: "body",
-      color: "text.default",
-    },
+    root: textFieldRoot,
+    label: textFieldLabel,
+    // Not `...textSurfaceBase`, and decision 5 carries the argument: these declarations match
+    // Input's to the byte today, but the render-prop contract that makes that export shareable is
+    // one this trigger does not have.
     trigger: {
       width: "100%",
       boxSizing: "border-box",
@@ -117,8 +132,11 @@ export const selectRecipe = {
         outlineColor: "focusRing",
         outlineOffset: "2px",
       },
-      // Colour is not the sole invalid signal: FieldError renders real text and RAC sets
-      // aria-invalid plus aria-describedby on the trigger, so the state survives without it.
+      // Colour is not the sole invalid signal: `FieldError` renders real text and RAC wires it
+      // into the trigger's `aria-describedby` — measured on `useField`, the only source of ARIA
+      // on `triggerProps`. That hook sets no `aria-invalid`, and nothing else in the Select path
+      // does either, so this control says WHAT is wrong without announcing that it IS invalid.
+      // `Select.tsx` carries the full argument; `select.test.ts` pins the absence.
       "&[data-invalid]": {
         borderColor: "danger.default",
       },
@@ -166,18 +184,8 @@ export const selectRecipe = {
         transitionProperty: "none",
       },
     },
-    description: {
-      fontFamily: "body",
-      fontSize: "body",
-      lineHeight: "body",
-      color: "text.secondary",
-    },
-    error: {
-      fontFamily: "body",
-      fontSize: "body",
-      lineHeight: "body",
-      color: "text.danger",
-    },
+    description: textFieldDescription,
+    error: textFieldError,
     popover: {
       display: "flex",
       flexDirection: "column",
@@ -276,14 +284,12 @@ export const selectRecipe = {
     // Purely geometric, like every other axis in this package: a tone axis would need a coloured
     // boundary, and the only strong-enough neutral this system ships fails WCAG 1.4.11.
     //
-    // The trigger's padding tracks `Input`'s multipliers exactly, so a select and an input of the
-    // same `size` line up in a form. The rows track `Menu`'s, so an open list reads like one.
+    // The trigger's padding is READ from Input's own steps rather than re-typed, so a select and
+    // an input of the same `size` cannot drift apart in a form. The rows track `Menu`'s
+    // multipliers, so an open list reads like one.
     size: {
       sm: {
-        trigger: {
-          paddingInline: "calc({spacing.input.px} * 0.75)",
-          paddingBlock: "calc({spacing.input.py} * 0.75)",
-        },
+        trigger: textSurfacePadding.sm,
         item: {
           paddingInline: "calc({spacing.card.px} * 0.75)",
           paddingBlock: "calc({spacing.button.py} * 0.5)",
@@ -292,19 +298,13 @@ export const selectRecipe = {
         itemDescription: { fontSize: "calc({fontSizes.body} * 0.8125)" },
       },
       md: {
-        trigger: {
-          paddingInline: "input.px",
-          paddingBlock: "input.py",
-        },
+        trigger: textSurfacePadding.md,
         item: { paddingInline: "card.px", paddingBlock: "button.py" },
         itemLabel: { fontSize: "body" },
         itemDescription: { fontSize: "calc({fontSizes.body} * 0.875)" },
       },
       lg: {
-        trigger: {
-          paddingInline: "calc({spacing.input.px} * 1.5)",
-          paddingBlock: "calc({spacing.input.py} * 1.5)",
-        },
+        trigger: textSurfacePadding.lg,
         item: {
           paddingInline: "calc({spacing.card.px} * 1.25)",
           paddingBlock: "calc({spacing.button.py} * 1.5)",

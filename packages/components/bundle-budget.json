@@ -16,7 +16,6 @@
       "maxGzipBytes": 842
     },
     "Checkbox": {
-      "imports": ["Checkbox"],
       "measuredGzipBytes": 15921,
       "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
       "maxGzipBytes": 17505
@@ -27,52 +26,50 @@
       "maxGzipBytes": 618
     },
     "Button": {
-      "imports": ["Button"],
       "measuredGzipBytes": 13771,
       "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
       "maxGzipBytes": 14973
     },
     "Input": {
-      "imports": ["Input"],
       "measuredGzipBytes": 12353,
       "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
       "maxGzipBytes": 13589
     },
     "Dialog": {
-      "imports": ["Dialog"],
       "measuredGzipBytes": 25811,
       "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
       "maxGzipBytes": 28233
     },
     "Menu": {
-      "imports": ["Menu"],
       "measuredGzipBytes": 51232,
       "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
       "maxGzipBytes": 56195
     },
     "RadioGroup": {
-      "imports": ["RadioGroup"],
       "measuredGzipBytes": 19136,
       "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
       "maxGzipBytes": 21050
     },
     "Switch": {
-      "imports": ["Switch"],
       "measuredGzipBytes": 15583,
       "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
       "maxGzipBytes": 17142
     },
     "Textarea": {
-      "imports": ["Textarea"],
       "measuredGzipBytes": 12404,
       "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
       "maxGzipBytes": 13645
     },
+    "Select": {
+      "measuredGzipBytes": 58871,
+      "measuredAtCommit": "220bd7291cfbbee48b2964ab78c29cef96e6155b",
+      "maxGzipBytes": 64759
+    },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 62290,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
-      "maxGzipBytes": 62534
+      "measuredGzipBytes": 71931,
+      "measuredAtCommit": "220bd7291cfbbee48b2964ab78c29cef96e6155b",
+      "maxGzipBytes": 79125
     }
   }
 }
