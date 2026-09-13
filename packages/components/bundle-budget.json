@@ -65,10 +65,15 @@
       "measuredAtCommit": "220bd7291cfbbee48b2964ab78c29cef96e6155b",
       "maxGzipBytes": 64759
     },
+    "Progress": {
+      "measuredGzipBytes": 6060,
+      "measuredAtCommit": "7dfe1f76a425d03e2b3e4829429e697b5f78d985",
+      "maxGzipBytes": 6663
+    },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 71931,
-      "measuredAtCommit": "220bd7291cfbbee48b2964ab78c29cef96e6155b",
+      "measuredGzipBytes": 73682,
+      "measuredAtCommit": "7dfe1f76a425d03e2b3e4829429e697b5f78d985",
       "maxGzipBytes": 79125
     }
   }

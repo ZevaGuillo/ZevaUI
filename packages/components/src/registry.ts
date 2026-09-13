@@ -1,4 +1,4 @@
-import type { RecipeConfig, SlotRecipeConfig } from "@pandacss/dev";
+import type { CssKeyframes, RecipeConfig, SlotRecipeConfig } from "@pandacss/dev";
 import { ALERT_RECIPE_KEY, alertRecipe } from "./alert/alert.recipe.js";
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
 import { CARD_RECIPE_KEY, cardRecipe } from "./card/card.recipe.js";
@@ -6,6 +6,11 @@ import { CHECKBOX_RECIPE_KEY, checkboxRecipe } from "./checkbox/checkbox.recipe.
 import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
+import {
+  PROGRESS_RECIPE_KEY,
+  progressKeyframes,
+  progressRecipe,
+} from "./progress/progress.recipe.js";
 import { RADIO_GROUP_RECIPE_KEY, radioGroupRecipe } from "./radio-group/radio-group.recipe.js";
 import { SELECT_RECIPE_KEY, selectRecipe } from "./select/select.recipe.js";
 import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
@@ -79,7 +84,33 @@ export type ComponentRegistryEntry = {
     readonly replacement?: string;
     readonly note?: string;
   };
+  /**
+   * `@keyframes` this component's recipe runs, keyed by animation name.
+   *
+   * Declared beside the recipe and carried here rather than hand-registered in `panda.config.ts`,
+   * for the same reason the recipe itself is: registering a component has to stay ONE entry plus
+   * one directory, and a config that hand-lists animations would quietly re-introduce a second
+   * place to remember. `panda.config.ts` merges every entry's keyframes into `theme.keyframes`.
+   *
+   * Absent by default — a transition needs no keyframes, and nine of the components here use
+   * nothing else. `Progress` is the first that cannot: a looping sweep has no start and end state
+   * a transition could interpolate between.
+   */
+  readonly keyframes?: CssKeyframes;
 };
+
+/**
+ * One entry's keyframes, read through the declared entry type.
+ *
+ * `componentRegistry` is `as const satisfies`, so each entry keeps its own literal type and the
+ * array's element type is a UNION in which only some members declare `keyframes` at all — reading
+ * the property off that union directly is a type error, no matter that the declared entry type
+ * marks it optional. Widening the whole registry to `ComponentRegistryEntry[]` to dodge that would
+ * throw away the literal recipe types every other derivation depends on, so the widening is
+ * confined to this one parameter instead. `deprecated` would need the same treatment the day a
+ * TypeScript consumer reads it; today only the JS manifest builder does.
+ */
+export const keyframesOf = (entry: ComponentRegistryEntry): CssKeyframes => entry.keyframes ?? {};
 
 // `as const satisfies` (not a type annotation) keeps each entry's literal recipe type intact,
 // the same reason the recipes themselves use `satisfies RecipeConfig`.
@@ -190,5 +221,20 @@ export const componentRegistry = [
     recipe: selectRecipe,
     modulePath: "select/Select.js",
     clientOnly: true,
+  },
+  // The first FEEDBACK component, and the first of any kind whose appearance is driven by a
+  // runtime number rather than by a variant or a state attribute — so it is also the first to
+  // render an inline style (the fill's width) and the first to declare `keyframes`, since a
+  // looping sweep has no pair of states a transition could interpolate between. It is
+  // `clientOnly: true` for a reason that needs no judgement call: RAC 1.20's
+  // `dist/exports/ProgressBar.d.ts` does `import 'client-only'`, so importing it from a React
+  // Server Component is a build-time error upstream.
+  {
+    name: "Progress",
+    recipeKey: PROGRESS_RECIPE_KEY,
+    recipe: progressRecipe,
+    modulePath: "progress/Progress.js",
+    clientOnly: true,
+    keyframes: progressKeyframes,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];

@@ -22,6 +22,8 @@ export type {
   MenuSize,
   MenuWidth,
 } from "./menu/menu.types.js";
+export { Progress } from "./progress/Progress.js";
+export type { ProgressProps, ProgressSize } from "./progress/progress.types.js";
 export { RadioGroup } from "./radio-group/RadioGroup.js";
 export type {
   RadioGroupOrientation,
