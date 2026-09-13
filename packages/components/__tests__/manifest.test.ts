@@ -3,11 +3,11 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { classSelectorPattern, consumedTokens } from "../src/internal/consumed-tokens.js";
+import { consumedTokens } from "../src/internal/consumed-tokens.js";
 import { variantClassName } from "../src/internal/recipe-class.js";
-import { selectorSegments } from "../src/internal/selector-segments.js";
 import { emittedSlotClassNames } from "../src/internal/slot-recipe-class.js";
 import { componentRegistry, isSlotRecipe } from "../src/registry.js";
+import { styledClassPredicate } from "./support/emitted-css.js";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const distDir = join(packageRoot, "dist");
@@ -115,13 +115,7 @@ describe("components.manifest.json shape", () => {
   // Panda merges rules with identical declaration blocks into one comma-separated selector list,
   // so the class need only appear somewhere in a rule's selector — see the matching gate in
   // __tests__/css-gates.test.ts for why demanding it sit right before the brace is wrong.
-  // One linear pass over the emitted sheet, shared with the CSS gates: the obvious regex
-  // spelling is super-linear, and a per-class rescan is what timed the gates out on CI.
-  const heads = selectorSegments(css).map((segment) => segment.selector);
-  const isStyled = (className: string): boolean => {
-    const pattern = classSelectorPattern(className);
-    return heads.some((head) => pattern.test(head));
-  };
+  const isStyled = styledClassPredicate(css);
 
   it("lists only classNames that appear as a selector in the emitted dist/styles.css", () => {
     for (const entry of componentRegistry) {

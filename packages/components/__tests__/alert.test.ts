@@ -11,10 +11,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { Alert } from "../src/alert/Alert.js";
 import { alertRecipe } from "../src/alert/alert.recipe.js";
 import type { AlertProps } from "../src/alert/alert.types.js";
-import { classSelectorPattern } from "../src/internal/consumed-tokens.js";
 import { recipeClassName } from "../src/internal/recipe-class.js";
-import { selectorSegments } from "../src/internal/selector-segments.js";
-import { emittedStylesheet } from "./support/emitted-css.js";
+import { emittedStylesheet, styledClassPredicate } from "./support/emitted-css.js";
 
 const css = emittedStylesheet();
 
@@ -99,13 +97,7 @@ describe("Alert public API surface (type-level)", () => {
 });
 
 describe("the emitted CSS has exactly the base plus three tone rules Alert owes", () => {
-  // One linear pass over the emitted sheet, shared with the CSS gates: the obvious regex
-  // spelling is super-linear, and a per-class rescan is what timed the gates out on CI.
-  const heads = selectorSegments(css).map((segment) => segment.selector);
-  const hasRule = (className: string): boolean => {
-    const pattern = classSelectorPattern(className);
-    return heads.some((head) => pattern.test(head));
-  };
+  const hasRule = styledClassPredicate(css);
 
   it("emits the base .zui-alert rule", () => {
     expect(hasRule("zui-alert")).toBe(true);

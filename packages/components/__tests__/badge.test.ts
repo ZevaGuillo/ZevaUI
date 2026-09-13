@@ -11,10 +11,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { Badge } from "../src/badge/Badge.js";
 import { badgeRecipe } from "../src/badge/badge.recipe.js";
 import type { BadgeProps, BadgeTone } from "../src/badge/badge.types.js";
-import { classSelectorPattern } from "../src/internal/consumed-tokens.js";
 import { recipeClassName } from "../src/internal/recipe-class.js";
 import { selectorSegments } from "../src/internal/selector-segments.js";
-import { emittedStylesheet } from "./support/emitted-css.js";
+import { emittedStylesheet, styledClassPredicate } from "./support/emitted-css.js";
 
 const css = emittedStylesheet();
 
@@ -107,13 +106,7 @@ describe("Badge public API surface (type-level)", () => {
 });
 
 describe("the emitted CSS has exactly the base plus five tone rules Badge owes", () => {
-  // One linear pass over the emitted sheet, shared with the CSS gates: the obvious regex
-  // spelling is super-linear, and a per-class rescan is what timed the gates out on CI.
-  const heads = selectorSegments(css).map((segment) => segment.selector);
-  const hasRule = (className: string): boolean => {
-    const pattern = classSelectorPattern(className);
-    return heads.some((head) => pattern.test(head));
-  };
+  const hasRule = styledClassPredicate(css);
 
   it("emits the base .zui-badge rule", () => {
     expect(hasRule("zui-badge")).toBe(true);
