@@ -1,5 +1,10 @@
-import { defineConfig, type RecipeConfig, type SlotRecipeConfig } from "@pandacss/dev";
-import { type ComponentRecipe, componentRegistry, isSlotRecipe } from "./src/registry";
+import {
+  type CssKeyframes,
+  defineConfig,
+  type RecipeConfig,
+  type SlotRecipeConfig,
+} from "@pandacss/dev";
+import { type ComponentRecipe, componentRegistry, isSlotRecipe, keyframesOf } from "./src/registry";
 
 // Derived, never a literal list (ADR-0004 D4): a value added to a recipe is emitted on the
 // next build, and gate G5 (see __tests__/css-gates.test.ts) fails if this drifts. Both recipe
@@ -16,10 +21,16 @@ const allVariantValues = (recipe: ComponentRecipe): Record<string, string[]> =>
 // edits, and a stream never has to remember which map its component belongs in.
 const recipes: Record<string, RecipeConfig> = {};
 const slotRecipes: Record<string, SlotRecipeConfig> = {};
+// Derived exactly like the two recipe maps above (ADR-0004 D4): a component that needs an
+// animation declares its `@keyframes` beside its recipe and carries them on its registry entry,
+// so this config never hand-lists one. Most components declare none — a transition needs no
+// keyframes — and an empty map emits nothing.
+const keyframes: CssKeyframes = {};
 
 for (const entry of componentRegistry) {
   if (isSlotRecipe(entry.recipe)) slotRecipes[entry.recipeKey] = entry.recipe;
   else recipes[entry.recipeKey] = entry.recipe;
+  Object.assign(keyframes, keyframesOf(entry));
 }
 
 // `staticCss.recipes` covers BOTH maps — verified against real Panda 1.12.0 output, where a slot
@@ -151,6 +162,7 @@ export default defineConfig({
     },
     recipes,
     slotRecipes,
+    keyframes,
   },
   staticCss: { recipes: staticCssRecipes },
 });

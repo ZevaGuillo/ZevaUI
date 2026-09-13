@@ -18,6 +18,7 @@
     "Dialog": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Input": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Menu": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Progress": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "RadioGroup": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Select": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Switch": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
