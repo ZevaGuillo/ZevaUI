@@ -72,13 +72,13 @@
     },
     "Badge": {
       "measuredGzipBytes": 522,
-      "measuredAtCommit": "7dfe1f76a425d03e2b3e4829429e697b5f78d985",
+      "measuredAtCommit": "7378cf87284fa2b287543dabab9a1e5a2ab49b02",
       "maxGzipBytes": 653
     },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 73682,
-      "measuredAtCommit": "7dfe1f76a425d03e2b3e4829429e697b5f78d985",
+      "measuredGzipBytes": 73879,
+      "measuredAtCommit": "7378cf87284fa2b287543dabab9a1e5a2ab49b02",
       "maxGzipBytes": 79125
     }
   }
