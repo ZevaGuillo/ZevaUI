@@ -39,6 +39,12 @@ export type {
   SelectProps,
   SelectSize,
 } from "./select/select.types.js";
+export { Skeleton } from "./skeleton/Skeleton.js";
+export type {
+  SkeletonProps,
+  SkeletonShape,
+  SkeletonWidth,
+} from "./skeleton/skeleton.types.js";
 export { Switch } from "./switch/Switch.js";
 export type { SwitchProps, SwitchSize } from "./switch/switch.types.js";
 export { Textarea } from "./textarea/Textarea.js";

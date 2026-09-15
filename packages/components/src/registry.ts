@@ -14,6 +14,11 @@ import {
 } from "./progress/progress.recipe.js";
 import { RADIO_GROUP_RECIPE_KEY, radioGroupRecipe } from "./radio-group/radio-group.recipe.js";
 import { SELECT_RECIPE_KEY, selectRecipe } from "./select/select.recipe.js";
+import {
+  SKELETON_RECIPE_KEY,
+  skeletonKeyframes,
+  skeletonRecipe,
+} from "./skeleton/skeleton.recipe.js";
 import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
 import { TEXTAREA_RECIPE_KEY, textareaRecipe } from "./textarea/textarea.recipe.js";
 
@@ -249,5 +254,19 @@ export const componentRegistry = [
     recipe: badgeRecipe,
     modulePath: "badge/Badge.js",
     clientOnly: false,
+  },
+  // The first entry that is BOTH server-renderable and animated: it declares `keyframes` like
+  // Progress does, but carries no "use client" directive, because nothing in it imports
+  // react-aria-components. It is also the first component whose entire public API exists to
+  // replace the `className` this package refuses to expose — `shape` and `width` are the typed
+  // stand-ins for the utility classes every other skeleton library sizes itself with. See
+  // skeleton.recipe.ts for why there is no `circle` shape and no length scale.
+  {
+    name: "Skeleton",
+    recipeKey: SKELETON_RECIPE_KEY,
+    recipe: skeletonRecipe,
+    modulePath: "skeleton/Skeleton.js",
+    clientOnly: false,
+    keyframes: skeletonKeyframes,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
