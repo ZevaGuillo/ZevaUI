@@ -12,78 +12,83 @@
   "entries": {
     "Card": {
       "measuredGzipBytes": 711,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 842
     },
     "Checkbox": {
       "measuredGzipBytes": 15921,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 17505
     },
     "Alert": {
       "measuredGzipBytes": 494,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 618
     },
     "Button": {
       "measuredGzipBytes": 13771,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 14973
     },
     "Input": {
-      "measuredGzipBytes": 12353,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
+      "measuredGzipBytes": 12410,
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 13589
     },
     "Dialog": {
-      "measuredGzipBytes": 25811,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
+      "measuredGzipBytes": 25810,
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 28233
     },
     "Menu": {
       "measuredGzipBytes": 51232,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 56195
     },
     "RadioGroup": {
       "measuredGzipBytes": 19136,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 21050
     },
     "Switch": {
-      "measuredGzipBytes": 15583,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
+      "measuredGzipBytes": 15582,
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 17142
     },
     "Textarea": {
-      "measuredGzipBytes": 12404,
-      "measuredAtCommit": "402e3e73f27a0027927b0b2025bb5f470fedf9c6",
+      "measuredGzipBytes": 12459,
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 13645
     },
     "Select": {
       "measuredGzipBytes": 58871,
-      "measuredAtCommit": "220bd7291cfbbee48b2964ab78c29cef96e6155b",
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 64759
     },
     "Progress": {
-      "measuredGzipBytes": 6060,
-      "measuredAtCommit": "7dfe1f76a425d03e2b3e4829429e697b5f78d985",
+      "measuredGzipBytes": 6072,
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 6663
     },
     "Badge": {
       "measuredGzipBytes": 522,
-      "measuredAtCommit": "7378cf87284fa2b287543dabab9a1e5a2ab49b02",
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 653
     },
     "Skeleton": {
       "measuredGzipBytes": 639,
-      "measuredAtCommit": "132365fe959c8d3e7e053e6afea04ff47b9215ed",
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 799
+    },
+    "Spinner": {
+      "measuredGzipBytes": 5954,
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
+      "maxGzipBytes": 6550
     },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 74083,
-      "measuredAtCommit": "132365fe959c8d3e7e053e6afea04ff47b9215ed",
+      "measuredGzipBytes": 74407,
+      "measuredAtCommit": "9f05e5c84093ad02420cfb643030e16269220077",
       "maxGzipBytes": 79125
     }
   }

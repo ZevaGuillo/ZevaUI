@@ -45,6 +45,12 @@ export type {
   SkeletonShape,
   SkeletonWidth,
 } from "./skeleton/skeleton.types.js";
+export { Spinner } from "./spinner/Spinner.js";
+export type {
+  SpinnerLabelVisibility,
+  SpinnerProps,
+  SpinnerSize,
+} from "./spinner/spinner.types.js";
 export { Switch } from "./switch/Switch.js";
 export type { SwitchProps, SwitchSize } from "./switch/switch.types.js";
 export { Textarea } from "./textarea/Textarea.js";
