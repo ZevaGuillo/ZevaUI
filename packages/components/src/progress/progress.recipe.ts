@@ -1,4 +1,5 @@
 import type { CssKeyframes, SlotRecipeConfig } from "@pandacss/dev";
+import { progressSurfaceLabel, progressSurfaceRoot } from "../internal/progress-surface.js";
 
 export const PROGRESS_RECIPE_KEY = "progress";
 
@@ -65,16 +66,12 @@ export const progressRecipe = {
     root: {
       display: "flex",
       flexDirection: "column",
-      // Derived from the body size rather than a `space.*` value, the same argument Checkbox
-      // makes for its own gap: the distance between a label and the bar it describes is a
-      // typographic measure, so it has to move when a theme changes its type scale.
-      gap: "calc({fontSizes.body} * 0.375)",
+      // A bar fills the column it is given; a spinner does not, which is why this one declaration
+      // stays here rather than moving into the shared surface.
       inlineSize: "100%",
-      fontFamily: "body",
-      fontSize: "body",
-      fontWeight: "body",
-      lineHeight: "body",
-      color: "text.default",
+      // The rhythm and the typography every ProgressBar-based root owns — see
+      // internal/progress-surface.ts, extracted when `Spinner` made this pair real.
+      ...progressSurfaceRoot,
     },
     header: {
       display: "flex",
@@ -85,11 +82,7 @@ export const progressRecipe = {
       justifyContent: "space-between",
       gap: "calc({fontSizes.body} * 0.5)",
     },
-    label: {
-      // No colour or family of its own: it inherits the root's, which is the single place this
-      // component's typography is declared.
-      minWidth: "0",
-    },
+    label: progressSurfaceLabel,
     valueText: {
       flex: "none",
       color: "text.secondary",

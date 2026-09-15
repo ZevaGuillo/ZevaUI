@@ -19,6 +19,7 @@ import {
   skeletonKeyframes,
   skeletonRecipe,
 } from "./skeleton/skeleton.recipe.js";
+import { SPINNER_RECIPE_KEY, spinnerKeyframes, spinnerRecipe } from "./spinner/spinner.recipe.js";
 import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
 import { TEXTAREA_RECIPE_KEY, textareaRecipe } from "./textarea/textarea.recipe.js";
 
@@ -268,5 +269,25 @@ export const componentRegistry = [
     modulePath: "skeleton/Skeleton.js",
     clientOnly: false,
     keyframes: skeletonKeyframes,
+  },
+  // The SECOND component built on react-aria-components' `ProgressBar`, and therefore the first
+  // time two entries here share a primitive. What they genuinely share now lives in
+  // `internal/progress-surface.ts`, extracted on arrival rather than in advance — the same rule
+  // `internal/text-surface.ts` was written under when `Textarea` joined `Input`.
+  //
+  // It is `clientOnly: true` for the same non-negotiable reason Progress is: RAC 1.20's
+  // `dist/types/exports/ProgressBar.d.ts` does `import 'client-only'`.
+  //
+  // Together with Progress and Skeleton it is one of three entries declaring `keyframes`, which
+  // `panda.config.ts` merges into one map with `Object.assign` — so a duplicate animation name
+  // would silently overwrite. `__tests__/spinner.test.ts` asserts the names across this registry
+  // are unique, a check that could not have existed while only one entry had any.
+  {
+    name: "Spinner",
+    recipeKey: SPINNER_RECIPE_KEY,
+    recipe: spinnerRecipe,
+    modulePath: "spinner/Spinner.js",
+    clientOnly: true,
+    keyframes: spinnerKeyframes,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
