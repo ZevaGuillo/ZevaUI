@@ -361,6 +361,54 @@ Both variant axes are geometric. `size` scales the rows' padding and text;
 `20rem`) or `trigger` (exactly the trigger's width). **There is no tone or
 intent axis** — see the next section.
 
+## `Tabs`
+
+One set of sections, described as data:
+
+```tsx
+<Tabs
+  label="Documentation sections"
+  tabs={[
+    { id: "overview", label: "Overview", content: <Overview /> },
+    { id: "api", label: "API", content: <Api /> },
+  ]}
+/>
+```
+
+| Prop | Type | Default |
+|---|---|---|
+| `label` | `string` | — (required) |
+| `tabs` | `TabDescriptor[]` | — (required) |
+| `selectedKey` | `string` | — (uncontrolled) |
+| `defaultSelectedKey` | `string` | first enabled tab |
+| `onSelectionChange` | `(id: string) => void` | — |
+| `orientation` | `"horizontal" \| "vertical"` | `"horizontal"` |
+| `size` | `"sm" \| "md" \| "lg"` | `"md"` |
+
+Each `TabDescriptor` is `{ id, label, content, isDisabled? }`. `content`
+takes arbitrary markup because a panel holds whatever you put in it;
+`label` stays a plain string, because it becomes the tab's accessible
+name.
+
+**`label` is required and is never drawn.** It names the `role="tablist"`,
+and nothing else supplies that — each tab names its own panel, never the
+set. Two unnamed strips on one page announce identically.
+
+**Only the selected panel is in the DOM.** Not hidden, not inert:
+unmounted. There is no `shouldForceMount` escape hatch, because inert
+panels have to be made visually obvious to be usable and that is styling
+this package would then owe you.
+
+**`onSelectionChange` fires on changes only**, which is narrower than the
+react-aria callback underneath. Measured: upstream also fires on mount, on
+a re-click of the already-selected tab, and — with the *current* id — on a
+click that lands on a disabled tab. None of those is a change, so none of
+them reaches you. Wire it to a router without a guard.
+
+`orientation="vertical"` moves the strip beside the panel, and the arrow
+keys swap with it. Disabled tabs are announced, skipped by the arrow keys,
+and cannot be selected; a disabled first tab does not start selected.
+
 ## Why neither overlay has a tone variant
 
 You may expect a `tone="danger"` dialog or an intent-colored menu. Neither
