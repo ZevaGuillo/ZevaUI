@@ -21,7 +21,16 @@ afterEach(() => {
 
 // `ButtonProps.children` is required, so it must live on the props object itself for
 // `createElement`'s overload resolution (and the excess-property checks below) to see it.
-function renderButton(props: Omit<ButtonProps, "children">, children: ReactNode) {
+//
+// THE OMIT HAS TO DISTRIBUTE, and a plain `Omit` silently did not. `ButtonProps` became a union
+// when `isPending`/`pendingLabel` arrived, and `Omit` over a union collapses it: `keyof` a union
+// is the INTERSECTION of its keys, so the two branches fuse into one object with
+// `isPending?: boolean` and `pendingLabel?: string` and the correlation between them is gone.
+// That is not merely a compile error to route around — it would let this helper call a pending
+// button with no label, which is the exact mistake the union exists to refuse.
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+function renderButton(props: DistributiveOmit<ButtonProps, "children">, children: ReactNode) {
   return render(createElement(Button, { ...props, children }));
 }
 
@@ -278,6 +287,181 @@ describe("Button public API surface (type-level)", () => {
       buttonElement({ style: {}, children: "x" }),
       // @ts-expect-error unknown variant value
       buttonElement({ visual: "nope", children: "x" }),
+    ];
+    expect(constructed.every(isValidElement)).toBe(true);
+  });
+});
+
+// `isPending` closes the feedback set: it is the state a button is in between a press and the
+// answer, and before this axis existed a consumer had exactly two ways to spell it, both wrong.
+// `isDisabled` says "you may not do this" — a permanent judgement about permission — when the
+// truth is "you already did, wait"; it also drops the button from the tab order mid-interaction,
+// moving a keyboard user's focus to nowhere. The other spelling, swapping the label for a spinner
+// in `children`, resizes the button under the pointer that just pressed it.
+//
+// THE SPINNER IS RENDERED BY THE SYSTEM, NOT COMPOSED BY THE CONSUMER, and that is forced rather
+// than preferred. The obvious consumer spelling — `iconStart={<Spinner label="Saving" />}` — is
+// SILENTLY BROKEN: `iconSlot` wraps the start slot in `aria-hidden="true"` because icons there are
+// decorative, which strips the spinner's accessible name and, with it, the whole announcement
+// mechanism react-aria-components builds on `ProgressBarContext`. A slot whose documented use
+// removes the name of the thing put in it is a trap, so the pending indicator gets its own box —
+// `data-zui-pending`, never `aria-hidden` — that the consumer cannot mis-wire.
+//
+// The cost is named rather than hidden: `Button` now imports `Spinner`, so every consumer of
+// `Button` pays those bytes, `Menu` included since it renders one. That trade bought the
+// correctness above, and the bundle-budget ledger records what it cost.
+describe("Button pending state", () => {
+  const iconStart = createElement("svg", { "data-testid": "start-icon" });
+  const iconEnd = createElement("svg", { "data-testid": "end-icon" });
+
+  const iconSlots = (button: HTMLElement) =>
+    [...button.querySelectorAll(":scope > [data-zui-icon]")].map((el) =>
+      el.getAttribute("data-zui-icon"),
+    );
+
+  it("marks the button with RAC's data-pending only while pending", () => {
+    renderButton({ isPending: true, pendingLabel: "Saving" }, "Save");
+    expect(screen.getByRole("button").getAttribute("data-pending")).toBe("true");
+    cleanup();
+    renderButton({ isPending: false, pendingLabel: "Saving" }, "Save");
+    expect(screen.getByRole("button").hasAttribute("data-pending")).toBe(false);
+  });
+
+  // THE DIFFERENCE FROM `isDisabled`, asserted rather than described. A pending button carries
+  // `aria-disabled`, which tells assistive tech the press will not land, but NOT the `disabled`
+  // attribute, which would remove it from the tab order. Focus is the whole point: the user
+  // pressed this button, so it is where their focus already is, and yanking it away mid-operation
+  // sends a keyboard user back to the top of the document.
+  it("keeps the button focusable while pending, unlike isDisabled", () => {
+    renderButton({ isPending: true, pendingLabel: "Saving" }, "Save");
+    const button = screen.getByRole("button");
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(button.hasAttribute("disabled")).toBe(false);
+    button.focus();
+    expect(document.activeElement).toBe(button);
+  });
+
+  it("suppresses onPress while pending", () => {
+    const onPress = vi.fn();
+    renderButton({ isPending: true, pendingLabel: "Saving", onPress }, "Save");
+    fireEvent.click(screen.getByRole("button"));
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  // A submit button that stayed `type="submit"` while pending would still submit its form on
+  // Enter from any text input in it — implicit submission does not go through the button's own
+  // press handling, so suppressing `onPress` above does not cover it. RAC downgrades the type for
+  // exactly that reason, and this pins the behaviour so a future refactor cannot drop it.
+  it("downgrades type=submit to type=button while pending, and restores it after", () => {
+    renderButton({ isPending: true, pendingLabel: "Saving", type: "submit" }, "Save");
+    expect(screen.getByRole("button").getAttribute("type")).toBe("button");
+    cleanup();
+    renderButton({ isPending: false, pendingLabel: "Saving", type: "submit" }, "Save");
+    expect(screen.getByRole("button").getAttribute("type")).toBe("submit");
+  });
+
+  it("renders a named busy indicator while pending, and none when idle", () => {
+    renderButton({ isPending: true, pendingLabel: "Saving" }, "Save");
+    expect(screen.getByRole("progressbar", { name: "Saving" })).toBeTruthy();
+    cleanup();
+    renderButton({ isPending: false, pendingLabel: "Saving" }, "Save");
+    expect(screen.queryByRole("progressbar")).toBeNull();
+  });
+
+  // THE REGRESSION THIS WHOLE DESIGN EXISTS TO PREVENT. The icon boxes are `aria-hidden`, so a
+  // spinner placed in one has no accessible name and announces nothing. The pending box must never
+  // acquire that attribute, however the two are refactored together later.
+  it("never hides the pending box from assistive tech", () => {
+    renderButton({ isPending: true, pendingLabel: "Saving" }, "Save");
+    const box = screen.getByRole("button").querySelector(":scope > [data-zui-pending]");
+    expect(box).toBeTruthy();
+    expect(box?.hasAttribute("aria-hidden")).toBe(false);
+  });
+
+  // THE EXACT NAME, AND THE REGEX THAT HID IT. This assertion used to read
+  // `getByRole("button", { name: /Save/ })`, which is a SUBSTRING match and therefore passes
+  // identically for "Save" and for "Saving Save" — it could not tell the documented behaviour from
+  // any other. Measured with the exact string instead: the name is "Saving Save".
+  //
+  // The indicator's label is visually hidden but still in the accessibility tree, and `AriaButton`
+  // has no `aria-label`, so its name is computed from content — the label first, because the
+  // pending box precedes `children` in the DOM. Both halves of that sentence are pinned here: flip
+  // the order or hide the label from assistive tech and one of these two assertions fails.
+  it("announces the indicator's label and the button's own label, in DOM order", () => {
+    renderButton({ isPending: true, pendingLabel: "Saving" }, "Save");
+    expect(screen.queryByRole("button", { name: "Saving Save" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+  });
+
+  // The idle button is the control case, and it is what makes the assertion above mean something:
+  // the extra word arrives WITH the pending state and leaves with it, rather than being a name this
+  // button always had.
+  it("carries only its own label when idle", () => {
+    renderButton({ isPending: false, pendingLabel: "Saving" }, "Save");
+    expect(screen.queryByRole("button", { name: "Save" })).toBeTruthy();
+  });
+
+  // The spinner takes the start slot's PLACE rather than sitting beside it: two round things
+  // competing for the same spot widen the button under the pointer that just pressed it, which is
+  // the exact defect the whole axis exists to avoid. `iconEnd` is untouched — it is not in the way.
+  it("replaces iconStart while pending and leaves iconEnd alone", () => {
+    renderButton({ isPending: true, pendingLabel: "Saving", iconStart, iconEnd }, "Save");
+    const button = screen.getByRole("button");
+    expect(iconSlots(button)).toEqual(["end"]);
+    expect(button.firstElementChild?.hasAttribute("data-zui-pending")).toBe(true);
+  });
+
+  it("restores iconStart once pending ends", () => {
+    renderButton({ isPending: false, pendingLabel: "Saving", iconStart, iconEnd }, "Save");
+    expect(iconSlots(screen.getByRole("button"))).toEqual(["start", "end"]);
+  });
+
+  // Pending is STATE, not a variant, so it must not move the class contract — the lesson the
+  // `width` axis taught when a new default variant silently added a class to every button that
+  // already existed. The styling hook is the `[data-pending]` attribute RAC already sets.
+  it("leaves the rendered class string identical to the same button when idle", () => {
+    renderButton({ visual: "danger", size: "lg" }, "Save");
+    const idle = screen.getByRole("button").className;
+    cleanup();
+    renderButton({ visual: "danger", size: "lg", isPending: true, pendingLabel: "Saving" }, "Save");
+    expect(screen.getByRole("button").className).toBe(idle);
+  });
+
+  // `cursor: progress`, NOT the `not-allowed` that `[data-disabled]` uses, and NOT a dimmed
+  // opacity. Both of those spell "this control is unavailable"; a pending button is the opposite —
+  // it is busy doing the thing that was asked of it, and it will come back. Dimming it would also
+  // make pending visually indistinguishable from disabled, which is the confusion the state was
+  // added to remove.
+  it("emits a pending cursor without borrowing the disabled treatment", () => {
+    const css = emittedStylesheet();
+    const body = css.match(/\.zui-button\[data-pending\][^{]*\{([^}]*)\}/)?.[1] ?? "";
+    expect(body).toMatch(/cursor:\s*progress/);
+    expect(body).not.toMatch(/opacity/);
+  });
+
+  // Same load-bearing declaration the icon box needs, for the same reason: with `width="full"` and
+  // a long label the pending box is an ordinary flex item, and a squashed spinner is an ellipse.
+  it("emits a rule that keeps the pending box from being squashed by a long label", () => {
+    expect(emittedStylesheet()).toMatch(
+      /\.zui-button\s*>\s*\[data-zui-pending\][^{]*\{[^}]*flex-shrink:\s*0/,
+    );
+  });
+});
+
+// `pendingLabel` is REQUIRED alongside `isPending` at the type level, for the reason
+// `spinner.types.ts` already argues about its own `label`: a busy indicator with no programmatic
+// name fails the blocking accessibility gate, and this package refuses to invent one — a spinner
+// that names itself says the same thing on every page, which is the same as saying nothing. Making
+// it a discriminated union rather than a second optional prop means the compiler refuses the
+// broken call instead of a story catching it later.
+describe("Button pending API surface (type-level)", () => {
+  it("rejects isPending without a pendingLabel, and pendingLabel without isPending", () => {
+    const constructed = [
+      // @ts-expect-error isPending requires pendingLabel — the indicator needs a name
+      buttonElement({ isPending: true, children: "x" }),
+      // @ts-expect-error pendingLabel means nothing without isPending
+      buttonElement({ pendingLabel: "Saving", children: "x" }),
+      buttonElement({ isPending: true, pendingLabel: "Saving", children: "x" }),
     ];
     expect(constructed.every(isValidElement)).toBe(true);
   });

@@ -50,6 +50,8 @@ receive compiled CSS, compiled JS, and types — never Panda itself.
 | `width` | `"auto" \| "full"` | `"auto"` |
 | `iconStart` | `ReactNode` | — |
 | `iconEnd` | `ReactNode` | — |
+| `isPending` | `boolean` | — |
+| `pendingLabel` | `string` | — (required with `isPending`) |
 | `isDisabled` | `boolean` | `false` |
 | `type` | `"button" \| "submit" \| "reset"` | — |
 | `onPress` | `() => void` | — |
@@ -84,8 +86,70 @@ The icon inherits the button's text colour, so an icon drawn with
 `currentColor` needs nothing per `visual`.
 
 A slot you leave out costs nothing: no wrapper element is rendered for
-`undefined`, `null`, `false` or `""`, so `iconStart={isSaving && <Spinner />}`
-adds no empty box and no stray spacing when `isSaving` is false.
+`undefined`, `null`, `false` or `""`, so `iconStart={hasIcon && <SaveIcon />}`
+adds no empty box and no stray spacing when `hasIcon` is false.
+
+**Do not put a `Spinner` in these slots.** They are `aria-hidden`, so the
+spinner would lose its accessible name and announce nothing — a button that
+spins in silence. Use `isPending`, below, which renders the indicator into a
+box that is not hidden.
+
+### Pending
+
+```tsx
+<Button isPending={isSaving} pendingLabel="Saving" onPress={save}>
+  Save
+</Button>
+```
+
+`isPending` is the state between a press and the answer, and it is **not**
+`isDisabled`. Disabled says *you may not do this* — a judgement about
+permission — and it drops the button from the tab order, which moves a
+keyboard user's focus to nowhere in the middle of their own action. Pending
+says *you already did, wait*: the button keeps its focus and its place in the
+tab order, carries `aria-disabled` so assistive tech knows the press will not
+land, and suppresses presses and hover. A `type="submit"` button is also
+downgraded to `type="button"` while pending, so pressing Enter in a text field
+cannot submit the form behind the suppressed handler.
+
+`pendingLabel` is **required** whenever `isPending` is, and the compiler
+enforces it — the two are a union, not two optional props. The indicator is a
+`role="progressbar"`, a control with no programmatic name fails the
+accessibility gate, and this package will not invent one: a spinner that names
+itself says the same thing on every page, which is the same as saying nothing.
+
+The system renders the spinner, you do not compose it. While pending it takes
+`iconStart`'s place rather than sitting beside it — two round things competing
+for one spot widen the button under the pointer that just pressed it — and
+`iconEnd` is left alone. The label is in the accessibility tree but not drawn,
+because the button already shows a word and drawing a second one would resize
+it mid-press.
+
+**Know what the button announces while pending, because it is not just your
+label.** The indicator's label is real text in the accessibility tree, and the
+button takes its accessible name from its own content, so the two combine —
+indicator first:
+
+```tsx
+<Button isPending pendingLabel="Saving">Save</Button>
+// announces: "Saving Save, button"
+```
+
+That is deliberate: a screen-reader user hears what the control is *and* that
+it is busy. Choose `pendingLabel` so the pair reads as a sentence — `"Saving"`
+with a `Save` button, not `"Please wait"` with one. If you assert on the name
+in your own tests, assert the whole string; a partial match will pass whether
+or not this ever changes.
+
+Pending does **not** borrow the disabled look. Disabled is dimmed to half
+opacity with a `not-allowed` cursor; pending stays at full strength with a
+`progress` cursor and a ring. Making them look alike would recreate the exact
+confusion this state exists to remove.
+
+One cost, stated plainly: `Button` imports `Spinner`, which moved its own
+measured bundle entry from 13,771 B to 16,643 B gzipped (+2,872 B). If you
+import the whole barrel it costs you 85 B, because `Spinner` was already in
+it. The full number is in `bundle-budget.json`.
 
 **Two things changed for buttons that already exist**, and neither is visible
 in the common case:
@@ -161,6 +225,74 @@ Both variant axes are geometric. `size` caps the modal's width (`24rem` /
 `32rem` / `48rem`); `placement` aligns it in the viewport. **There is no
 tone or intent axis** — see [Why neither overlay has a tone
 variant](#why-neither-overlay-has-a-tone-variant).
+
+## `Toast`
+
+A transient notification. It ships as **two exports**, and the split is
+deliberate:
+
+```tsx
+import { ToastRegion, toast } from "@zevaui/components";
+
+// once, near the application root
+<ToastRegion />
+
+// from anywhere — a submit handler, a router guard, a catch block
+toast.show({ tone: "success", title: "Changes saved" });
+```
+
+`toast` is an imperative queue living at module scope, not a hook and not a
+context, because the places that need to raise a notification usually have
+no React context to read. `ToastRegion` is the single mount point. It
+renders nothing at all — not even an empty landmark — until a toast exists,
+so mounting it on a page that never toasts costs nothing.
+
+### `toast.show(options)`
+
+| Field | Type | Default |
+|---|---|---|
+| `title` | `string` | — (required) |
+| `tone` | `"danger" \| "success" \| "warning"` | — (required) |
+| `description` | `string` | — |
+| `timeout` | `number` (ms) | — (stays until dismissed) |
+
+Returns a key. `toast.dismiss(key)` closes that one; `toast.clear()` closes
+all of them, which is what a route change or a sign-out wants.
+
+`title` is required because each toast renders as a `role="alertdialog"`
+whose `aria-labelledby` points at it — a toast without one is a dialog with
+no accessible name. `tone` is required for the reason `Alert`'s is:
+defaulting would silently pick a semantic meaning you never stated. The
+text colour is `text.default` in all three tones; the tone is a non-text
+accent only, for the contrast reason `Alert` documents.
+
+**Omitting `timeout` means the toast stays.** That is the right default for
+anything the user may need to act on — a message that removes itself on a
+timer is a message someone can miss. When you do set one, hovering the
+region or moving focus into it pauses every visible timer, so reading a
+toast cannot race its own countdown. At most three are visible at a time;
+the rest wait in the queue.
+
+Toasts are not in the tab order. A keyboard user reaches them with **`F6`**,
+the standard landmark hotkey, which is also how someone who heard a toast
+announced gets to its dismiss button.
+
+One thing worth knowing about ordering, because it looks inconsistent until
+you see both halves: the newest toast is **first in the DOM** and painted
+**last**, nearest the corner the stack is anchored to. Screen-reader users
+meet the most recent message first; sighted users see it closest to where
+they are looking.
+
+### `Toast` depends on unstable upstream API
+
+Every runtime toast export in `react-aria-components` still carries the
+`UNSTABLE_` prefix, in 1.20.0 and in 1.21.1 alike. Because of that this
+package pins `react-aria-components` to `>=1.20.0 <1.22.0` rather than a
+caret range, so a future minor that drops those exports cannot break an
+install through a dependency this package never republished. **The cost
+lands on every component, not just this one**: react-aria-components minor
+and patch releases no longer arrive on their own here. Nothing about this
+reaches your code — `toast` and `ToastRegion` are this package's own API.
 
 ## `Menu`
 

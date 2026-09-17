@@ -22,6 +22,7 @@ import {
 import { SPINNER_RECIPE_KEY, spinnerKeyframes, spinnerRecipe } from "./spinner/spinner.recipe.js";
 import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
 import { TEXTAREA_RECIPE_KEY, textareaRecipe } from "./textarea/textarea.recipe.js";
+import { TOAST_RECIPE_KEY, toastRecipe } from "./toast/toast.recipe.js";
 
 /**
  * One declaration per component, consumed by everything that used to hardcode "Button":
@@ -289,5 +290,21 @@ export const componentRegistry = [
     modulePath: "spinner/Spinner.js",
     clientOnly: true,
     keyframes: spinnerKeyframes,
+  },
+  // THE FIRST ENTRY WHOSE COMPONENT IS NOT THE THING A CALLER NAMES. `toast.show()` is the API a
+  // consumer reaches for; `ToastRegion` is the mount point those toasts render into. The registry
+  // name has to be the exported SYMBOL rather than the concept, because `budgetEntries` in
+  // scripts/bundle-budget.js derives each budget's import list as `[component.name]` — an entry
+  // named "Toast" would ask the bundler for an export this package does not have.
+  //
+  // `clientOnly: true` on its own terms, not by inheritance from RAC: the region subscribes to a
+  // module-scope queue through `useToastQueue`, so it is stateful before any upstream directive is
+  // considered.
+  {
+    name: "ToastRegion",
+    recipeKey: TOAST_RECIPE_KEY,
+    recipe: toastRecipe,
+    modulePath: "toast/ToastRegion.js",
+    clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
