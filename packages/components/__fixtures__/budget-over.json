@@ -25,6 +25,7 @@
     "Skeleton": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Spinner": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Switch": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
-    "Textarea": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 }
+    "Textarea": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "ToastRegion": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 }
   }
 }

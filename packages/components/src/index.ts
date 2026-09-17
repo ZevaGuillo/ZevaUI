@@ -59,3 +59,9 @@ export type {
   TextareaResize,
   TextareaSize,
 } from "./textarea/textarea.types.js";
+// Two exports for one component, and the split is the design: `toast` is the imperative queue a
+// caller reaches from a submit handler or a `catch` block, `ToastRegion` is the single mount point
+// those toasts render into. See `toast.types.ts` for why the queue cannot live in a provider.
+export { ToastRegion } from "./toast/ToastRegion.js";
+export type { ToastApi, ToastOptions, ToastTone } from "./toast/toast.types.js";
+export { toast } from "./toast/toast-queue.js";

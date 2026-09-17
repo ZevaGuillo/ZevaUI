@@ -30,6 +30,25 @@ export const buttonRecipe = {
       opacity: 0.5,
     },
     /**
+     * PENDING IS NOT DISABLED, AND IT MUST NOT LOOK LIKE IT. The rule above spells "this control
+     * is unavailable": `not-allowed` plus a dimmed opacity. A pending button is the opposite —
+     * it is busy doing the thing that was just asked of it, and it is coming back. Borrowing the
+     * disabled treatment would make the two states visually indistinguishable, which is the exact
+     * confusion `isPending` was added to remove.
+     *
+     * So: `cursor: progress`, which is the cursor CSS has for precisely this, and NO opacity
+     * change. The state is already carried by something louder and non-visual — the spinner
+     * `Button.tsx` renders into `[data-zui-pending]`, a `role="progressbar"` that announces
+     * itself. Dimming on top of that would be decoration that costs contrast.
+     *
+     * Keyed off `[data-pending]`, which react-aria-components sets from `isPending`. No variant,
+     * no class: pending is STATE, and adding a variant would move the class contract of every
+     * button that already exists — the lesson the `width` axis taught.
+     */
+    "&[data-pending]": {
+      cursor: "progress",
+    },
+    /**
      * The box `Button.tsx` wraps `iconStart`/`iconEnd` in. Selected by ATTRIBUTE, not by class,
      * and that is a constraint rather than a preference: `G5 (reverse)` fails any emitted
      * `zui-button__*` class no registered recipe declares, and only a SLOT recipe derives `__slot`
@@ -43,6 +62,21 @@ export const buttonRecipe = {
      * `svg` centred on the label's baseline box rather than sitting on the text baseline.
      */
     "& > [data-zui-icon]": {
+      display: "flex",
+      alignItems: "center",
+      flexShrink: 0,
+    },
+    /**
+     * The busy indicator's box, and a SEPARATE rule from the icon box above rather than a shared
+     * selector list, because the two boxes differ in the one way that matters: that one is
+     * `aria-hidden`, this one must never be. Keeping the rules apart keeps a later refactor from
+     * merging the markup on the strength of the CSS looking identical.
+     *
+     * `flexShrink: 0` is the load-bearing declaration here for the same reason it is there: with
+     * `width="full"` and a long label the box is an ordinary flex item, and a squashed spinner is
+     * an ellipse — which is a rendering bug the moment it rotates.
+     */
+    "& > [data-zui-pending]": {
       display: "flex",
       alignItems: "center",
       flexShrink: 0,
