@@ -53,6 +53,13 @@ export type {
 } from "./spinner/spinner.types.js";
 export { Switch } from "./switch/Switch.js";
 export type { SwitchProps, SwitchSize } from "./switch/switch.types.js";
+export { Tabs } from "./tabs/Tabs.js";
+export type {
+  TabDescriptor,
+  TabsOrientation,
+  TabsProps,
+  TabsSize,
+} from "./tabs/tabs.types.js";
 export { Textarea } from "./textarea/Textarea.js";
 export type {
   TextareaProps,

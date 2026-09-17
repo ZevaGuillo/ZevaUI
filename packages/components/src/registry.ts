@@ -21,6 +21,7 @@ import {
 } from "./skeleton/skeleton.recipe.js";
 import { SPINNER_RECIPE_KEY, spinnerKeyframes, spinnerRecipe } from "./spinner/spinner.recipe.js";
 import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
+import { TABS_RECIPE_KEY, tabsRecipe } from "./tabs/tabs.recipe.js";
 import { TEXTAREA_RECIPE_KEY, textareaRecipe } from "./textarea/textarea.recipe.js";
 import { TOAST_RECIPE_KEY, toastRecipe } from "./toast/toast.recipe.js";
 
@@ -305,6 +306,13 @@ export const componentRegistry = [
     recipeKey: TOAST_RECIPE_KEY,
     recipe: toastRecipe,
     modulePath: "toast/ToastRegion.js",
+    clientOnly: true,
+  },
+  {
+    name: "Tabs",
+    recipeKey: TABS_RECIPE_KEY,
+    recipe: tabsRecipe,
+    modulePath: "tabs/Tabs.js",
     clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
