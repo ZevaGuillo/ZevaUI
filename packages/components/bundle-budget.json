@@ -95,10 +95,20 @@
       "measuredAtCommit": "a10c489938a18c5ddf916c263ef1e63ac3909f53",
       "maxGzipBytes": 34896
     },
+    "Link": {
+      "measuredGzipBytes": 12141,
+      "measuredAtCommit": "22683d4393118dbe529f3dd05fc8e72519bbd30c",
+      "maxGzipBytes": 13356
+    },
+    "Separator": {
+      "measuredGzipBytes": 438,
+      "measuredAtCommit": "22683d4393118dbe529f3dd05fc8e72519bbd30c",
+      "maxGzipBytes": 548
+    },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 82629,
-      "measuredAtCommit": "a10c489938a18c5ddf916c263ef1e63ac3909f53",
+      "measuredGzipBytes": 83357,
+      "measuredAtCommit": "22683d4393118dbe529f3dd05fc8e72519bbd30c",
       "maxGzipBytes": 88004
     }
   }

@@ -24,6 +24,8 @@
     "Select": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Skeleton": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Spinner": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Link": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Separator": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Switch": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Tabs": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Textarea": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },

@@ -17,6 +17,13 @@ export { Dialog } from "./dialog/Dialog.js";
 export type { DialogPlacement, DialogProps, DialogSize } from "./dialog/dialog.types.js";
 export { Input } from "./input/Input.js";
 export type { InputProps, InputSize, InputType } from "./input/input.types.js";
+export { Link } from "./link/Link.js";
+export type {
+  LinkProps,
+  LinkTarget,
+  LinkTone,
+  LinkUnderline,
+} from "./link/link.types.js";
 export { Menu } from "./menu/Menu.js";
 export type {
   MenuItemDescriptor,
@@ -39,6 +46,11 @@ export type {
   SelectProps,
   SelectSize,
 } from "./select/select.types.js";
+export { Separator } from "./separator/Separator.js";
+export type {
+  SeparatorOrientation,
+  SeparatorProps,
+} from "./separator/separator.types.js";
 export { Skeleton } from "./skeleton/Skeleton.js";
 export type {
   SkeletonProps,

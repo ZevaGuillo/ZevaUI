@@ -6,6 +6,7 @@ import { CARD_RECIPE_KEY, cardRecipe } from "./card/card.recipe.js";
 import { CHECKBOX_RECIPE_KEY, checkboxRecipe } from "./checkbox/checkbox.recipe.js";
 import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
+import { LINK_RECIPE_KEY, linkRecipe } from "./link/link.recipe.js";
 import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
 import {
   PROGRESS_RECIPE_KEY,
@@ -14,6 +15,7 @@ import {
 } from "./progress/progress.recipe.js";
 import { RADIO_GROUP_RECIPE_KEY, radioGroupRecipe } from "./radio-group/radio-group.recipe.js";
 import { SELECT_RECIPE_KEY, selectRecipe } from "./select/select.recipe.js";
+import { SEPARATOR_RECIPE_KEY, separatorRecipe } from "./separator/separator.recipe.js";
 import {
   SKELETON_RECIPE_KEY,
   skeletonKeyframes,
@@ -314,5 +316,31 @@ export const componentRegistry = [
     recipe: tabsRecipe,
     modulePath: "tabs/Tabs.js",
     clientOnly: true,
+  },
+  // The second component of the navigation set, and the first interactive one whose recipe sets no
+  // font properties at all: a link is text INSIDE other text, so its type is inherited rather than
+  // fixed — the one line that separates it from Button, which is a box beside text. See
+  // link.recipe.ts.
+  //
+  // `clientOnly: true` for the ordinary reason rather than a judgement call: RAC 1.20's
+  // `dist/types/exports/Link.d.ts` does `import 'client-only'`.
+  {
+    name: "Link",
+    recipeKey: LINK_RECIPE_KEY,
+    recipe: linkRecipe,
+    modulePath: "link/Link.js",
+    clientOnly: true,
+  },
+  // The fifth server-renderable entry, and the first one where `clientOnly: false` was WON rather
+  // than inherited: react-aria-components ships a `Separator`, and using it would have made a 1px
+  // line unusable in a React Server Component (its 1.20 export does `import 'client-only'`). A
+  // plain `<hr>` carries the same implicit `role="separator"`, so the upstream component buys
+  // nothing a divider needs. See Separator.tsx.
+  {
+    name: "Separator",
+    recipeKey: SEPARATOR_RECIPE_KEY,
+    recipe: separatorRecipe,
+    modulePath: "separator/Separator.js",
+    clientOnly: false,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
