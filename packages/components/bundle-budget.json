@@ -105,10 +105,20 @@
       "measuredAtCommit": "22683d4393118dbe529f3dd05fc8e72519bbd30c",
       "maxGzipBytes": 548
     },
+    "Tooltip": {
+      "measuredGzipBytes": 14181,
+      "measuredAtCommit": "cb55d08d9df578e4478f6b7668b93da0f2959e00",
+      "maxGzipBytes": 15600
+    },
+    "Popover": {
+      "measuredGzipBytes": 32557,
+      "measuredAtCommit": "cb55d08d9df578e4478f6b7668b93da0f2959e00",
+      "maxGzipBytes": 35813
+    },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 83357,
-      "measuredAtCommit": "22683d4393118dbe529f3dd05fc8e72519bbd30c",
+      "measuredGzipBytes": 85556,
+      "measuredAtCommit": "cb55d08d9df578e4478f6b7668b93da0f2959e00",
       "maxGzipBytes": 88004
     }
   }
