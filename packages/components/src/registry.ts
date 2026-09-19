@@ -8,6 +8,7 @@ import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { LINK_RECIPE_KEY, linkRecipe } from "./link/link.recipe.js";
 import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
+import { POPOVER_RECIPE_KEY, popoverRecipe } from "./popover/popover.recipe.js";
 import {
   PROGRESS_RECIPE_KEY,
   progressKeyframes,
@@ -26,6 +27,7 @@ import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
 import { TABS_RECIPE_KEY, tabsRecipe } from "./tabs/tabs.recipe.js";
 import { TEXTAREA_RECIPE_KEY, textareaRecipe } from "./textarea/textarea.recipe.js";
 import { TOAST_RECIPE_KEY, toastRecipe } from "./toast/toast.recipe.js";
+import { TOOLTIP_RECIPE_KEY, tooltipRecipe } from "./tooltip/tooltip.recipe.js";
 
 /**
  * One declaration per component, consumed by everything that used to hardcode "Button":
@@ -342,5 +344,32 @@ export const componentRegistry = [
     recipe: separatorRecipe,
     modulePath: "separator/Separator.js",
     clientOnly: false,
+  },
+  // The first component in this package whose recipe declares NO variants at all — see
+  // tooltip.recipe.ts for why that is the honest outcome rather than a gap. It is also the first
+  // overlay that is not a surface: it inverts to `bg.inverse`/`text.inverse`, the one inverse text
+  // pair @zevaui/constraints validates, so a bubble can never be mistaken for a Menu you cannot
+  // click.
+  //
+  // `clientOnly: true` for the ordinary upstream reason: RAC 1.20's
+  // `dist/types/exports/Tooltip.d.ts` does `import 'client-only'`.
+  {
+    name: "Tooltip",
+    recipeKey: TOOLTIP_RECIPE_KEY,
+    recipe: tooltipRecipe,
+    modulePath: "tooltip/Tooltip.js",
+    clientOnly: true,
+  },
+  // The third raised panel, after Dialog and Menu, and the one that sits between them: it borrows
+  // Menu's `shadow.dropdown` rather than Dialog's `shadow.modal`, because it is non-modal — the
+  // page behind it stays readable and clickable — and depth is this package's only way of saying
+  // so without a border. Like Menu it owns its trigger; like Dialog it holds a `role="dialog"` and
+  // therefore needs an accessible name of its own. See popover.recipe.ts.
+  {
+    name: "Popover",
+    recipeKey: POPOVER_RECIPE_KEY,
+    recipe: popoverRecipe,
+    modulePath: "popover/Popover.js",
+    clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];

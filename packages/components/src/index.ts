@@ -31,6 +31,12 @@ export type {
   MenuSize,
   MenuWidth,
 } from "./menu/menu.types.js";
+export { Popover } from "./popover/Popover.js";
+export type {
+  PopoverPlacement,
+  PopoverProps,
+  PopoverSize,
+} from "./popover/popover.types.js";
 export { Progress } from "./progress/Progress.js";
 export type { ProgressProps, ProgressSize } from "./progress/progress.types.js";
 export { RadioGroup } from "./radio-group/RadioGroup.js";
@@ -84,3 +90,5 @@ export type {
 export { ToastRegion } from "./toast/ToastRegion.js";
 export type { ToastApi, ToastOptions, ToastTone } from "./toast/toast.types.js";
 export { toast } from "./toast/toast-queue.js";
+export { Tooltip } from "./tooltip/Tooltip.js";
+export type { TooltipPlacement, TooltipProps } from "./tooltip/tooltip.types.js";
