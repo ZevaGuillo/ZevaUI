@@ -1,6 +1,7 @@
 import type { CssKeyframes, RecipeConfig, SlotRecipeConfig } from "@pandacss/dev";
 import { ALERT_RECIPE_KEY, alertRecipe } from "./alert/alert.recipe.js";
 import { BADGE_RECIPE_KEY, badgeRecipe } from "./badge/badge.recipe.js";
+import { BREADCRUMB_RECIPE_KEY, breadcrumbRecipe } from "./breadcrumb/breadcrumb.recipe.js";
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
 import { CARD_RECIPE_KEY, cardRecipe } from "./card/card.recipe.js";
 import { CHECKBOX_RECIPE_KEY, checkboxRecipe } from "./checkbox/checkbox.recipe.js";
@@ -370,6 +371,23 @@ export const componentRegistry = [
     recipeKey: POPOVER_RECIPE_KEY,
     recipe: popoverRecipe,
     modulePath: "popover/Popover.js",
+    clientOnly: true,
+  },
+  // THE FIRST COLLECTION HERE THAT DOES NOT GO THROUGH REACT-ARIA-COMPONENTS. `Menu`, `Select` and
+  // `Tabs` each need a keyboard delegate — arrow keys that walk the rows, skip disabled ones and
+  // wrap — and that is what the collection machinery is for. A breadcrumb is a list of links, and
+  // Tab already walks links, so the same import would buy a render pipeline and nothing else at
+  // roughly the weight `Tabs` pays. Breadcrumb.tsx holds the full measurement.
+  //
+  // It is `clientOnly: true` all the same, and by composition rather than by its own need: it
+  // renders this package's `Link`, which is built on RAC's and therefore carries `import
+  // 'client-only'` transitively. The second entry after Menu/Dialog/Popover to be made of another
+  // public component of this package.
+  {
+    name: "Breadcrumb",
+    recipeKey: BREADCRUMB_RECIPE_KEY,
+    recipe: breadcrumbRecipe,
+    modulePath: "breadcrumb/Breadcrumb.js",
     clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];

@@ -24,6 +24,7 @@
     "Select": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Skeleton": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Spinner": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Breadcrumb": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Tooltip": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Popover": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Link": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },

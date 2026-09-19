@@ -2,6 +2,11 @@ export { Alert } from "./alert/Alert.js";
 export type { AlertProps, AlertTone } from "./alert/alert.types.js";
 export { Badge } from "./badge/Badge.js";
 export type { BadgeProps, BadgeTone } from "./badge/badge.types.js";
+export { Breadcrumb } from "./breadcrumb/Breadcrumb.js";
+export type {
+  BreadcrumbDescriptor,
+  BreadcrumbProps,
+} from "./breadcrumb/breadcrumb.types.js";
 export { Button } from "./button/Button.js";
 export type {
   ButtonProps,
