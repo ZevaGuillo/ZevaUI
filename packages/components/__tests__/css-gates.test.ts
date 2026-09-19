@@ -574,6 +574,47 @@ describe("G11: no component defers its entire typography to the consumer's page"
       body.split(";").some((declaration) => declaration.trim().startsWith(`${property}:`)),
     );
 
+  /**
+   * The components this gate does NOT apply to, per property, each with the reason it does not.
+   *
+   * AN EXEMPTION LIST IS A LIABILITY, SO THIS ONE IS SHAPED TO BE HARD TO ABUSE. It is keyed by
+   * component AND property — no component is exempt from the gate as a whole — and the reason is
+   * stored as a string rather than a comment, so a future entry cannot be added without writing
+   * one. The test below also asserts the list names only components that still exist, so an
+   * exemption cannot outlive the component it was written for and quietly cover its replacement.
+   *
+   * The gate's own premise is what the exemptions are measured against: it exists because `Card`
+   * had TEXT that fell through to the consumer's page and became invisible in the dark theme. An
+   * exemption is legitimate exactly when that failure mode cannot occur — either there is no text,
+   * or falling through is the correct behaviour rather than an accident.
+   */
+  const TYPOGRAPHY_EXEMPTIONS: Record<string, Partial<Record<"color" | "font-family", string>>> = {
+    Separator: {
+      color:
+        "Renders a void <hr> with no text and no children — separator.types.ts refuses `children` " +
+        "at the type level, because a labelled divider needs to know which surface it punches " +
+        "through and is therefore a different component. A `color` here would be dead CSS: there " +
+        "is nothing in the element for it to paint.",
+      "font-family":
+        "Same reason as `color`. A font family on an element that can never contain a glyph is a " +
+        "declaration shipped to every consumer to do nothing.",
+    },
+    Link: {
+      "font-family":
+        "Inherits its type ON PURPOSE, and this is the one property the gate's premise inverts. " +
+        "The failure G11 was written for is text falling through to the CONSUMER'S PAGE; a link " +
+        "falls through to the SENTENCE AROUND IT, which is a styled context this package usually " +
+        "owns — a link in an <h2> must be heading-sized, and in a caption caption-sized. Pinning " +
+        "`font-family: body` would make a link the only word in a heading rendered in a different " +
+        "face. It is not exempt from `color`: it declares one per tone, and link.test.ts asserts " +
+        "the emitted rules declare no font property at all, which is the positive form of this " +
+        "exemption rather than a hole in it.",
+    },
+  };
+
+  const exemptionFor = (name: string, property: "color" | "font-family") =>
+    TYPOGRAPHY_EXEMPTIONS[name]?.[property];
+
   it("finds rules for every registered component (sanity check)", () => {
     for (const { name, recipe } of componentRegistry) {
       expect({ [name]: declarationBodies(recipe).length > 0 }).toEqual({ [name]: true });
@@ -582,15 +623,47 @@ describe("G11: no component defers its entire typography to the consumer's page"
 
   it("every component declares its own text colour somewhere in its namespace", () => {
     for (const { name, recipe } of componentRegistry) {
+      if (exemptionFor(name, "color") !== undefined) continue;
       expect({ [name]: declares(declarationBodies(recipe), "color") }).toEqual({ [name]: true });
     }
   });
 
   it("every component declares its own font family somewhere in its namespace", () => {
     for (const { name, recipe } of componentRegistry) {
+      if (exemptionFor(name, "font-family") !== undefined) continue;
       expect({ [name]: declares(declarationBodies(recipe), "font-family") }).toEqual({
         [name]: true,
       });
     }
+  });
+
+  // An exemption for a component that no longer exists is worse than no exemption: it is a name
+  // sitting in this file waiting for a future component to be given it back by coincidence.
+  it("exempts only components that are still registered", () => {
+    // Widened to `Set<string>` deliberately: `componentRegistry` is `as const`, so the inferred
+    // set is keyed by the literal union of registered names — and asking such a set whether it
+    // holds an arbitrary string is a type error, which is exactly the question this test exists to
+    // ask. The widening is confined to this one local, the same treatment `keyframesOf` gives the
+    // same problem in registry.ts.
+    const registered: ReadonlySet<string> = new Set<string>(
+      componentRegistry.map((entry) => entry.name),
+    );
+    const orphaned = Object.keys(TYPOGRAPHY_EXEMPTIONS).filter((name) => !registered.has(name));
+    expect(orphaned).toEqual([]);
+  });
+
+  // The other half of the same concern: an exemption whose component has since started declaring
+  // the property is an exemption that is no longer doing anything, and leaving it in place hides
+  // the fact that the gate now covers that component for real.
+  it("keeps no exemption that the component has outgrown", () => {
+    const stale: string[] = [];
+    for (const { name, recipe } of componentRegistry) {
+      const bodies = declarationBodies(recipe);
+      for (const property of ["color", "font-family"] as const) {
+        if (exemptionFor(name, property) === undefined) continue;
+        if (declares(bodies, property)) stale.push(`${name}.${property}`);
+      }
+    }
+    expect(stale).toEqual([]);
   });
 });

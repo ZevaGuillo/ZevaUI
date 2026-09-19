@@ -98,6 +98,11 @@ export default defineConfig({
           // color-bg-surface at 4.5:1, which is why a disabled row keeps that background.
           muted: ref("color-text-muted"),
           inverse: ref("color-text-inverse"),
+          // Link's resting colour. An existing semantic token in all three themes that nothing in
+          // this package had consumed until now — and one @zevaui/constraints already gates
+          // against both `color-bg-canvas` and `color-bg-surface`, which is what lets Link move
+          // its hover affordance to the underline instead of to an ungated second colour.
+          link: ref("color-text-link"),
           danger: ref("color-text-danger"),
         },
         bg: {
