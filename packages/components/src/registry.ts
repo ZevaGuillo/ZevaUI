@@ -1,5 +1,6 @@
 import type { CssKeyframes, RecipeConfig, SlotRecipeConfig } from "@pandacss/dev";
 import { ALERT_RECIPE_KEY, alertRecipe } from "./alert/alert.recipe.js";
+import { AVATAR_RECIPE_KEY, avatarRecipe } from "./avatar/avatar.recipe.js";
 import { BADGE_RECIPE_KEY, badgeRecipe } from "./badge/badge.recipe.js";
 import { BREADCRUMB_RECIPE_KEY, breadcrumbRecipe } from "./breadcrumb/breadcrumb.recipe.js";
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
@@ -389,5 +390,21 @@ export const componentRegistry = [
     recipe: breadcrumbRecipe,
     modulePath: "breadcrumb/Breadcrumb.js",
     clientOnly: true,
+  },
+  // The first entry of the data set, and the sixth server-renderable one — which took work rather
+  // than luck. The obvious implementation of a broken-image fallback is an `onError` handler, and
+  // that would make an avatar stateful and therefore client-only, in the component that appears in
+  // server-rendered lists of people more than anything else here. `avatar.recipe.ts` holds the
+  // layered alternative and the Chromium measurement behind it.
+  //
+  // It is also the second consumer of `internal/avatar-diameter.ts` waiting to happen:
+  // `skeleton.recipe.ts` refused a `circle` shape until a real diameter scale existed, and that
+  // scale now does.
+  {
+    name: "Avatar",
+    recipeKey: AVATAR_RECIPE_KEY,
+    recipe: avatarRecipe,
+    modulePath: "avatar/Avatar.js",
+    clientOnly: false,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];

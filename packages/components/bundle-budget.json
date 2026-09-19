@@ -120,10 +120,15 @@
       "measuredAtCommit": "4bd18ff240a651a9a86791953f2386e9b797c836",
       "maxGzipBytes": 13936
     },
+    "Avatar": {
+      "measuredGzipBytes": 1027,
+      "measuredAtCommit": "cc645ede692f771d3c276575ba8ed97ca56e024f",
+      "maxGzipBytes": 1224
+    },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 85798,
-      "measuredAtCommit": "4bd18ff240a651a9a86791953f2386e9b797c836",
+      "measuredGzipBytes": 86400,
+      "measuredAtCommit": "cc645ede692f771d3c276575ba8ed97ca56e024f",
       "maxGzipBytes": 88004
     }
   }
