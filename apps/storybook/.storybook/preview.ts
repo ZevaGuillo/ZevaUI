@@ -6,14 +6,14 @@ import "@zevaui/tokens/styles.css";
 import "@zevaui/components/styles.css";
 import type { Preview } from "@storybook/react-vite";
 import { themeIds } from "@zevaui/tokens";
-// `vitest/browser`, never the deprecated `@vitest/browser/context` (it
-// warns) — both re-export the same provider context, but only this path is
-// current. `expect` from `vitest` itself: `preview.ts` is not a test file,
-// so it never gets the implicit per-test-file global vitest injects, and
-// `toMatchScreenshot` is a custom matcher registered on this exact `expect`
-// instance by the browser provider's own setup.
-import { expect } from "vitest";
-import { page } from "vitest/browser";
+
+// The vitest imports this file needs live INSIDE `afterEach`, behind the
+// `__VISUAL_CAPTURE__` guard, and never at module scope. `vitest`'s entry
+// installs its chai plugins against the runner state, so evaluating it
+// outside a vitest run throws (`Cannot read properties of undefined
+// (reading 'customEqualityTesters')`). `preview.ts` is also loaded by
+// `storybook dev`, where no runner exists: a top-level import there kills
+// the whole preview bundle and the canvas spins forever.
 
 // __VISUAL_CAPTURE__ is resolved per CONFIG (vitest.shared.ts), not per
 // story: `visual` and `test` are not mutually exclusive — the 6 real story
@@ -97,7 +97,17 @@ const preview: Preview = {
   // both resolve that constant to `false`, so they are unaffected by this
   // hook regardless of which tags an individual story carries.
   async afterEach({ canvasElement }) {
-    if (!__VISUAL_CAPTURE__) return;
+    // `typeof` first: in `storybook dev` main.ts adds no define, so a bare
+    // read of the constant is a ReferenceError, not `undefined`.
+    if (typeof __VISUAL_CAPTURE__ === "undefined" || !__VISUAL_CAPTURE__) return;
+
+    // `vitest/browser`, never the deprecated `@vitest/browser/context` (it
+    // warns) — both re-export the same provider context, but only this path
+    // is current. `expect` from `vitest` itself: `preview.ts` is not a test
+    // file, so it never gets the implicit per-test-file global vitest
+    // injects, and `toMatchScreenshot` is a custom matcher registered on
+    // this exact `expect` instance by the browser provider's own setup.
+    const [{ expect }, { page }] = await Promise.all([import("vitest"), import("vitest/browser")]);
 
     // The capture target is the pinned VIEWPORT, not the bare
     // `canvasElement` box (D-A1): react-aria portals `ModalOverlay`/
