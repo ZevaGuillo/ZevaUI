@@ -1,5 +1,7 @@
 export { Alert } from "./alert/Alert.js";
 export type { AlertProps, AlertTone } from "./alert/alert.types.js";
+export { Avatar } from "./avatar/Avatar.js";
+export type { AvatarProps, AvatarShape, AvatarSize } from "./avatar/avatar.types.js";
 export { Badge } from "./badge/Badge.js";
 export type { BadgeProps, BadgeTone } from "./badge/badge.types.js";
 export { Breadcrumb } from "./breadcrumb/Breadcrumb.js";

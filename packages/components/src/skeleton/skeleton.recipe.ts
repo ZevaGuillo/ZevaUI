@@ -70,6 +70,37 @@ export const skeletonKeyframes = {
  * space and the page would jump at the exact moment the real avatar arrived. `circle` ships when
  * the thing it stands in for ships.
  *
+ * ──────────────────────────────────────────────────────────────────────────────────────────────
+ * UPDATE — `Avatar` HAS SHIPPED, AND EXACTLY ONE OF THOSE TWO REASONS IS NOW GONE.
+ *
+ * The drift hazard is closed: `internal/avatar-diameter.ts` holds the one diameter scale, and
+ * `avatar.recipe.ts` reads it rather than declaring its own. A `circle` here would read the same
+ * constant, so the two cannot disagree about a value neither of them owns.
+ *
+ * THE MECHANICAL REASON STANDS, and it is worth writing down precisely so the next person does
+ * not re-derive it. A flat Panda recipe cannot express "this axis applies only to that shape":
+ * `shape` and `width` both emit a single-class selector, so `circle`'s inline size and
+ * `width: full`'s would have equal specificity and the emission order would decide. Worse,
+ * `defaultVariants.width = "full"` means `recipeClassName` stamps a width class even when the
+ * caller passes none, so simply omitting the prop does not avoid the collision.
+ *
+ * The shape of the answer, for whoever picks this up:
+ *
+ *   1. Drop `width` from `defaultVariants` and move that default into `Skeleton.tsx`, where it
+ *      can be made CONDITIONAL — `shape === "circle" ? undefined : (width ?? "full")`. Verified
+ *      safe in principle: `defaultVariants` is read only by `recipeClassName`; `staticCss` and
+ *      the gates both enumerate all declared values, so nothing else changes, and every existing
+ *      non-circle skeleton keeps the exact classes it has today.
+ *   2. Express the exclusion in the type as a union, the way `ButtonPendingProps` does — a
+ *      `circle` branch that carries a `size` and forbids `width`, and a branch for the other
+ *      three shapes that forbids `size`.
+ *   3. The diameter comes from `AVATAR_DIAMETER`. Nothing new is invented here.
+ *
+ * Left undone deliberately rather than bolted onto the `Avatar` change: it restructures the
+ * variant axes and the public `SkeletonProps` shape of a component that has already shipped,
+ * which is its own change with its own changeset, not a footnote to a new component's.
+ * ──────────────────────────────────────────────────────────────────────────────────────────────
+ *
  * NO NEW TOKENS. `bg.muted` is the placeholder's fill and it is already bridged in
  * panda.config.ts (Progress paints its track with it), `radii.input` and `radii.card` are the two
  * corners this package already has, and every derived dimension is a multiple of the body type
@@ -81,12 +112,20 @@ export const skeletonKeyframes = {
  * WHY A BOX WITH NO TEXT DECLARES TYPOGRAPHY. `font-size` is load-bearing: the `1em` in the two
  * line-shaped heights below resolves against it, so a theme that changes its type scale moves the
  * placeholder with the text it replaces. `font-family` and `color` are not — this component
- * renders no glyphs — and they are declared anyway because G11 in `__tests__/css-gates.test.ts`
- * is a package-wide law, not a rule with exemptions. The defect G11 exists for was a component
- * that silently deferred the whole question of its text to the consumer's page; a component that
- * establishes a font size but not a family or a colour is one `children` prop away from being
- * that same component, and the honest way to hold the line is to declare all of it rather than to
- * argue this one case out of the gate.
+ * renders no glyphs — and they are declared anyway, on the reasoning that the defect G11 in
+ * `__tests__/css-gates.test.ts` exists for was a component that silently deferred the whole
+ * question of its text to the consumer's page, and a component that establishes a font size but
+ * not a family or a colour is one `children` prop away from being that same component.
+ *
+ * A CORRECTION, because the original wording of this paragraph is now false and someone will
+ * otherwise cite it: it said G11 was "a package-wide law, not a rule with exemptions". G11 grew a
+ * per-property exemption map when `Link` and `Separator` shipped, and that is not a weakening of
+ * the position above — it is the same position applied to two components where the failure mode
+ * cannot occur. `Separator` renders a void `<hr>` and refuses `children` at the type level, so
+ * "one `children` prop away" is not a distance it can travel. `Link` inherits its type on purpose,
+ * so declaring a family would be the bug rather than the guard. Skeleton is neither: it is a
+ * `<span>` that could hold text tomorrow, which is exactly the case the paragraph above describes,
+ * so it takes no exemption and the declarations stay.
  */
 export const skeletonRecipe = {
   className: "zui-skeleton",
