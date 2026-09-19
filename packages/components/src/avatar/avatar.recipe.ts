@@ -4,6 +4,31 @@ import { AVATAR_DIAMETER } from "../internal/avatar-diameter.js";
 export const AVATAR_RECIPE_KEY = "avatar";
 
 /**
+ * One size's geometry, derived from its diameter rather than written out beside it.
+ *
+ * A FUNCTION RATHER THAN THREE LITERAL BLOCKS, and it earns that twice over. The three sizes
+ * differ in exactly one value, so spelling them out meant three near-identical blocks — which
+ * SonarCloud's duplication gate flagged on this PR at 3.1% against a 3% ceiling, and which is the
+ * shape a `lg` avatar with `md` initials eventually comes out of.
+ *
+ * The font size is derived here rather than listed as a fourth token because two letters centred
+ * in a circle want to be a fixed fraction of it at every size. Writing the diameter and the type
+ * scale apart is precisely how they drift; written this way they cannot.
+ *
+ * Called three times with literal keys rather than mapped over `AVATAR_DIAMETER` with
+ * `Object.fromEntries`, because that would widen the variant map to `Record<string, …>` and
+ * `avatar.types.ts` derives `AvatarSize` from `keyof typeof avatarRecipe.variants.size`. The
+ * literal keys are load-bearing.
+ */
+const geometryFor = (diameter: string) => ({
+  root: {
+    inlineSize: diameter,
+    blockSize: diameter,
+    fontSize: `calc(${diameter} * 0.4)`,
+  },
+});
+
+/**
  * Avatar is multi-part, so it is a Panda SLOT recipe, routed to `theme.slotRecipes` off the
  * presence of `slots` alone (see `isSlotRecipe` in src/registry.ts).
  *
@@ -118,32 +143,13 @@ export const avatarRecipe = {
      * placeholder. That hazard is named in skeleton.recipe.ts's own comment, and a shared
      * constant is what makes it impossible rather than merely unlikely.
      *
-     * The font size is derived from the diameter rather than listed separately: two letters
-     * centred in a circle want to be a fixed fraction of it at every size, and writing the two
-     * scales apart is how a `lg` avatar ends up with `md` initials.
+     * Each value is `geometryFor` applied to its own diameter — see that helper for why the three
+     * are not written out, and why the font size is derived rather than listed.
      */
     size: {
-      sm: {
-        root: {
-          inlineSize: AVATAR_DIAMETER.sm,
-          blockSize: AVATAR_DIAMETER.sm,
-          fontSize: `calc(${AVATAR_DIAMETER.sm} * 0.4)`,
-        },
-      },
-      md: {
-        root: {
-          inlineSize: AVATAR_DIAMETER.md,
-          blockSize: AVATAR_DIAMETER.md,
-          fontSize: `calc(${AVATAR_DIAMETER.md} * 0.4)`,
-        },
-      },
-      lg: {
-        root: {
-          inlineSize: AVATAR_DIAMETER.lg,
-          blockSize: AVATAR_DIAMETER.lg,
-          fontSize: `calc(${AVATAR_DIAMETER.lg} * 0.4)`,
-        },
-      },
+      sm: geometryFor(AVATAR_DIAMETER.sm),
+      md: geometryFor(AVATAR_DIAMETER.md),
+      lg: geometryFor(AVATAR_DIAMETER.lg),
     },
     /**
      * `50%` IS A LITERAL, NOT A TOKEN, AND THAT IS THE ONE PLACE THIS PACKAGE'S RADIUS RULE BENDS.
