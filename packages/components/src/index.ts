@@ -38,6 +38,8 @@ export type {
   MenuSize,
   MenuWidth,
 } from "./menu/menu.types.js";
+export { Pagination } from "./pagination/Pagination.js";
+export type { PaginationProps } from "./pagination/pagination.types.js";
 export { Popover } from "./popover/Popover.js";
 export type {
   PopoverPlacement,

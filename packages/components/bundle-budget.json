@@ -125,10 +125,15 @@
       "measuredAtCommit": "cc645ede692f771d3c276575ba8ed97ca56e024f",
       "maxGzipBytes": 1224
     },
+    "Pagination": {
+      "measuredGzipBytes": 13074,
+      "measuredAtCommit": "41924e956f70b242e65ea7a3b1d08497b07cdb20",
+      "maxGzipBytes": 14382
+    },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 86400,
-      "measuredAtCommit": "cc645ede692f771d3c276575ba8ed97ca56e024f",
+      "measuredGzipBytes": 86914,
+      "measuredAtCommit": "41924e956f70b242e65ea7a3b1d08497b07cdb20",
       "maxGzipBytes": 88004
     }
   }
