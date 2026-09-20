@@ -27,6 +27,7 @@ import {
 } from "./skeleton/skeleton.recipe.js";
 import { SPINNER_RECIPE_KEY, spinnerKeyframes, spinnerRecipe } from "./spinner/spinner.recipe.js";
 import { SWITCH_RECIPE_KEY, switchRecipe } from "./switch/switch.recipe.js";
+import { TABLE_RECIPE_KEY, tableRecipe } from "./table/table.recipe.js";
 import { TABS_RECIPE_KEY, tabsRecipe } from "./tabs/tabs.recipe.js";
 import { TEXTAREA_RECIPE_KEY, textareaRecipe } from "./textarea/textarea.recipe.js";
 import { TOAST_RECIPE_KEY, toastRecipe } from "./toast/toast.recipe.js";
@@ -419,6 +420,21 @@ export const componentRegistry = [
     recipeKey: PAGINATION_RECIPE_KEY,
     recipe: paginationRecipe,
     modulePath: "pagination/Pagination.js",
+    clientOnly: true,
+  },
+  // THE THIRD COLLECTION BUILT WITHOUT REACT-ARIA'S, after Breadcrumb and Pagination — but for a
+  // different reason than either of those. They skipped it because a row of links needs no keyboard
+  // delegate; this skips it because RAC's `Table` implements `role="grid"`, and a screen reader
+  // reads a grid in its grid mode rather than its table mode. For a table you READ, native
+  // `<table>` semantics are the better answer and not merely the cheaper one. Table.tsx holds the
+  // argument, and table.types.ts documents the boundary — no selection, no cell navigation.
+  //
+  // `clientOnly: true` by composition: a sortable heading is this package's `Link`.
+  {
+    name: "Table",
+    recipeKey: TABLE_RECIPE_KEY,
+    recipe: tableRecipe,
+    modulePath: "table/Table.js",
     clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
