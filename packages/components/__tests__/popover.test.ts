@@ -7,12 +7,15 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, isValidElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { selectorSegments } from "../src/internal/selector-segments.js";
 import { slotRecipeClassNames } from "../src/internal/slot-recipe-class.js";
 import { Popover } from "../src/popover/Popover.js";
 import { popoverRecipe } from "../src/popover/popover.recipe.js";
 import type { PopoverProps, PopoverSize } from "../src/popover/popover.types.js";
-import { emittedStylesheet, styledClassPredicate } from "./support/emitted-css.js";
+import {
+  declarationBodies,
+  emittedStylesheet,
+  styledClassPredicate,
+} from "./support/emitted-css.js";
 
 const css = emittedStylesheet();
 
@@ -197,26 +200,20 @@ describe("the emitted CSS Popover owes", () => {
    * available for the distinction, so this assertion is the one guarding it.
    */
   it("sits at dropdown depth, never modal depth", () => {
-    const base = selectorSegments(css).filter(
-      (segment) => segment.selector.trim() === ".zui-popover__popover",
+    const bodies = declarationBodies(
+      css,
+      (selector) => selector.trim() === ".zui-popover__popover",
     );
-    expect(base.length).toBeGreaterThan(0);
-    const body = base
-      .map((segment) =>
-        css.slice(segment.openBraceIndex + 1, css.indexOf("}", segment.openBraceIndex)),
-      )
-      .join(";");
+    expect(bodies.length).toBeGreaterThan(0);
+    const body = bodies.join(";");
     expect(body).toMatch(/box-shadow:\s*var\(--zuip-shadows-dropdown\)/);
     expect(body).not.toMatch(/--zuip-shadows-modal/);
   });
 
   it("never animates opacity", () => {
-    const segments = selectorSegments(css).filter((segment) =>
-      segment.selector.includes(".zui-popover"),
-    );
-    expect(segments.length).toBeGreaterThan(0);
-    for (const segment of segments) {
-      const body = css.slice(segment.openBraceIndex + 1, css.indexOf("}", segment.openBraceIndex));
+    const bodies = declarationBodies(css, (selector) => selector.includes(".zui-popover"));
+    expect(bodies.length).toBeGreaterThan(0);
+    for (const body of bodies) {
       expect(body).not.toMatch(/(^|[;\s])opacity\s*:/);
     }
   });

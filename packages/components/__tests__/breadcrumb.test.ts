@@ -10,10 +10,13 @@ import { Breadcrumb } from "../src/breadcrumb/Breadcrumb.js";
 import { breadcrumbRecipe } from "../src/breadcrumb/breadcrumb.recipe.js";
 import type { BreadcrumbProps } from "../src/breadcrumb/breadcrumb.types.js";
 import { recipeClassName } from "../src/internal/recipe-class.js";
-import { selectorSegments } from "../src/internal/selector-segments.js";
 import { slotRecipeClassNames } from "../src/internal/slot-recipe-class.js";
 import { linkRecipe } from "../src/link/link.recipe.js";
-import { emittedStylesheet, styledClassPredicate } from "./support/emitted-css.js";
+import {
+  declarationBodies,
+  emittedStylesheet,
+  styledClassPredicate,
+} from "./support/emitted-css.js";
 
 const css = emittedStylesheet();
 
@@ -207,15 +210,9 @@ describe("the emitted CSS Breadcrumb owes", () => {
    * viewport width and therefore never in a default screenshot.
    */
   it("wraps instead of overflowing", () => {
-    const segments = selectorSegments(css).filter((segment) =>
-      segment.selector.includes(".zui-breadcrumb__list"),
-    );
-    expect(segments.length).toBeGreaterThan(0);
-    const body = segments
-      .map((segment) =>
-        css.slice(segment.openBraceIndex + 1, css.indexOf("}", segment.openBraceIndex)),
-      )
-      .join(";");
+    const bodies = declarationBodies(css, (selector) => selector.includes(".zui-breadcrumb__list"));
+    expect(bodies.length).toBeGreaterThan(0);
+    const body = bodies.join(";");
     expect(body).toMatch(/flex-wrap:\s*wrap/);
   });
 });

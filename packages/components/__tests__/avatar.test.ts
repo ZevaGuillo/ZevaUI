@@ -11,10 +11,13 @@ import { avatarRecipe } from "../src/avatar/avatar.recipe.js";
 import type { AvatarProps, AvatarShape, AvatarSize } from "../src/avatar/avatar.types.js";
 import { AVATAR_DIAMETER } from "../src/internal/avatar-diameter.js";
 import { cssUrl } from "../src/internal/css-url.js";
-import { selectorSegments } from "../src/internal/selector-segments.js";
 import { slotRecipeClassNames } from "../src/internal/slot-recipe-class.js";
 import { skeletonRecipe } from "../src/skeleton/skeleton.recipe.js";
-import { emittedStylesheet, styledClassPredicate } from "./support/emitted-css.js";
+import {
+  declarationBodies,
+  emittedStylesheet,
+  styledClassPredicate,
+} from "./support/emitted-css.js";
 
 const css = emittedStylesheet();
 
@@ -252,16 +255,12 @@ describe("the emitted CSS Avatar owes", () => {
    * pressure, which is the hardest kind to see.
    */
   it("refuses to shrink", () => {
-    const base = selectorSegments(css).filter(
-      (segment) =>
-        segment.selector.includes(".zui-avatar__root") && !segment.selector.includes("--"),
+    const bodies = declarationBodies(
+      css,
+      (selector) => selector.includes(".zui-avatar__root") && !selector.includes("--"),
     );
-    expect(base.length).toBeGreaterThan(0);
-    const body = base
-      .map((segment) =>
-        css.slice(segment.openBraceIndex + 1, css.indexOf("}", segment.openBraceIndex)),
-      )
-      .join(";");
+    expect(bodies.length).toBeGreaterThan(0);
+    const body = bodies.join(";");
     expect(body).toMatch(/flex-shrink:\s*0/);
   });
 });
