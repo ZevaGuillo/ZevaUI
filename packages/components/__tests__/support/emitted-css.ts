@@ -160,3 +160,31 @@ export const styledClassPredicate = (css: string): ((className: string) => boole
     return heads.some((head) => pattern.test(head));
   };
 };
+
+/**
+ * The declaration bodies of every rule whose SELECTOR satisfies `matches`.
+ *
+ * WRITTEN BECAUSE SIX COMPONENT TESTS HAD GROWN THE SAME BODY, AND A GATE SAID SO. `Link`,
+ * `Separator`, `Tooltip`, `Popover`, `Breadcrumb` and `Avatar` each carried their own copy of
+ * "filter `selectorSegments`, assert the list is non-empty, then slice from `openBraceIndex + 1`
+ * to the next closing brace" — landed over four pull requests, each time by copying the previous
+ * one. SonarCloud's duplication gate failed the `Avatar` branch on exactly that, which is the
+ * check doing its job rather than being appeased: this module's own opening comment says
+ * de-duplicating the stylesheet read is the whole justification for its existence.
+ *
+ * The slice is the part worth having ONE owner for. `css.indexOf("}", openBraceIndex)` finds the
+ * first closing brace, which is correct only for a FLAT declaration block — every caller here
+ * asserts on one, and a nested rule (a media query, a `&`-nested state) would be truncated at its
+ * inner brace. That constraint was implicit in six copies and is stated once here.
+ *
+ * Callers assert non-emptiness themselves rather than having it thrown for them: "this component
+ * emits rules matching X" and "those rules do not declare Y" are two different claims, and a
+ * helper that conflated them would let the second pass vacuously when the first was already
+ * broken — the same trap `hoverSelectorsNotExcludingInvalid` documents above.
+ */
+export const declarationBodies = (css: string, matches: (selector: string) => boolean): string[] =>
+  selectorSegments(css)
+    .filter((segment) => matches(segment.selector))
+    .map((segment) =>
+      css.slice(segment.openBraceIndex + 1, css.indexOf("}", segment.openBraceIndex)),
+    );

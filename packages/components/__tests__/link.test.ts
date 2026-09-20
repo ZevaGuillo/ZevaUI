@@ -7,11 +7,14 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { createElement, isValidElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { recipeClassName } from "../src/internal/recipe-class.js";
-import { selectorSegments } from "../src/internal/selector-segments.js";
 import { Link } from "../src/link/Link.js";
 import { linkRecipe } from "../src/link/link.recipe.js";
 import type { LinkProps, LinkTone, LinkUnderline } from "../src/link/link.types.js";
-import { emittedStylesheet, styledClassPredicate } from "./support/emitted-css.js";
+import {
+  declarationBodies,
+  emittedStylesheet,
+  styledClassPredicate,
+} from "./support/emitted-css.js";
 
 const css = emittedStylesheet();
 
@@ -192,13 +195,12 @@ describe("the emitted CSS Link owes, and the contract gap it deliberately does n
    * the recipe cannot quietly reintroduce it.
    */
   it("no hover rule declares a text colour — the hover affordance is the underline", () => {
-    const hoverSegments = selectorSegments(css).filter(
-      (segment) =>
-        segment.selector.includes(".zui-link") && segment.selector.includes("[data-hovered]"),
+    const bodies = declarationBodies(
+      css,
+      (selector) => selector.includes(".zui-link") && selector.includes("[data-hovered]"),
     );
-    expect(hoverSegments.length).toBeGreaterThan(0);
-    for (const segment of hoverSegments) {
-      const body = css.slice(segment.openBraceIndex + 1, css.indexOf("}", segment.openBraceIndex));
+    expect(bodies.length).toBeGreaterThan(0);
+    for (const body of bodies) {
       expect(body).not.toMatch(/(^|[;\s])color\s*:/);
     }
   });
@@ -209,12 +211,9 @@ describe("the emitted CSS Link owes, and the contract gap it deliberately does n
    * a later "make it consistent with Button" edit from doing exactly that.
    */
   it("declares no font or line-height property anywhere in its own rules", () => {
-    const linkSegments = selectorSegments(css).filter((segment) =>
-      segment.selector.includes(".zui-link"),
-    );
-    expect(linkSegments.length).toBeGreaterThan(0);
-    for (const segment of linkSegments) {
-      const body = css.slice(segment.openBraceIndex + 1, css.indexOf("}", segment.openBraceIndex));
+    const bodies = declarationBodies(css, (selector) => selector.includes(".zui-link"));
+    expect(bodies.length).toBeGreaterThan(0);
+    for (const body of bodies) {
       expect(body).not.toMatch(/(^|[;\s])font(-[a-z]+)?\s*:/);
       expect(body).not.toMatch(/(^|[;\s])line-height\s*:/);
     }

@@ -10,11 +10,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import { Button } from "../src/button/Button.js";
 import type { ButtonProps } from "../src/button/button.types.js";
 import { recipeClassName } from "../src/internal/recipe-class.js";
-import { selectorSegments } from "../src/internal/selector-segments.js";
 import { Tooltip } from "../src/tooltip/Tooltip.js";
 import { tooltipRecipe } from "../src/tooltip/tooltip.recipe.js";
 import type { TooltipProps } from "../src/tooltip/tooltip.types.js";
-import { emittedStylesheet, styledClassPredicate } from "./support/emitted-css.js";
+import {
+  declarationBodies,
+  emittedStylesheet,
+  styledClassPredicate,
+} from "./support/emitted-css.js";
 
 const css = emittedStylesheet();
 
@@ -186,12 +189,9 @@ describe("the emitted CSS Tooltip owes", () => {
    * Asserted against the emitted sheet rather than the recipe, because the sheet is what cascades.
    */
   it("never animates opacity", () => {
-    const segments = selectorSegments(css).filter((segment) =>
-      segment.selector.includes(".zui-tooltip"),
-    );
-    expect(segments.length).toBeGreaterThan(0);
-    for (const segment of segments) {
-      const body = css.slice(segment.openBraceIndex + 1, css.indexOf("}", segment.openBraceIndex));
+    const bodies = declarationBodies(css, (selector) => selector.includes(".zui-tooltip"));
+    expect(bodies.length).toBeGreaterThan(0);
+    for (const body of bodies) {
       expect(body).not.toMatch(/(^|[;\s])opacity\s*:/);
     }
   });
@@ -203,15 +203,9 @@ describe("the emitted CSS Tooltip owes", () => {
    * `Menu` the user cannot click — or open a contrast pair nothing checks.
    */
   it("paints the one inverse pair the contract validates", () => {
-    const base = selectorSegments(css).filter(
-      (segment) => segment.selector.trim() === ".zui-tooltip",
-    );
-    expect(base.length).toBeGreaterThan(0);
-    const body = base
-      .map((segment) =>
-        css.slice(segment.openBraceIndex + 1, css.indexOf("}", segment.openBraceIndex)),
-      )
-      .join(";");
+    const bodies = declarationBodies(css, (selector) => selector.trim() === ".zui-tooltip");
+    expect(bodies.length).toBeGreaterThan(0);
+    const body = bodies.join(";");
     expect(body).toMatch(/background-color:\s*var\(--zuip-colors-bg-inverse\)/);
     expect(body).toMatch(/color:\s*var\(--zuip-colors-text-inverse\)/);
   });
