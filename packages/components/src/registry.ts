@@ -10,6 +10,7 @@ import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { LINK_RECIPE_KEY, linkRecipe } from "./link/link.recipe.js";
 import { MENU_RECIPE_KEY, menuRecipe } from "./menu/menu.recipe.js";
+import { PAGINATION_RECIPE_KEY, paginationRecipe } from "./pagination/pagination.recipe.js";
 import { POPOVER_RECIPE_KEY, popoverRecipe } from "./popover/popover.recipe.js";
 import {
   PROGRESS_RECIPE_KEY,
@@ -406,5 +407,18 @@ export const componentRegistry = [
     recipe: avatarRecipe,
     modulePath: "avatar/Avatar.js",
     clientOnly: false,
+  },
+  // The second collection built WITHOUT react-aria's collection machinery, after Breadcrumb, and
+  // the third entry made of another public component of this package: every page number is a
+  // `Link`. A row of links needs no keyboard delegate — Tab already walks links — so the machinery
+  // `Menu` and `Tabs` pay for would buy a render pipeline and nothing else. See Pagination.tsx.
+  //
+  // `clientOnly: true` by composition rather than its own need, exactly as Breadcrumb is.
+  {
+    name: "Pagination",
+    recipeKey: PAGINATION_RECIPE_KEY,
+    recipe: paginationRecipe,
+    modulePath: "pagination/Pagination.js",
+    clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
