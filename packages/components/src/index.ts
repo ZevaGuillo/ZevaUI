@@ -20,6 +20,12 @@ export { Card } from "./card/Card.js";
 export type { CardPartProps, CardProps, CardSurface } from "./card/card.types.js";
 export { Checkbox } from "./checkbox/Checkbox.js";
 export type { CheckboxProps, CheckboxSize } from "./checkbox/checkbox.types.js";
+export { DateField } from "./date-field/DateField.js";
+export type {
+  DateFieldProps,
+  DateFieldSize,
+  IsoDate,
+} from "./date-field/date-field.types.js";
 export { Dialog } from "./dialog/Dialog.js";
 export type { DialogPlacement, DialogProps, DialogSize } from "./dialog/dialog.types.js";
 export { Input } from "./input/Input.js";
