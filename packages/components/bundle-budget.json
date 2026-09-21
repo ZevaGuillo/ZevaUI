@@ -140,11 +140,16 @@
       "measuredAtCommit": "9c78f2db639bb468d38b5cdd6052885d880174eb",
       "maxGzipBytes": 56044
     },
+    "Calendar": {
+      "measuredGzipBytes": 39076,
+      "measuredAtCommit": "b32b67f469518ae45b5f90bcb7e06d72ba4447ed",
+      "maxGzipBytes": 42984
+    },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 129748,
-      "measuredAtCommit": "9c78f2db639bb468d38b5cdd6052885d880174eb",
-      "maxGzipBytes": 142723
+      "measuredGzipBytes": 142758,
+      "measuredAtCommit": "b32b67f469518ae45b5f90bcb7e06d72ba4447ed",
+      "maxGzipBytes": 157034
     }
   }
 }
