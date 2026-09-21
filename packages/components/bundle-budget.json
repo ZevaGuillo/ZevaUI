@@ -135,11 +135,16 @@
       "measuredAtCommit": "fbe5080cda9bc772fd35d09d42c815d9b14c884b",
       "maxGzipBytes": 26116
     },
+    "DateField": {
+      "measuredGzipBytes": 50949,
+      "measuredAtCommit": "9c78f2db639bb468d38b5cdd6052885d880174eb",
+      "maxGzipBytes": 56044
+    },
     "barrel": {
       "imports": "*",
-      "measuredGzipBytes": 98467,
-      "measuredAtCommit": "fbe5080cda9bc772fd35d09d42c815d9b14c884b",
-      "maxGzipBytes": 108314
+      "measuredGzipBytes": 129748,
+      "measuredAtCommit": "9c78f2db639bb468d38b5cdd6052885d880174eb",
+      "maxGzipBytes": 142723
     }
   }
 }

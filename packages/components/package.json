@@ -28,6 +28,7 @@
     "react-dom": ">=18"
   },
   "dependencies": {
+    "@internationalized/date": "^3.12.3",
     "@tanstack/react-table": "^9.2.4",
     "react-aria-components": ">=1.20.0 <1.22.0"
   },

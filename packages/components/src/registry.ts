@@ -6,6 +6,7 @@ import { BREADCRUMB_RECIPE_KEY, breadcrumbRecipe } from "./breadcrumb/breadcrumb
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
 import { CARD_RECIPE_KEY, cardRecipe } from "./card/card.recipe.js";
 import { CHECKBOX_RECIPE_KEY, checkboxRecipe } from "./checkbox/checkbox.recipe.js";
+import { DATE_FIELD_RECIPE_KEY, dateFieldRecipe } from "./date-field/date-field.recipe.js";
 import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { LINK_RECIPE_KEY, linkRecipe } from "./link/link.recipe.js";
@@ -435,6 +436,25 @@ export const componentRegistry = [
     recipeKey: TABLE_RECIPE_KEY,
     recipe: tableRecipe,
     modulePath: "table/Table.js",
+    clientOnly: true,
+  },
+  // THE FIRST ENTRY WHOSE PROPS ARE TRANSLATED RATHER THAN FORWARDED. Every component above takes
+  // primitives and hands them to react-aria unchanged; a date cannot do that, because RAC's
+  // `DateField` is generic over `DateValue` and constructing one means the CONSUMER importing
+  // `@internationalized/date`. This package's public API speaks ISO strings instead and parses at
+  // the boundary — `internal/iso-date.ts` holds the argument, the 24-byte measurement, and the
+  // non-Gregorian/timezone scope it knowingly gives up.
+  //
+  // It is also the third reader of `internal/text-surface.ts`, and the first to take
+  // `textSurfaceBase` without sharing Input's `InputRenderProps` contract. The two attribute sets
+  // were compared in RAC 1.20's types rather than assumed equal: they differ only in
+  // `data-focused` vs `data-focus-within`, and that module keys on neither. See
+  // date-field.recipe.ts.
+  {
+    name: "DateField",
+    recipeKey: DATE_FIELD_RECIPE_KEY,
+    recipe: dateFieldRecipe,
+    modulePath: "date-field/DateField.js",
     clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
