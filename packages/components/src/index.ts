@@ -16,6 +16,8 @@ export type {
   ButtonVisual,
   ButtonWidth,
 } from "./button/button.types.js";
+export { Calendar } from "./calendar/Calendar.js";
+export type { CalendarProps } from "./calendar/calendar.types.js";
 export { Card } from "./card/Card.js";
 export type { CardPartProps, CardProps, CardSurface } from "./card/card.types.js";
 export { Checkbox } from "./checkbox/Checkbox.js";

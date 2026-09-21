@@ -4,6 +4,7 @@ import { AVATAR_RECIPE_KEY, avatarRecipe } from "./avatar/avatar.recipe.js";
 import { BADGE_RECIPE_KEY, badgeRecipe } from "./badge/badge.recipe.js";
 import { BREADCRUMB_RECIPE_KEY, breadcrumbRecipe } from "./breadcrumb/breadcrumb.recipe.js";
 import { BUTTON_RECIPE_KEY, buttonRecipe } from "./button/button.recipe.js";
+import { CALENDAR_RECIPE_KEY, calendarRecipe } from "./calendar/calendar.recipe.js";
 import { CARD_RECIPE_KEY, cardRecipe } from "./card/card.recipe.js";
 import { CHECKBOX_RECIPE_KEY, checkboxRecipe } from "./checkbox/checkbox.recipe.js";
 import { DATE_FIELD_RECIPE_KEY, dateFieldRecipe } from "./date-field/date-field.recipe.js";
@@ -455,6 +456,25 @@ export const componentRegistry = [
     recipeKey: DATE_FIELD_RECIPE_KEY,
     recipe: dateFieldRecipe,
     modulePath: "date-field/DateField.js",
+    clientOnly: true,
+  },
+  // THE FIRST COLLECTION HERE THAT KEEPS REACT-ARIA'S MACHINERY ON PURPOSE. Breadcrumb, Pagination
+  // and Table each refused it — a row of links needs no keyboard delegate, and Tab already walks
+  // links. A month is TWO-DIMENSIONAL: arrow keys move by day and by week, wrap across month
+  // boundaries, skip disabled days and keep a roving tabindex. That is exactly what the collection
+  // machinery implements, so here its weight buys something.
+  //
+  // The second entry whose props are translated rather than forwarded, after DateField, and the
+  // first whose CALLBACK is translated too: `isDateUnavailable` would otherwise hand react-aria's
+  // `CalendarDate` back to the consumer through the back door. See calendar.types.ts.
+  //
+  // Its recipe declares NO variants — the second after Tooltip to be honest about that rather
+  // than inventing a size axis a month grid does not have.
+  {
+    name: "Calendar",
+    recipeKey: CALENDAR_RECIPE_KEY,
+    recipe: calendarRecipe,
+    modulePath: "calendar/Calendar.js",
     clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];
