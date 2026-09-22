@@ -551,16 +551,42 @@ describe("G11: no component defers its entire typography to the consumer's page"
    * `hasRule` does: Panda collapses identical blocks into comma-separated selector lists, and a
    * slot's styles routinely land in a compound rule (`.zui-x__input[data-hovered]`).
    */
-  function declarationBodies(recipe: GateRecipe): string[] {
-    const patterns = requiredSelectors(recipe).map((className) => classSelectorPattern(className));
-    const bodies: string[] = [];
+  // SPLIT THE STYLESHEET ONCE, NOT ONCE PER COMPONENT PER TEST, and this is the same defect the
+  // loop in G5 already names in its own comment: "scanning per component would be a milder version
+  // of the defect this gate's own timeout came from". G5 was fixed; this gate kept it.
+  //
+  // `declarationBodies` used to run `css.matchAll` and `extractBlockAt` over the WHOLE emitted
+  // stylesheet on every call, and it is called once per registered component in each of the four
+  // tests below — so the work grew as (components x tests) full passes. That curve is invisible
+  // until it crosses the 5s default: it did, on CI, on the component that took the registry to 29,
+  // and the failure reads as "the newest component is slow" when nothing about the component is
+  // slow at all.
+  //
+  // One pass, reused. Each component now only runs its own patterns over the pre-split heads,
+  // which is bounded by the rule count rather than multiplying by it. Behaviour is unchanged: the
+  // same heads, in the same order, matched by the same patterns.
+  //
+  // Reusing the compiled patterns across heads is safe because `classSelectorPattern` builds its
+  // RegExp with no `g` flag — checked in consumed-tokens.ts rather than assumed, since a sticky
+  // regex reused through `.test()` carries `lastIndex` between calls and would skip matches.
+  const ruleBlocks: ReadonlyArray<{ readonly head: string; readonly body: string }> = (() => {
+    const blocks: { head: string; body: string }[] = [];
     for (const match of css.matchAll(/([^{}]*)\{/g)) {
-      if (!patterns.some((pattern) => pattern.test(match[1]))) continue;
       const matchIndex = match.index ?? -1;
       if (matchIndex === -1) continue;
-      bodies.push(extractBlockAt(css, matchIndex + match[0].length - 1));
+      blocks.push({
+        head: match[1],
+        body: extractBlockAt(css, matchIndex + match[0].length - 1),
+      });
     }
-    return bodies;
+    return blocks;
+  })();
+
+  function declarationBodies(recipe: GateRecipe): string[] {
+    const patterns = requiredSelectors(recipe).map((className) => classSelectorPattern(className));
+    return ruleBlocks
+      .filter(({ head }) => patterns.some((pattern) => pattern.test(head)))
+      .map(({ body }) => body);
   }
 
   // Split on the declaration separator and compare against the START of each trimmed segment,
