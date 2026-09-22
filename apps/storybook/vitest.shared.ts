@@ -73,6 +73,48 @@ function storybookProject(tags: TagFilter, theme: (typeof themeIds)[number], nam
           skip: [],
         },
       }),
+      // ONE DEPENDENCY CACHE PER PROJECT. A BUG FIX, NOT A TUNING KNOB — AND IT HAS TO BE A PLUGIN.
+      //
+      // The theme projects below are identical Vite configs apart from `define` and `test.name`,
+      // and they all resolved to the SAME dependency cache. The cause is upstream and was read in
+      // `@storybook/addon-vitest`'s own dist rather than guessed at:
+      //
+      //   let projectId = oneWayHash(finalOptions.configDir);
+      //   cacheDir: resolvePathInStorybookCache("sb-vitest", projectId);
+      //
+      // The id is a hash of `configDir` and NOTHING ELSE, so the addon assumes one Vitest project
+      // per Storybook config directory. This file deliberately runs three against one.
+      //
+      // ONE DESTINATION, THREE WRITERS, AND THE RESULT IS A HANG RATHER THAN A FAILURE. Each
+      // project starts its own Vite dependency optimizer, each builds `deps_temp_<hash>`, and each
+      // renames it onto `deps`. On Windows, renaming over a directory another process holds open
+      // fails with EPERM and leaves `deps` PARTIAL — which surfaces as `does not provide an export
+      // named <x>` for whichever module got truncated. Every story file then throws at import time
+      // and the browser provider waits forever. Measured on disk: one `sb-vitest/deps` with two
+      // orphaned `deps_temp_*` beside it.
+      //
+      // The tell that it is infrastructure and not a component is that an ENTIRE project fails
+      // while its siblings pass — Alert, Button and Table included, green for weeks. It has now
+      // surfaced three times in three disguises (`aria-query` missing `elementRoles`, `expect-type`
+      // missing `expectTypeOf`, and the bare EPERM), which is why it is fixed here rather than
+      // re-run until it passes.
+      //
+      // IT MUST SIT AFTER `storybookTest` AND SET `cacheDir` FROM A `config` HOOK. A plain
+      // top-level `cacheDir` on this object does not survive: the addon returns its own partial
+      // from its `config` hook, and Vite merges a plugin's return ON TOP of the user's config.
+      // That was measured too — the top-level spelling was tried first and no per-project
+      // directory was ever created. A later plugin's `config` return merges over an earlier one's,
+      // so this wins.
+      //
+      // Disjoint caches cost three pre-bundles of disk and no wall time: the three optimizers
+      // already ran in parallel, they were only fighting over one output. This also separates the
+      // visual configs' cache from the themed run's, which collided for the same reason.
+      {
+        name: "zevaui:per-project-vitest-cache",
+        config: () => ({
+          cacheDir: path.join(dirname, "node_modules/.cache/vitest", name),
+        }),
+      },
     ],
     test: {
       name,
