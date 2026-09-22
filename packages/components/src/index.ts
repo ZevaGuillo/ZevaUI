@@ -28,6 +28,8 @@ export type {
   DateFieldSize,
   IsoDate,
 } from "./date-field/date-field.types.js";
+export { DatePicker } from "./date-picker/DatePicker.js";
+export type { DatePickerProps, DatePickerSize } from "./date-picker/date-picker.types.js";
 export { Dialog } from "./dialog/Dialog.js";
 export type { DialogPlacement, DialogProps, DialogSize } from "./dialog/dialog.types.js";
 export { Input } from "./input/Input.js";
