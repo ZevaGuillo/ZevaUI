@@ -1,5 +1,6 @@
 import type { SlotRecipeConfig } from "@pandacss/dev";
 import {
+  dateSegment,
   textFieldDescription,
   textFieldError,
   textFieldLabel,
@@ -44,37 +45,10 @@ export const dateFieldRecipe = {
       whiteSpace: "nowrap",
       ...textSurfaceBase,
     },
-    segment: {
-      // Segments are `<span>`s inside the styled box, so they inherit type and colour and only
-      // declare what the box cannot give them.
-      paddingInline: "1px",
-      borderRadius: "input",
-      textAlign: "end",
-      // Tabular figures stop the field from reflowing as the user types: without them "11" and
-      // "22" occupy different widths and every segment to the right shifts.
-      fontVariantNumeric: "tabular-nums",
-      "&[data-type='literal']": {
-        // The separators are not editable and never focusable; dimming them is what makes the
-        // editable parts read as editable.
-        paddingInline: "0",
-        color: "text.secondary",
-      },
-      "&[data-placeholder]": {
-        color: "text.secondary",
-      },
-      // The focused segment is the one piece of state a date field has that a text input does
-      // not: there is no caret, so the highlight IS the cursor. `accent.default` under
-      // `text.inverse` is the one inverse pair @zevaui/constraints validates — the same pair
-      // Tooltip inverts to — so this cannot drift below the contrast floor.
-      "&[data-focused]": {
-        backgroundColor: "accent.default",
-        color: "text.inverse",
-        outline: "none",
-      },
-      "&[data-disabled]": {
-        cursor: "not-allowed",
-      },
-    },
+    // Moved to `internal/text-surface.ts` when `DatePicker` became the second component built out
+    // of `DateSegment`s. Both read the one object, so the two cannot drift — `date-picker.test.ts`
+    // asserts that by IDENTITY rather than equality.
+    segment: dateSegment,
     description: textFieldDescription,
     error: textFieldError,
   },

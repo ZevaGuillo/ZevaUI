@@ -8,6 +8,7 @@ import { CALENDAR_RECIPE_KEY, calendarRecipe } from "./calendar/calendar.recipe.
 import { CARD_RECIPE_KEY, cardRecipe } from "./card/card.recipe.js";
 import { CHECKBOX_RECIPE_KEY, checkboxRecipe } from "./checkbox/checkbox.recipe.js";
 import { DATE_FIELD_RECIPE_KEY, dateFieldRecipe } from "./date-field/date-field.recipe.js";
+import { DATE_PICKER_RECIPE_KEY, datePickerRecipe } from "./date-picker/date-picker.recipe.js";
 import { DIALOG_RECIPE_KEY, dialogRecipe } from "./dialog/dialog.recipe.js";
 import { INPUT_RECIPE_KEY, inputRecipe } from "./input/input.recipe.js";
 import { LINK_RECIPE_KEY, linkRecipe } from "./link/link.recipe.js";
@@ -475,6 +476,31 @@ export const componentRegistry = [
     recipeKey: CALENDAR_RECIPE_KEY,
     recipe: calendarRecipe,
     modulePath: "calendar/Calendar.js",
+    clientOnly: true,
+  },
+  // THE FIRST ENTRY THAT IS A FIELD, AN OVERLAY AND A COLLECTION AT ONCE — and, more to the point,
+  // the first assembled almost entirely out of parts that already existed. Its field chrome and
+  // its segment declarations come from `internal/text-surface.ts`, its box from `textSurfaceBase`
+  // (re-measured against RAC 1.20's `Group.d.ts`, which matches `DateInput` exactly), and the
+  // month grid in its popover is THIS PACKAGE'S `Calendar` rather than a second one written for an
+  // overlay. What its own recipe owns is only what is new: the boxed row, the trigger, the glyph
+  // and the raised surface.
+  //
+  // The fifth entry made of another public component of this package, after Popover -> Button and
+  // Breadcrumb/Pagination/Table -> Link, and the first where that composition had to be MEASURED
+  // rather than assumed safe: `Calendar.tsx` passes `minValue`/`maxValue`/`onChange` as explicit
+  // `undefined` when the consumer gives none, and had react-aria let those override its context
+  // the panel would have wiped the picker's bounds and broken selection on open. It does not. See
+  // DatePicker.tsx for the probe and `__tests__/date-picker.test.ts` for the pin.
+  //
+  // It is the most expensive component in the package in isolation — 76,446 B gzip against
+  // `Select`'s 58,871 B — and one of the cheapest to ADD: roughly 1.5 KB marginal on the barrel,
+  // because `DateField` and `Calendar` already paid for the date machinery it needs.
+  {
+    name: "DatePicker",
+    recipeKey: DATE_PICKER_RECIPE_KEY,
+    recipe: datePickerRecipe,
+    modulePath: "date-picker/DatePicker.js",
     clientOnly: true,
   },
 ] as const satisfies readonly ComponentRegistryEntry[];

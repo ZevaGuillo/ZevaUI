@@ -1,4 +1,4 @@
-// The declarations `Input` and `Textarea` genuinely share, in one place.
+// The declarations the text fields genuinely share, in one place.
 //
 // `Select` reads the FIELD CHROME below as well — the root's rhythm, the label, the description,
 // the error, and the padding steps — because a select stands in a column beside an input and must
@@ -27,6 +27,12 @@
 //
 // Anything a single component needs alone — Input's `width: 100%`, Textarea's `display: block`
 // and `verticalAlign: top`, Textarea's `resize` axis — stays in that component's own recipe.
+//
+// `dateSegment` joined on the same terms and for the same evidence, when `DatePicker` arrived as
+// the second component built out of `DateSegment`s. It was written inside `date-field.recipe.ts`
+// while there was one consumer, which was right at the time; a picker whose segments were a paste
+// of a field's segments is precisely the `Input` -> `Textarea` story again, and that story ends
+// with review catching the same bug twice. Extracted on arrival, not in advance.
 
 /** Vertical rhythm shared by both field roots. Derived from the field's own padding token. */
 export const textFieldRoot = {
@@ -118,6 +124,49 @@ export const textSurfaceBase = {
   "&[data-disabled]": {
     cursor: "not-allowed",
     opacity: 0.5,
+  },
+};
+
+/**
+ * One editable part of a date — the month, the day, the year — as it sits inside a styled box.
+ *
+ * Shared by `DateField` and `DatePicker`, which are the two components in this package made of
+ * `DateSegment`s. Both carry the same attributes because both render the same RAC primitive, so
+ * unlike `textSurfaceBase` this export needed no contract comparison to justify: it is the SAME
+ * element in both, not two elements that happen to agree.
+ *
+ * Spread into the recipe's own `segment` slot. Each recipe writes that key itself, for the reason
+ * the module header gives about literal slot names.
+ */
+export const dateSegment = {
+  // Segments are `<span>`s inside the styled box, so they inherit type and colour and only
+  // declare what the box cannot give them.
+  paddingInline: "1px",
+  borderRadius: "input",
+  textAlign: "end",
+  // Tabular figures stop the field from reflowing as the user types: without them "11" and "22"
+  // occupy different widths and every segment to the right shifts.
+  fontVariantNumeric: "tabular-nums",
+  "&[data-type='literal']": {
+    // The separators are not editable and never focusable; dimming them is what makes the
+    // editable parts read as editable.
+    paddingInline: "0",
+    color: "text.secondary",
+  },
+  "&[data-placeholder]": {
+    color: "text.secondary",
+  },
+  // The focused segment is the one piece of state a date field has that a text input does not:
+  // there is no caret, so the highlight IS the cursor. `accent.default` under `text.inverse` is
+  // the one inverse pair @zevaui/constraints validates — the same pair Tooltip inverts to — so
+  // this cannot drift below the contrast floor.
+  "&[data-focused]": {
+    backgroundColor: "accent.default",
+    color: "text.inverse",
+    outline: "none",
+  },
+  "&[data-disabled]": {
+    cursor: "not-allowed",
   },
 };
 
