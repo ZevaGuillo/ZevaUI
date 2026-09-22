@@ -35,6 +35,9 @@
     "Switch": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Tabs": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
     "Textarea": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
-    "ToastRegion": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 }
+    "ToastRegion": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "DateField": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "Calendar": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 },
+    "DatePicker": { "maxGzipBytes": 999999, "measuredGzipBytes": 0 }
   }
 }
