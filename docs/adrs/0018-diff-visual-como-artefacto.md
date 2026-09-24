@@ -2,14 +2,24 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | **Propuesta** — analizada contra el código real, no programada |
-| Fecha | 2026-08-26 |
+| Estado | Aceptada — **V0 implementada**; V1 y V2 diferidas |
+| Fecha | 2026-08-26 (V0 implementada el 2026-09-24) |
 | Autor | Guillermo Zevallos |
-| Decisores | Pendiente — se decidirá al programar la implementación |
+| Decisores | Guillermo Zevallos |
 | Relacionado | `ADR-0008` (regresión visual, baselines Linux); `apps/storybook`; `.github/workflows/{ci,visual-baselines}.yml`; precedente de escape `cell()` en `packages/audit` |
 
-> Este ADR registra una propuesta de evolución con su análisis de viabilidad.
-> Nada de lo descrito está construido.
+> **V0 (P1) está construida**: `ci.yml` sube el diff como artifact y lo resume
+> en el step summary. **V1 (P2) y V2 (P4) siguen sin construir** — el análisis
+> de viabilidad de abajo se conserva tal como se escribió.
+>
+> Lo que disparó programar V0: el flake de `DateField.stories.tsx > Focused
+> Segment` pega ~1 de cada 3 corridas (evidencia: tres corridas del mismo
+> commit `7a9863d` con resultados distintos) y su hipótesis — la modalidad de
+> interacción de react-aria es estado GLOBAL del documento, y el `outline` de
+> `[data-focus-visible]` en `textSurfaceBase` da del orden de los 260 px que
+> reporta el fallo — **no se podía confirmar ni refutar sin la imagen**. Ese es
+> el valor de V0 medido en un caso real: sin el diff, cualquier arreglo del
+> flake es una adivinanza.
 
 ## Contexto: qué problema busca resolver
 
@@ -83,12 +93,14 @@ propia discusión de seguridad.
 
 ## Plan de implementación
 
-| Fase | Contenido | Estimado |
-|---|---|---|
-| V0 | upload-artifact + step summary con lista y link | 30–50 líneas |
-| V1 | Job `visual-report` + comentario sticky + escape | 100–150 líneas |
+| Fase | Contenido | Estimado | Estado |
+|---|---|---|---|
+| V0 | upload-artifact + step summary con lista y link | 30–50 líneas | **Hecha** — `ci.yml`, pasos `Upload the visual diffs` y `Summarise the visual diffs`, guardados por `steps.visual.conclusion` |
+| V1 | Job `visual-report` + comentario sticky + escape | 100–150 líneas | Diferida — exige `pull-requests: write` |
 
-V0+V1 caben holgados en **un solo PR ≤400**. V2 diferida.
+V0 entró sola, sin V1: el `pull-requests: write` que V1 necesita es una
+decisión de superficie de permisos que no tiene por qué viajar en el mismo PR
+que el paso que ya vuelve visible el diff. V2 diferida (P4).
 
 ## Alternativas consideradas
 
