@@ -1,5 +1,163 @@
 # @zevaui/components
 
+## 0.4.0
+
+### Minor Changes
+
+- e277ba4: Add `Calendar`: a month of days, picked by clicking or by walking the grid with the arrow keys.
+
+  ```tsx
+  <Calendar
+    label="Event date"
+    value="2026-09-21"
+    isDateUnavailable={(date) => date.endsWith("-25")} // an ISO string, not a CalendarDate
+    onChange={(iso) => setDate(iso)}
+  />
+  ```
+
+  **The first collection in this package that keeps react-aria's machinery on purpose.** `Breadcrumb`,
+  `Pagination` and `Table` each refused it — a row of links needs no keyboard delegate, and Tab
+  already walks links. A month is two-dimensional: arrow keys must move by day _and_ by week, wrap
+  across month boundaries, skip disabled days and keep a roving tabindex. That is exactly what the
+  collection machinery implements, so here its weight buys something.
+
+  `isDateUnavailable` receives an **ISO string**, not a `CalendarDate`. A predicate typed over
+  react-aria's value would have put that type back in the public API through the back door, right
+  after the `value` prop closed the front one — and a consumer would have had to install the date
+  library just to write `date.dayOfWeek > 5`.
+
+  **Unavailable days are struck through in a contrast-checked colour, not dimmed.** React-aria keeps
+  them focusable so a keyboard user can tell a blocked day from one that is simply absent, and a
+  focusable control must still clear 4.5:1. The obvious implementation — grey them out — would have
+  failed that, so the state is carried by `text.danger` plus a line through the number, which also
+  survives for a user who cannot perceive the colour at all.
+
+  The recipe declares **no variants**, the second after `Tooltip` to be honest about that. A month
+  grid has one size: its cells are squares derived from the body type scale, so a size axis would
+  either desynchronise the grid from the text beside it or duplicate what the theme already says.
+
+  Three behaviours were measured against react-aria 1.20 rather than assumed, and two of them
+  corrected the tests as first written:
+
+  - The accessible name is **composed**, not taken verbatim: `"Event date, September 2026"`, so a
+    screen reader user always hears which month they are in after paging.
+  - Day cells are named with the full localised date — `"Tuesday, September 15, 2026"` — not the
+    bare number.
+  - A disabled calendar renders **no selected cell at all**, rather than a selected-but-dimmed one.
+
+  **Bundle: the barrel ceiling rises from 142,723 B to 157,034 B.** `Calendar` measures 39,076 B gzip
+  alone, but adds only **13,010 B** to the whole-library bundle — roughly a third of what `DateField`
+  cost, because the date machinery it needs is already paid for. Per-component budgets are unchanged.
+
+- 74cdeff: Add `DateField`: a date entered by typing, one segment at a time.
+
+  ```tsx
+  <DateField
+    label="Start date"
+    value="2026-09-21"
+    onChange={(iso) => setDate(iso)} // "2026-09-22" | null
+  />
+  ```
+
+  **The public API speaks ISO strings, not `Date` and not `CalendarDate`.** Both exclusions are
+  deliberate:
+
+  - A `Date` is a timestamp. A date picked in Buenos Aires would read as the previous day in Berlin,
+    because the value carries an instant nobody asked for. A calendar date has no instant.
+  - A `CalendarDate` is react-aria's type. Accepting it would force every consumer to install and
+    import `@internationalized/date` just to pass a date in — putting a third-party type in the
+    public API of a package whose whole argument is that it owns its own surface.
+
+  `@internationalized/date` is now a direct dependency of `@zevaui/components`, bundled and never
+  named in a public type. The measured cost of the translation is **24 bytes gzip**: react-aria
+  already bundles that package to implement `DateField`, and the tree-shaken import drops the eleven
+  non-Gregorian calendars (3,613 B for what is used, against 11,222 B for the whole module).
+
+  **What this gives up:** non-Gregorian calendars and timezones. Both are expressible in react-aria's
+  own API and neither is expressible in an ISO calendar date. A component that genuinely needs them
+  will have to make its own argument rather than widening this one.
+
+  An unparseable value degrades to an empty field instead of throwing — `parseDate` raises on
+  malformed input, and a design system that takes down the host application because a prop held
+  `"2026-9-1"` is a trap rather than a contract. `onChange` emits `null` when the field is cleared,
+  so a controlled form can tell "cleared" from "never set".
+
+  **Bundle budget: the barrel ceiling rises from 108,314 B to 142,723 B.** `DateField` measures
+  50,949 B gzip on its own and takes the whole-library bundle from 98,467 B to 129,748 B — the
+  largest single addition this package has made. Per-component budgets are unchanged, so a consumer
+  who imports no date component pays none of it; the barrel entry is what had to move.
+
+- eec9b59: Add `DatePicker`: a date typed into segments, or picked from a calendar in a popover. It joins the
+  two halves of the date set — `DateField` was the first alone, `Calendar` the second.
+
+  ```tsx
+  <DatePicker
+    label="Trip date"
+    value="2026-09-21"
+    minValue="2026-09-01"
+    isDateUnavailable={(date) => date.endsWith("-25")} // an ISO string, not a CalendarDate
+    onChange={(iso) => setDate(iso)} // "2026-09-15" | null
+  />
+  ```
+
+  **The panel is this package's own `Calendar`, not a second month grid written for a popover.** That
+  was measured before it was decided, because one thing could have made it impossible: `Calendar`
+  always passes `minValue`, `maxValue`, `onChange` and `isDateUnavailable` as props, spelling them
+  `undefined` when the consumer gives none — and react-aria carries a picker's state down to its
+  calendar through context. Had an explicit `undefined` been allowed to override that context, opening
+  the panel would have silently wiped the picker's bounds and broken selection outright. It does not:
+  `mergeProps` ignores `undefined` local values. The alternative was to re-render react-aria's
+  calendar primitives here with `calendarRecipe`'s class names, which would have duplicated the
+  month grid's markup — header, both paging arrows, grid body, chevrons — in a second file. This
+  package already has one story about what a paste of a near-identical implementation costs.
+
+  **The segment declarations moved to `internal/text-surface.ts`, shared by `DateField` and
+  `DatePicker` by identity.** They were written inside `date-field.recipe.ts` while there was one
+  consumer, which was right at the time. `Textarea` was written by copying `Input` and inherited a
+  real bug through the copy; a picker whose segments were a paste of a field's segments is that story
+  again with the same ending. Extracted on arrival, not in advance — and a test asserts both recipes
+  read the one object, so equality cannot drift into near-equality.
+
+  `textSurfaceBase` now also styles a react-aria `Group`, and that needed checking rather than
+  assuming. Read from react-aria-components 1.20's types:
+
+  | element     | attributes                                                  |
+  | ----------- | ----------------------------------------------------------- |
+  | `Input`     | hovered, **focused**, focus-visible, disabled, invalid      |
+  | `DateInput` | hovered, **focus-within**, focus-visible, disabled, invalid |
+  | `Group`     | hovered, **focus-within**, focus-visible, disabled, invalid |
+
+  `Group` and `DateInput` agree exactly, and the shared export keys on four of those five, so every
+  rule it carries lands correctly on the picker's box.
+
+  **No `placement` prop.** `Tooltip` and `Popover` expose one because the consumer attaches them to
+  arbitrary content. This panel belongs to the field directly above it: react-aria anchors it below
+  and flips it above when the viewport is short, which is the entire decision. The honest consequence
+  is that the recipe carries **two** placement animations instead of the eight `Popover` needs — so
+  that block is deliberately _not_ extracted into a shared module, because the need here is a subset
+  rather than the same block a third time.
+
+  Three behaviours were measured against react-aria 1.20 rather than assumed, and one of them
+  corrected a test as first written:
+
+  - **The trigger already has a localised name.** `useDatePicker` stamps `aria-label="Calendar"` onto
+    the button and composes it with the field's label. Any text we rendered there would be overridden
+    by that attribute, and a hand-written English label would have been a regression in every other
+    locale — so the glyph is pure decoration and `aria-hidden`.
+  - **The popover dismisses itself once a day is picked**, rather than leaving the user to find the
+    way out of a panel whose job is done.
+  - **While the panel is open, the field and its own trigger are `aria-hidden`.** react-aria calls
+    `ariaHideOutside` even for a non-modal popover, so "non-modal" means the page behind stays
+    _clickable_, not that it stays readable to a screen reader. The test that asserts
+    `aria-expanded="true"` therefore holds the button node from before the click; a role query cannot
+    reach it.
+
+  **Bundle: 78,781 B gzip in isolation — the most expensive component in the package, ahead of
+  `Select`'s 58,843 B — and one of the cheapest to add: +1,791 B on the whole-library barrel.**
+  `DateField` and `Calendar` already paid for the date machinery, so what is left is the wiring. The
+  barrel ceiling is unchanged at 157,034 B, now with 12,485 B of room rather than 14,276 B: the next
+  component to join will need its own argument about that headroom rather than inheriting one.
+
 ## 0.3.0
 
 ### Minor Changes
