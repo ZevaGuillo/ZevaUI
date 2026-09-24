@@ -102,7 +102,92 @@ jobs:
       # shows its name, not this comment, and the one thing the person staring
       # at red needs to know is which workflow regenerates the baselines.
       - name: "Visual regression vs the committed baselines (to refresh them: dispatch visual-baselines.yml)"
+        id: visual
         run: pnpm --filter @zevaui/storybook run test:visual
+      # ADR-0018 V0. Until this step existed the gate was a bare red/green
+      # light: @vitest/browser writes actual+diff under
+      # apps/storybook/.vitest-attachments/, .gitignore blocks that path as
+      # debris, and so the one artefact that says WHAT changed died with the
+      # runner. Whoever read the PR had to reproduce locally to see it.
+      #
+      # Scoped to `steps.visual.conclusion`, not a bare `failure()`: the two
+      # negative gates above are ASSERTED to fail internally, their harness
+      # swallows that and exits 0, and a job that went red on any earlier step
+      # has no diff to carry. Only this step failing is evidence worth keeping.
+      #
+      # `warn`, not `error`: a failure caused by an ABSENT baseline under
+      # CI=true writes no diff at all — measured, and the reason Windows
+      # cannot author baselines (ADR-0008). Escalating that to a second
+      # failure would bury the precise error under a misleading one.
+      - name: Upload the visual diffs
+        if: failure() && steps.visual.conclusion == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          # Fixed, never derived from story or test names: upload-artifact
+          # rejects `":<>|*?` and newlines, and a story title may hold any of
+          # them. The run id already makes it unique.
+          name: visual-diffs-${{ github.run_id }}
+          path: apps/storybook/.vitest-attachments/**
+          if-no-files-found: warn
+          # Evidence about one run, not an archive. A diff nobody downloaded
+          # inside a week is a diff whose branch has already moved on.
+          retention-days: 7
+      # An artifact has NO embeddable image URL — the download is an
+      # authenticated zip — so the summary can name the failures and link the
+      # run, never show them. Inline images need hosting of their own and a
+      # separate security decision (ADR-0018 P4, deferred as V2).
+      #
+      # Runs even when the upload found nothing, because that case is itself
+      # worth naming: zero diffs means the run never reached a pixel
+      # comparison, which rules out a changed pixel but NOT much else. The
+      # guard is `steps.visual.conclusion == 'failure'`, which is true for any
+      # nonzero exit, so the honest message enumerates the candidates instead
+      # of asserting one — a reader sent to dispatch visual-baselines.yml over
+      # what was really a browser crash has been sent to the wrong place.
+      - name: Summarise the visual diffs
+        if: failure() && steps.visual.conclusion == 'failure'
+        shell: bash
+        run: |
+          # Mirrors the `cell()` precedent in packages/audit/scripts/audit-usage.js:
+          # an unescaped `|` closes a cell early and a bare CR or LF forges a whole
+          # extra row. These values come from filenames this repo controls, so
+          # escaping them is belt-and-braces — the same call that precedent makes.
+          cell() {
+            local value=${1//|/\\|}
+            printf '%s' "${value//[$'\r\n']/ }"
+          }
+          shopt -s globstar nullglob
+          diffs=(apps/storybook/.vitest-attachments/**/*-diff-*.png)
+          {
+            echo "## Visual regression"
+            echo
+            if [ ${#diffs[@]} -eq 0 ]; then
+              echo "The run wrote **no diff**, so it never reached a pixel comparison."
+              echo "That rules out a changed pixel. It does not say which of these it was —"
+              echo "read the step log to tell them apart:"
+              echo
+              echo "- A **missing baseline**: under \`CI=true\` a missing reference fails without"
+              echo "  writing one. Dispatch \`visual-baselines.yml\` to generate it."
+              echo "- The run **died before comparing**: a story or build error, a browser that"
+              echo "  failed to launch, an out-of-memory kill. Refreshing baselines fixes none"
+              echo "  of these."
+            else
+              echo "${#diffs[@]} diff(s):"
+              echo
+              echo "| Story | Test |"
+              echo "|---|---|"
+              for diff in "${diffs[@]}"; do
+                # .vitest-attachments/stories/<Story>.stories.tsx/<Test>-1-diff-<platform>.png
+                # — the parent directory names the story file, the basename the test.
+                story=${diff%/*}
+                shot=${diff##*/}
+                printf '| %s | %s |\n' "$(cell "${story##*/}")" "$(cell "${shot%-diff-*.png}")"
+              done
+              echo
+              echo "Download \`visual-diffs-${{ github.run_id }}\` from this run's artifacts."
+              echo "If the change is intended, refresh the baselines: dispatch \`visual-baselines.yml\`."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # RF-UAW13: this repository is the first consumer of its own reusable
   # workflow. `audit:gate` above already proves the SCANNER produces the right
