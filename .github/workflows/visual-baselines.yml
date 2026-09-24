@@ -116,9 +116,45 @@ jobs:
       # under CI=true — on the exact runner that produced them. If it fails,
       # the job fails and nothing is pushed.
       - name: Verify the generated baselines hold
+        id: verify
         run: pnpm --filter @zevaui/storybook run test:visual
         env:
           CI: "true"
+
+      # ADR-0018 V0, wired into THIS workflow too, because this is where the
+      # evidence is actually needed. `DateField.stories.tsx > Focused Segment`
+      # failed the verify step above twice in a row at exactly 260 pixels,
+      # which blocked the baseline commit both times. The same-count repeat is
+      # the interesting part: it points at state that differs between the
+      # generate pass and the verify pass rather than at noise, and the
+      # standing hypothesis is react-aria's interaction modality, which is
+      # GLOBAL document state that decides whether `[data-focus-visible]`
+      # draws its outline. None of that can be confirmed without the image.
+      #
+      # BOTH paths, and the second one is the one people forget. When the
+      # verify step fails the job stops before the commit, so the reference
+      # this run just generated exists ONLY on the runner — it is not in git
+      # and cannot be fetched later. Uploading the attachments alone would
+      # hand you a diff with nothing to compare it against.
+      #
+      # No step summary here, unlike ci.yml. Copying that bash into a second
+      # workflow is how two copies start drifting, and reviewers already
+      # flagged the inline block as the thing to extract rather than
+      # duplicate. A maintainer who dispatched this run is already looking at
+      # it; the artifact is what they cannot otherwise get.
+      - name: Upload the visual diffs and the generated references
+        if: failure() && steps.verify.conclusion == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines-diffs-${{ github.run_id }}
+          path: |
+            apps/storybook/.vitest-attachments/**
+            apps/storybook/stories/__screenshots__/**
+          # `warn`, matching ci.yml: a verify failure that wrote no diff at all
+          # is a real outcome, and turning it into a second failure would bury
+          # the first.
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Commit and push if the baselines changed
         # `ref` reaches the shell through the environment, never through
