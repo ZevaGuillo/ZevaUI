@@ -101,5 +101,30 @@ export const FocusedSegment: Story = {
     const [firstSegment] = canvas.getAllByRole("spinbutton");
     await userEvent.click(firstSegment);
     await expect(firstSegment).toHaveFocus();
+
+    // ...and then get the pointer off it, because that click sets TWO states and this story only
+    // wants one. RAC reports `data-hovered` on the DateInput while the pointer rests inside it,
+    // and `textSurfaceBase` paints that as an `accent.default` border over the resting
+    // `border.strong`. Only the focus was held; the hover was incidental and unasserted.
+    //
+    // Nothing kept it stable. `useHover` ends hover from a document-level `pointerover` listener
+    // that the browser re-fires whenever it re-runs hit-testing — and preview.ts's capture hook
+    // relayouts the page after `play` and before the screenshot. So the border was accent in some
+    // runs and border.strong in others: 260 pixels, this field's 1px ring, reported as the same
+    // integer by three separate CI runs. An identical pixel count across independent runs is a
+    // two-state difference, not noise, which is what ruled out antialiasing and timing jitter.
+    //
+    // NOT `.focus()` and not `userEvent.tab()`, either of which would have been the obvious fix.
+    // Both make the captured frame depend on react-aria's interaction modality, which is GLOBAL
+    // document state — and `.focus()` with no preceding pointer or key event is classified as
+    // `virtual`, which IS focus-visible and would draw an outline this baseline does not have.
+    // Keeping the click pins the modality to `pointer` with a real `pointerdown`.
+    await userEvent.unhover(firstSegment);
+
+    // The assertion is the point, not the unhover. This runs in the plain `test` config too —
+    // three themed projects, every CI run, no screenshot involved. If a future RAC version keeps
+    // the field hovered, it fails here by name instead of silently rotting one PNG a third of the
+    // time, which is how this cost three red runs before anyone could see the image.
+    await expect(canvas.getByRole("group")).not.toHaveAttribute("data-hovered");
   },
 };
