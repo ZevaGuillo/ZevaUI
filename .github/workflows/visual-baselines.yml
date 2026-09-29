@@ -150,6 +150,15 @@ jobs:
           path: |
             apps/storybook/.vitest-attachments/**
             apps/storybook/stories/__screenshots__/**
+          # Same defect as ci.yml, never yet observed here because this step
+          # has not failed since it was added — and it would have failed
+          # WORSE. Dotfiles are excluded by default since upload-artifact
+          # v4.4, so `__screenshots__` would upload while
+          # `.vitest-attachments` — the diff, the entire reason this step
+          # exists — was dropped. The artifact would still appear, merely
+          # incomplete, which hides the bug far better than the empty upload
+          # that exposed it in ci.yml (run 36511293563).
+          include-hidden-files: true
           # `warn`, matching ci.yml: a verify failure that wrote no diff at all
           # is a real outcome, and turning it into a second failure would bury
           # the first.
