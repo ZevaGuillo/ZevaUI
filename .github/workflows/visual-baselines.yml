@@ -59,13 +59,23 @@ jobs:
     # ADR-0008 rather than being restated here.
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      # v5, deliberately not v6 or v7. v6.0.0's one functional change is
+      # "persist creds to a separate file" — and `persist-credentials: true`
+      # below is load-bearing here, because the final step pushes the
+      # regenerated baselines with GITHUB_TOKEN. That is the exact mechanism v6
+      # rewrote. It very likely still works; this workflow's failure mode is
+      # "regenerated baselines never land", which is QUIET, so it is not the
+      # place to find out. v5 changes nothing about it and is actively
+      # maintained.
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
           # The push at the end reuses GITHUB_TOKEN.
           persist-credentials: true
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-      - uses: actions/setup-node@v4
+      # Same SHA bump as ci.yml: v4.3.0 -> v4.4.0 is one line of action.yml
+      # (`node20` -> `node24`) with a byte-identical dist.
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@v5
         with:
           node-version-file: ".nvmrc"
           cache: pnpm
@@ -76,7 +86,9 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       # Same cache key as ci.yml, so both workflows share one Chromium
       # download instead of paying ~300MB twice.
-      - uses: actions/cache@v4
+      # v5 is the first cache major on Node 24; identical input surface to
+      # v4.3.0, so the shared key above is untouched.
+      - uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -154,7 +166,12 @@ jobs:
       # it; the artifact is what they cannot otherwise get.
       - name: Upload the visual diffs and the generated references
         if: failure() && steps.verify.conclusion == 'failure'
-        uses: actions/upload-artifact@v4
+        # v6, not v5: v5's action.yml still declares `using: 'node20'` despite
+        # its "supports Node v24.x" release title. v6.0.0 is the first that
+        # actually runs on node24 — and `include-hidden-files` below is
+        # unchanged there, which is the one input this step cannot lose. The
+        # full argument lives next to the same bump in ci.yml.
+        uses: actions/upload-artifact@v6
         with:
           name: visual-baselines-diffs-${{ github.run_id }}
           path: |
