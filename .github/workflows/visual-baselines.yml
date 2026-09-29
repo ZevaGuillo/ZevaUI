@@ -47,7 +47,17 @@ concurrency:
 
 jobs:
   baselines:
-    runs-on: ubuntu-latest
+    # The same pin as ci.yml, and it has to be: this workflow AUTHORS the PNGs
+    # that ci.yml then verifies. `ubuntu-latest` migrates to Ubuntu 26.04
+    # gradually between 2026-10-19 and 2026-11-19, so leaving either side of
+    # that contract floating means a dispatch could commit baselines
+    # rasterised on one image against a gate that runs on another.
+    #
+    # The push at the end of this job does not re-trigger CI, so nobody would
+    # find out here — the failure would surface on the next unrelated pull
+    # request, as somebody else's red. The font reasoning lives in ci.yml and
+    # ADR-0008 rather than being restated here.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
