@@ -128,6 +128,19 @@ jobs:
           # them. The run id already makes it unique.
           name: visual-diffs-${{ github.run_id }}
           path: apps/storybook/.vitest-attachments/**
+          # REQUIRED, not a nicety: upload-artifact has excluded dotfiles and
+          # dot-directories by default since v4.4, and `.vitest-attachments`
+          # is one. Without this the step runs, succeeds, and uploads NOTHING
+          # — measured on run 36511293563, which logged `include-hidden-files:
+          # false` and then `No files were found with the provided path`.
+          #
+          # The two globs in this job MUST agree, and they did not. The bash
+          # below spells `.vitest-attachments` literally, so it never needed
+          # dotglob and DID find the diff — it printed "1 diff(s)" and sent
+          # the reader to download an artifact that was never created. A gate
+          # that points at a phantom download is worse than the bare red light
+          # this whole step replaced.
+          include-hidden-files: true
           if-no-files-found: warn
           # Evidence about one run, not an archive. A diff nobody downloaded
           # inside a week is a diff whose branch has already moved on.
