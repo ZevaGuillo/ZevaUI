@@ -141,7 +141,12 @@ jobs:
     steps:
       # The CALLER's repository, at the root of the workspace. This is the tree
       # that gets scanned.
-      - uses: actions/checkout@v4
+      # v5 is node24. Nothing here is version-sensitive: this checkout takes no
+      # `ref`, so under a consumer's `pull_request_target` it still resolves to
+      # the base — unaffected by the fork-PR hardening that shipped across
+      # every major on 2026-07-20 and which a floating `@v4` was already
+      # running.
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
 
@@ -155,7 +160,7 @@ jobs:
       # WORKFLOW_DS_CHECKOUT_DIR in packages/audit/scripts/walk-source-tree.js,
       # which is what prunes it. Change one without the other and every
       # consumer's report silently gains our components.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ZevaGuillo/ZevaUI
           ref: ${{ inputs.ds-ref }}
@@ -166,9 +171,31 @@ jobs:
       # what sits at the workspace root, so an `.nvmrc` found there would be
       # THEIRS — and the scanner's runtime is our contract, not theirs. Ours
       # lives at `.zevaui-audit/.nvmrc` and reads `22`; this tracks it.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
+          # REQUIRED from v5 on, and the only line in this bump that is a bug
+          # fix rather than a version change.
+          #
+          # v5 added implicit caching: with no `cache:` input it reads
+          # `$GITHUB_WORKSPACE/package.json` and, if a `packageManager` field is
+          # there, restores that manager's cache anyway. $GITHUB_WORKSPACE here
+          # is the CALLER's repository — the same fact the comment above
+          # depends on — so for a pnpm consumer this step would run
+          # `pnpm store path --silent` in a job that deliberately installs no
+          # pnpm (see the next comment). setup-node's own
+          # `getCommandOutputNotEmpty` throws "Could not get pnpm cache folder
+          # path", and that reaches `core.setFailed`.
+          #
+          # Every pnpm-based consumer would start failing right here. A consumer
+          # with a `packageManager` field and no root lockfile fails the same
+          # way on "Some specified paths were not resolved". v6 narrows the
+          # auto-detect to npm, which shrinks that blast radius without closing
+          # it.
+          #
+          # Turning it off restores v4 behaviour, and v4 behaviour is exactly
+          # what this job wants: no cache, no package manager, just Node.
+          package-manager-cache: false
 
       # No `pnpm install`. The scanner is four dependency-free Node modules
       # that import nothing outside `node:` and each other, so a checkout is
@@ -194,7 +221,10 @@ jobs:
           [ "$slug" = "-" ] && slug=root
           printf 'value=ds-usage-report-%s\n' "$slug" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      # v6, not v5 — v5's action.yml still declares `using: 'node20'` despite
+      # its "supports Node v24.x" release title. The full argument lives next to
+      # the same bump in ci.yml.
+      - uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.name.outputs.value }}
           path: ds-usage-report.json
@@ -224,7 +254,21 @@ jobs:
         if: inputs.registry-url != ''
         id: registry-token
         continue-on-error: true
-        uses: actions/github-script@v7
+        # v8 is the first major on Node 24, and its notes carry exactly one
+        # functional line: "Update Node.js version support to 24.x".
+        #
+        # NOT v9, which makes @actions/github ESM-only and injects `getOctokit`
+        # as a script parameter. The one-line script below touches neither, so
+        # v9 would in fact work — but this step is `continue-on-error`, so a
+        # regression here degrades to a warning and a registry that silently
+        # receives nothing. That is precisely the failure mode the table at the
+        # top of this file records twice. Cheap to bump later, expensive to
+        # debug quietly.
+        #
+        # This action never appeared in the Node 20 CI annotation, because the
+        # step is gated on `registry-url` and never runs in our own CI — so the
+        # runner never downloaded it to warn about it.
+        uses: actions/github-script@v8
         with:
           result-encoding: string
           script: return await core.getIDToken(process.env.REGISTRY_URL)
