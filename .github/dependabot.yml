@@ -1,0 +1,197 @@
+# Dependabot, scoped to GitHub Actions and nothing else.
+#
+# This file exists because of a failure that already happened, not as hygiene.
+# Six actions across the four workflows in .github/workflows drifted onto the
+# Node 20 runtime together. Node 20 was removed from the hosted runners on
+# 2026-09-23, and every run after that date was forced onto Node 24 by a
+# compatibility shim whose lifetime GitHub never documented. Moving them took
+# two hand-written commits, 23f678b and 17969c7: actions/checkout,
+# actions/setup-node, actions/cache, actions/upload-artifact,
+# actions/github-script and pnpm/action-setup.
+#
+# The reason a scheduled updater is the fix — rather than "watch the runner
+# annotations" — is that the annotation was NOT a complete inventory. It named
+# neither actions/cache@v4 nor actions/github-script@v7. github-script's
+# absence has a recorded cause: its step in audit-ds-usage.yml sits behind
+# `if: inputs.registry-url != ''`, which is never true in this repository's own
+# CI, so the runner never downloaded the action and therefore never had
+# anything to warn about. cache@v4's absence has no cause anybody established.
+# Both were found only by enumerating every `uses:` in the repository by hand.
+#
+# Dependabot reads the `uses:` lines themselves, so a step that never executes
+# is exactly as visible to it as one that runs on every push. That is the class
+# of blindness this file closes — not the single instance of it.
+#
+# npm is deliberately absent. Only `github-actions` is configured here. Adding
+# a second ecosystem for this pnpm workspace is a separate decision with its
+# own consequences — the lockfile that gates `--frozen-lockfile`, turbo's
+# globalDependencies, and the 231 committed screenshot baselines that any
+# Playwright bump invalidates — and that decision has not been made.
+
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    # `/`, and it is NOT a typo for `/.github/workflows`. The directory for
+    # this ecosystem is the repository root and GitHub resolves the workflow
+    # path itself: "For GitHub Actions, use the value `/`. Dependabot will
+    # search the `/.github/workflows` directory, as well as the
+    # `action.yml/action.yaml` file from the root directory."
+    #
+    # That covers all four workflows, audit-ds-usage.yml included. Being a
+    # `workflow_call` reusable workflow with no other trigger changes nothing
+    # about whether its `uses:` lines are scanned, only about when it runs —
+    # and it matters more here than anywhere else in the repository, because it
+    # is the only consumer-facing file in the set. An action that rots there
+    # rots inside other people's pipelines, where nobody here sees the run.
+    #
+    # Two `uses:` values in the tree are not dependencies and neither needs
+    # handling. ci.yml's `uses: ./.github/workflows/audit-ds-usage.yml` is a
+    # local path with no version to bump, and the
+    # `ZevaGuillo/ZevaUI/.github/workflows/audit-ds-usage.yml@v1` line near the
+    # top of audit-ds-usage.yml lives inside a comment block as consumer
+    # documentation.
+    #
+    # Checked rather than assumed, because `/` is only the complete scope if
+    # nothing else is hiding: there is no `action.yml` or `action.yaml` anywhere
+    # in this repository, and `.github/` contains nothing but those four
+    # workflow files.
+    directory: "/"
+    # Weekly, with all three fields written out rather than inherited. The
+    # options reference documents the `interval` values but states no default
+    # day, time or timezone, so spelling them here is the only way this
+    # schedule still means the same thing next year.
+    #
+    # Weekly is matched to the speed of the failure, not the speed of the tool.
+    # Runtime deprecation moves in months, so daily checks would buy no earlier
+    # warning while multiplying the noise — and monthly could put a four-week
+    # blind spot inside a deprecation window that is itself only weeks wide.
+    #
+    # The cost side is measured, and it is the reason daily is wrong even
+    # though Dependabot would not charge for it. A pull request against `main`
+    # matches ci.yml's `pull_request: branches: [main]` filter, so each of
+    # these PRs runs the FULL gate: a ~300MB Chromium install, `turbo run lint
+    # typecheck test build size`, the a11y and size gates, 231 screenshot
+    # comparisons, and the `audit-self` job that invokes the reusable workflow
+    # a second time. One grouped PR a week is one such run. Six ungrouped PRs
+    # daily would be forty-two.
+    #
+    # Monday 06:00 UTC so the PR is already waiting when the week starts,
+    # rather than arriving mid-week against work in flight. It cannot collide
+    # with a release: release.yml triggers on `push` to `main` and has no
+    # schedule of its own.
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    # One. Two independent mechanisms in this file hold the same line, and the
+    # redundancy is the point: the `groups` rule below collapses every update
+    # into a single PR, and this limit caps the ecosystem at a single open
+    # version-update PR regardless. If that group rule is ever deleted or its
+    # pattern narrowed, this limit still refuses the six-PR flood instead of
+    # the repository quietly falling back to Dependabot's default of five.
+    #
+    # It does not throttle security updates. This option is documented in terms
+    # of "pull requests with version updates", so an advisory is never left
+    # queued behind a routine bump that happens to be sitting open. That
+    # asymmetry is correct — the two have nothing to do with each other.
+    open-pull-requests-limit: 1
+    # ONE pull request for the whole ecosystem. This is the central decision in
+    # the file.
+    #
+    # The failure being fixed was six actions drifting as a SET: one dead
+    # runtime, discovered at one moment, closed by one argument applied six
+    # times. Splitting that into six pull requests would put the same decision
+    # through this repository's review gate six times, each carrying its own
+    # full CI run, and would leave the tree in five intermediate states nobody
+    # ever intends to ship. The state where checkout moved but setup-node did
+    # not is not a state worth reviewing.
+    #
+    # `patterns: ["*"]` is a wildcard on purpose rather than an enumeration of
+    # the six actions currently in the tree. An enumeration would silently
+    # exclude the seventh action somebody adds next year — the same shape of
+    # bug as an annotation that named four out of six.
+    #
+    # Only version updates are grouped. A group defaults to
+    # `applies-to: version-updates` and that default is kept deliberately: a
+    # security advisory should arrive as its own pull request immediately, not
+    # be held until Monday or folded into a routine batch.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    # changesets/action is FROZEN by decision, and Dependabot must not
+    # relitigate it. The evidence is in this repository's own history.
+    #
+    # 6ddf3b9 ("ci: pin third-party actions to full commit SHAs") records why
+    # the pin exists, and it is not the usual argument about mutable tags:
+    # there is no `refs/tags/v1` on changesets/action at all. `v1` is a BRANCH
+    # (`refs/heads/v1`), so `changesets/action@v1` had release.yml executing
+    # whatever its maintainers last pushed to a branch — inside the job that
+    # holds `contents: write`, `pull-requests: write` and `id-token: write`,
+    # carries NPM_TOKEN, and publishes to npm. The SHA is what turns that
+    # moving branch into something immutable, and the trailing
+    # `# v1 (branch tip, frozen)` records that the pin has no upstream version
+    # to track in the first place.
+    #
+    # 23f678b re-affirmed the freeze under exactly the pressure that would have
+    # exposed an accidental one. That commit moved every other action in the
+    # repository onto Node 24 and states: "changesets/action's frozen SHA
+    # already declares node24 and is untouched." The freeze survived a
+    # deliberate sweep across the whole set.
+    #
+    # Two separate things would go wrong without this entry. Dependabot
+    # resolves a SHA pin against the upstream's releases, so it would propose
+    # moving this one off the frozen branch tip and onto a tagged release —
+    # undoing the pin's entire purpose inside a PR that reads like routine
+    # maintenance. And because it rewrites the trailing version comment when it
+    # bumps a SHA (see the note below), the words "(branch tip, frozen)" — the
+    # only place in the workflow that says this pin is a decision — are the part
+    # least likely to survive the bump.
+    #
+    # The cost is stated rather than hidden: this repository now gets no
+    # automated notice of changesets/action releases, and that pin moves only
+    # when a human reads the diff and chooses to move it, which is the process
+    # 6ddf3b9 set up. Dependabot ALERTS are a different system, configured in
+    # repository settings rather than in this file, so a published advisory
+    # against this action is not what this line silences.
+    ignore:
+      - dependency-name: changesets/action
+    # SHA pins keep working, and this was checked rather than assumed. After
+    # the ignore above, the one action still pinned by hash is
+    # `pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0`,
+    # and a bump that moved the hash while leaving the comment reading `v4.4.0`
+    # would be worse than no bump at all — every human reader of that line, and
+    # both commit messages that touched it, treat the comment as the version.
+    # GitHub shipped the comment rewrite on 2022-10-31: "Dependabot will now
+    # update the semver version in comments when updating Actions workflows
+    # with a commit SHA version."
+    # https://github.blog/changelog/2022-10-31-dependabot-now-updates-comments-in-github-actions-workflows-referencing-action-versions/
+    #
+    # Expect the first pull request to propose majors, and read it against the
+    # comments beside each `uses:` line before merging. pnpm/action-setup's
+    # current release is v6 while this repository sits at v4.4.0 deliberately
+    # (6ddf3b9: "That is a behaviour upgrade, not a security pin"). Three
+    # first-party actions are also held BELOW their latest major on purpose,
+    # each with its reason written next to the step: checkout stays at v5
+    # because v6 rewrites credential persistence and visual-baselines.yml
+    # pushes with GITHUB_TOKEN; upload-artifact stays at v6 because v7 is an
+    # ESM rewrite this repository needs nothing from; github-script stays at v8
+    # because v9 makes @actions/github ESM-only inside a `continue-on-error`
+    # step whose regressions are silent by construction.
+    #
+    # Those four majors are deliberately NOT added to the ignore list above. A
+    # proposal is information, and suppressing it would rebuild the exact blind
+    # spot this file exists to remove. Declining a major during review costs a
+    # sentence; not being told about it is what cost six workflows audited by
+    # hand.
+    #
+    # Every commit in this repository's history is conventional, and both bumps
+    # above were `chore(ci): ...`. Nothing enforces that — there is no
+    # commitlint, husky, lefthook or commit-msg hook in the tree, verified — so
+    # the prefix below is convention, not a gate. The `(deps)` scope Dependabot
+    # can append via `include: scope` is deliberately unused: it would produce
+    # `chore(ci)(deps):`, which is not a valid conventional subject.
+    commit-message:
+      prefix: "chore(ci)"
