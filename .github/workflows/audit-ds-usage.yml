@@ -181,17 +181,37 @@ jobs:
           # `$GITHUB_WORKSPACE/package.json` and, if a `packageManager` field is
           # there, restores that manager's cache anyway. $GITHUB_WORKSPACE here
           # is the CALLER's repository — the same fact the comment above
-          # depends on — so for a pnpm consumer this step would run
-          # `pnpm store path --silent` in a job that deliberately installs no
-          # pnpm (see the next comment). setup-node's own
-          # `getCommandOutputNotEmpty` throws "Could not get pnpm cache folder
-          # path", and that reaches `core.setFailed`.
+          # depends on — so a pnpm consumer arms pnpm cache restoration inside a
+          # job that deliberately installs no pnpm (see the next comment).
           #
-          # Every pnpm-based consumer would start failing right here. A consumer
-          # with a `packageManager` field and no root lockfile fails the same
-          # way on "Some specified paths were not resolved". v6 narrows the
-          # auto-detect to npm, which shrinks that blast radius without closing
-          # it.
+          # MEASURED, and not where this comment used to say. It previously
+          # claimed setup-node's `getCommandOutputNotEmpty` throws "Could not
+          # get pnpm cache folder path". It never gets that far. The step dies
+          # one layer lower, in @actions/exec's executable lookup, before any
+          # `pnpm store path` is ever spawned:
+          #
+          #   ##[error]Unable to locate executable file: pnpm. Please verify
+          #   either the file path exists or the file can be found within a
+          #   directory specified by the PATH environment variable. Also check
+          #   the file mode to verify the file is executable.
+          #
+          # Proof, because this file's history has three places where designed
+          # and verified behaviour disagreed: ZevaGuillo/zevaui-consumer-probe
+          # run 36655681692. Two jobs, identical prologue, the same full-SHA
+          # checkout of this repository, one input apart — omitting
+          # `package-manager-cache` fails at `setup-node`, setting it `false`
+          # scans clean. The broken shape had to be reconstructed there because
+          # no revision of this repository ever published it: the v4 to v5 bump
+          # and this line landed in the same commit, 17969c7.
+          #
+          # Every pnpm-based consumer would start failing right here, and a root
+          # lockfile does not change that. The lookup that fails runs before any
+          # cache path is resolved, so there is nothing a lockfile could make
+          # resolvable — which is also why "Some specified paths were not
+          # resolved", the error this comment used to attribute to the
+          # no-lockfile shape, is unreachable in a job with no pnpm on PATH.
+          # v6 narrows the auto-detect to npm, which shrinks that blast radius
+          # without closing it.
           #
           # Turning it off restores v4 behaviour, and v4 behaviour is exactly
           # what this job wants: no cache, no package manager, just Node.
