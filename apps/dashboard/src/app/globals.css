@@ -277,8 +277,83 @@ body {
   color: var(--zui-color-text-danger);
 }
 
+/* ── Release log ──────────────────────────────────────────────────────────── */
+
+/*
+ * The one screen in the set that is a DOCUMENT rather than a table, so it gets a
+ * document's layout: a narrow mono rail of version and date, a gutter, and a
+ * prose column with a reading MEASURE rather than a column width. `space-32` is
+ * 128px -- the design drew 132px, and staying on the scale beats minting four
+ * pixels nothing else would ever reuse.
+ */
+.release-log__release {
+  display: grid;
+  grid-template-columns: var(--zui-space-32) minmax(0, 1fr);
+  gap: var(--zui-space-6);
+  padding-block: var(--zui-space-6);
+}
+
+.release-log__release + .release-log__release {
+  border-block-start: var(--zui-space-px) solid var(--zui-color-border-strong);
+}
+
+/*
+ * `tabular-nums` is what lets the rail align without a rule to help it -- which
+ * is the trick that lets this design delete the hairline everywhere else.
+ */
+.release-log__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zui-space-1);
+  font-family: var(--zui-font-mono-family);
+  font-variant-numeric: tabular-nums;
+}
+
+.release-log__version {
+  margin: 0;
+  font-size: var(--zui-font-size-base);
+  font-weight: var(--zui-font-weight-medium);
+}
+
+.release-log__date {
+  color: var(--zui-color-text-muted);
+  font-size: var(--zui-font-size-xs);
+}
+
+.release-log__changes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zui-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+/*
+ * A reading measure, not a column width: 62 characters of real English. The only
+ * place in this design with one, and `ch` is the only honest unit for it.
+ */
+.release-log__change {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--zui-space-2);
+  max-width: 62ch;
+}
+
+.release-log__change-text {
+  margin: 0;
+  font-size: var(--zui-font-size-sm);
+}
+
 @media (max-width: 48rem) {
   .debt__columns {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .release-log__release {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--zui-space-3);
   }
 }
