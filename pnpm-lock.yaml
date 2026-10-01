@@ -32,6 +32,9 @@ importers:
       '@zevaui/components':
         specifier: workspace:*
         version: link:../../packages/components
+      '@zevaui/tokens':
+        specifier: workspace:*
+        version: link:../../packages/tokens
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/pg@8.23.1)(pg@8.23.0)

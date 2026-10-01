@@ -3,7 +3,33 @@
   "compilerOptions": {
     "noEmit": true,
     "types": ["node"],
-    "paths": {}
+
+    // THESE TWO ENTRIES POINT AT `dist` ON PURPOSE, AND REMOVING THEM BREAKS
+    // `next build` RATHER THAN THE TYPECHECK.
+    //
+    // tsconfig.base.json maps `@zevaui/components` to `packages/components/src`,
+    // which is right for Storybook (live types, no build step) and wrong here:
+    // that directory's own imports carry `.js` extensions pointing at `.ts`
+    // files, which only a `tsc`-shaped resolver accepts. Turbopack reads the
+    // inherited `paths` and fails on all 29 of them.
+    //
+    // An empty `"paths": {}` was the previous answer. It silences the alias for
+    // `tsc`, which resolves through the workspace symlink and the package's own
+    // `exports` -- but Turbopack keeps inheriting the base, so the bundler and
+    // the typechecker disagreed about what `@zevaui/components` even is. That
+    // went unnoticed because this app imported no component code until the
+    // dashboard redesign; the single `components.manifest.json` import is a
+    // SUBPATH, so it never matched the bare alias and always resolved to `dist`.
+    //
+    // Naming `dist` explicitly is what makes both tools agree, and it agrees in
+    // the direction that matters: `dist` is what Vercel compiles against and what
+    // a published consumer gets. Turbo already guarantees it exists before this
+    // app builds (`build.dependsOn: ["^build"]` in the root turbo.json).
+    // Asserted in __tests__/theme-foundation.test.ts.
+    "paths": {
+      "@zevaui/components": ["../../packages/components/dist"],
+      "@zevaui/tokens": ["../../packages/tokens/dist"]
+    }
   },
   "include": [
     "src/**/*.ts",

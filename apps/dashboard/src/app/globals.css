@@ -1,0 +1,128 @@
+/*
+ * The dashboard's ONLY stylesheet, and deliberately a small one.
+ *
+ * ZevaUI components are sealed -- `className: never`, `style: never` -- and the
+ * package ships no layout primitive: no Stack, no Grid, no Box. That is not a
+ * gap to work around, it is the library's declared position ("the page is yours
+ * to paint"). So the split is: every VISUAL value comes from a `--zui-*` token
+ * and every component comes from @zevaui/components, while the shell, the grid
+ * and the gaps are written here. Nothing in this file may mint a colour or a
+ * spacing value -- __tests__/theme-foundation.test.ts enforces both.
+ */
+
+/*
+ * `.theme-dark` on <html> only REDEFINES custom properties; it paints nothing.
+ * Without these two declarations the dark token set sits on a browser-default
+ * white canvas, which puts Input's label at 1.05:1. Measured, not guessed.
+ */
+body {
+  margin: 0;
+  background-color: var(--zui-color-bg-canvas);
+  color: var(--zui-color-text-default);
+  font-family: var(--zui-font-body-family);
+  font-size: var(--zui-font-body-size);
+  font-weight: var(--zui-font-body-weight);
+  line-height: var(--zui-font-body-line-height);
+}
+
+/* ── The shell ─────────────────────────────────────────────────────────────── */
+
+/*
+ * Source list beside a content column. `minmax(0, 1fr)` rather than `1fr` on the
+ * content track is what lets Table's scroll region actually scroll: a bare `1fr`
+ * floors at the content's min-content width, so a wide table pushes the whole
+ * page sideways instead of scrolling inside its own box.
+ */
+.shell {
+  display: grid;
+  grid-template-columns: var(--zui-space-64) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+/*
+ * `border-strong` is the ONLY legal border in this design system. `border-default`
+ * measures 1.24:1 light / 1.21:1 dark against a non-text floor of 3.0, so it is
+ * decoration that looks like structure. `strong` measures 4.84 / 3.67.
+ */
+.shell__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zui-space-6);
+  padding: var(--zui-space-6);
+  border-inline-end: var(--zui-space-px) solid var(--zui-color-border-strong);
+}
+
+.shell__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zui-space-8);
+  min-width: 0;
+  padding: var(--zui-space-8);
+}
+
+/*
+ * The breakpoint is a raw length because the token set has no breakpoint scale
+ * to draw it from -- viewport thresholds are the app's business, which is why
+ * the token-scale test skips at-rule preludes rather than pretending otherwise.
+ */
+@media (max-width: 48rem) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shell__nav {
+    border-inline-end: none;
+    border-block-end: var(--zui-space-px) solid var(--zui-color-border-strong);
+  }
+}
+
+/* ── The source list ──────────────────────────────────────────────────────── */
+
+.source-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zui-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.source-list__label {
+  margin: 0 0 var(--zui-space-2);
+  color: var(--zui-color-text-muted);
+  font-size: var(--zui-font-size-xs);
+  font-weight: var(--zui-font-weight-semibold);
+  text-transform: uppercase;
+}
+
+/* ── Page furniture, shared by every screen ───────────────────────────────── */
+
+.wordmark {
+  margin: 0;
+  font-size: var(--zui-font-size-base);
+  font-weight: var(--zui-font-weight-semibold);
+}
+
+.screen__heading {
+  margin: 0;
+  font-size: var(--zui-font-size-2xl);
+  font-weight: var(--zui-font-weight-semibold);
+}
+
+.screen__lede {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--zui-color-text-secondary);
+}
+
+/*
+ * The stack every screen composes with. One axis, one gap, no variants: the
+ * moment this grows a `--tight` and a `--loose` it has become a layout
+ * primitive, and a layout primitive belongs in the library behind an ADR.
+ */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zui-space-4);
+  min-width: 0;
+}
