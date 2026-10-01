@@ -31,5 +31,20 @@ function loadReleaseLog(): ParsedChangelog[] {
 }
 
 export default function ReleasesPage() {
-  return <ReleaseLogView packages={loadReleaseLog()} />;
+  return (
+    <>
+      <header className="stack">
+        <h1 className="screen__heading">Release log</h1>
+        {/* Names the source, because where a changelog comes from is the whole
+            question a reader has about it: these are the committed
+            CHANGELOG.md files, never a GitHub Releases call and never a read of
+            a repository tag (__tests__/no-git-tag-read.test.ts is the gate). */}
+        <p className="screen__lede">
+          Every published change, grouped by package and newest first, read from the committed
+          CHANGELOG.md files in this repository &mdash; not from release tags and not from an API.
+        </p>
+      </header>
+      <ReleaseLogView packages={loadReleaseLog()} />
+    </>
+  );
 }
