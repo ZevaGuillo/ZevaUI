@@ -126,3 +126,159 @@ body {
   gap: var(--zui-space-4);
   min-width: 0;
 }
+
+/* ── Grouped lists (E1) ───────────────────────────────────────────────────── */
+
+/*
+ * The design's "E1 group": a raised surface whose BOUNDARY is load-bearing and
+ * whose shadow is decoration on top of it. A box-shadow has no contrast ratio
+ * you can commit to -- it varies with whatever is behind it -- so the 1px
+ * `border-strong` edge is the boundary and `shadow-card` only adds depth.
+ *
+ * WRITTEN HERE RATHER THAN COMPOSED FROM `Card`, AND THAT IS A LIBRARY GAP
+ * RATHER THAN A PREFERENCE. `Card`'s `outlined` boundary and its header
+ * hairline both use `border.default` (packages/components/src/card/card.recipe.ts),
+ * which measures 1.24:1 light / 1.21:1 dark against `bg.surface` -- under half
+ * the 3.0 non-text floor. `Card` is sealed (`className: never`, `style: never`),
+ * so an app cannot promote that edge, and redefining `--zui-color-border-default`
+ * would silently move every component's hairline, not just this one. So the
+ * group is native markup here and the gap goes in the ADR, exactly like the
+ * `Table` grouping gap did.
+ *
+ * `radius-xl` is 12px and `radius-card` is 8px, so the design's concentric
+ * radii need no new token: the outer group takes `xl`, anything nested inside
+ * takes `card`.
+ */
+.group {
+  border: var(--zui-space-px) solid var(--zui-color-border-strong);
+  border-radius: var(--zui-radius-xl);
+  background-color: var(--zui-color-bg-surface);
+  box-shadow: var(--zui-shadow-card);
+}
+
+/*
+ * NO LETTER-SPACING, and the design asked for some. Its group-header role is
+ * "xs 12 / 1.25 · 0.06em caps", but the token layer ships NO letter-spacing
+ * scale at all -- the nearest thing, `--zui-letter-spacing-wide`, was invented
+ * once in this very file and does not exist. A raw `0.06em` is the design system
+ * being forked one declaration at a time, which is exactly what the token-scale
+ * test refuses. Caps without the tracking is the honest render; the missing
+ * scale goes in the ADR.
+ */
+.group__header {
+  padding: var(--zui-space-3) var(--zui-space-4);
+  border-block-end: var(--zui-space-px) solid var(--zui-color-border-strong);
+  font-family: var(--zui-font-mono-family);
+  font-size: var(--zui-font-size-xs);
+  font-weight: var(--zui-font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.group__body {
+  padding: var(--zui-space-6);
+}
+
+.group-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zui-space-8);
+  min-width: 0;
+}
+
+/* ── Deprecation debt ─────────────────────────────────────────────────────── */
+
+/*
+ * Two facts side by side, and the second is the whole point of the screen: what
+ * the manifest COMPUTES against what the consumer REPORTED. `minmax(0, …)` on
+ * both tracks so a long component name wraps instead of widening the panel.
+ */
+.debt__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: var(--zui-space-6);
+}
+
+.debt__source {
+  min-width: 0;
+}
+
+.debt__source-label {
+  margin: 0 0 var(--zui-space-3);
+  padding-block-end: var(--zui-space-2);
+  border-block-end: var(--zui-space-px) solid var(--zui-color-border-strong);
+  color: var(--zui-color-text-secondary);
+  font-size: var(--zui-font-size-xs);
+  font-weight: var(--zui-font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.debt__names {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zui-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--zui-font-mono-family);
+  font-size: var(--zui-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * THE THREE SELF-REPORT STATES, AS THREE GEOMETRIES. Not three colours and not
+ * three greys: each one has a different SHAPE, so the distinction survives
+ * greyscale, a colour-blind reader and a black-and-white printout. The geometry
+ * is keyed off `data-provenance` rather than a class of its own, so the thing
+ * the test asserts and the thing the eye reads are the same attribute.
+ */
+
+/*
+ * `null` -- a 45° hatch. The only texture in the design, and deliberately not a
+ * grey box: a grey box reads as "empty", which is exactly the collapse of
+ * "unknown" into "none" that ADR-0011 D5 exists to prevent. A hatch reads as
+ * "something is here and we cannot see it".
+ */
+[data-provenance="unknown"] {
+  display: block;
+  padding: var(--zui-space-3);
+  border-radius: var(--zui-radius-card);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--zui-color-text-muted) 0,
+    var(--zui-color-text-muted) var(--zui-space-px),
+    transparent var(--zui-space-px),
+    transparent var(--zui-space-1)
+  );
+  color: var(--zui-color-text-muted);
+}
+
+/* `[]` -- a single baseline rule. Somebody looked and found zero: an empty line,
+   not a filled area. */
+[data-provenance="known-none"] {
+  display: block;
+  padding-block-end: var(--zui-space-2);
+  border-block-end: var(--zui-space-px) solid var(--zui-color-border-strong);
+  color: var(--zui-color-text-secondary);
+}
+
+/*
+ * The cross-check verdict, which is a sentence rather than a chip because it is
+ * a claim about two sources and chips cannot hold a claim. `text-danger` only
+ * when the two sources actually disagree -- "cannot be cross-checked" is not a
+ * failure, it is an absence, so it stays muted.
+ */
+.debt__verdict {
+  margin: var(--zui-space-6) 0 0;
+  font-size: var(--zui-font-size-xs);
+  color: var(--zui-color-text-muted);
+}
+
+.debt__verdict[data-verdict="diverges"] {
+  color: var(--zui-color-text-danger);
+}
+
+@media (max-width: 48rem) {
+  .debt__columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

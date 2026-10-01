@@ -26,5 +26,22 @@ export default async function DeprecatedPage() {
     deprecatedInUse: computeDeprecatedInUse(report.components, deprecatedNames),
     reportedDeprecated: report.deprecatedComponents,
   }));
-  return <DeprecatedView entries={entries} />;
+  return (
+    <>
+      <header className="stack">
+        <h1 className="screen__heading">Deprecation debt</h1>
+        {/* The lede states BOTH sources and that they can disagree, because the
+            screen's whole content is a cross-check between them and a reader who
+            does not know there are two sources cannot read it. "Opt-in" is the
+            load-bearing word: a missing self-report is an absence, not a zero. */}
+        <p className="screen__lede">
+          Two sources per app, side by side. The left column is computed from the installed
+          component manifest and is always known; the right is what the app reported about itself,
+          which is opt-in and may be absent entirely. Where the two disagree, this screen says so
+          and names both.
+        </p>
+      </header>
+      <DeprecatedView entries={entries} />
+    </>
+  );
 }

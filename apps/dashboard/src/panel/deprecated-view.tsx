@@ -1,27 +1,91 @@
 // D5/D3: renders BOTH the computed deprecated-in-use (always known -- see
-// panel/deprecated-logic.js) and the report's own self-reported
+// panel/deprecated-logic.ts) and the report's own self-reported
 // `deprecatedComponents` as a provenance cross-check. `null` (unknown) and
 // `[]` (known-none) render as visibly different states, distinguished by
 // text AND a `data-provenance` attribute -- never collapsed together (D3
 // provenance honesty). Every consumer-supplied name renders through React's
 // own `{value}` auto-escaping, never as markup (Threat Matrix: poisoned
 // report XSS).
+//
+// NO "use client" HERE, AND THAT IS WORTH CONTRASTING WITH `versions-view.tsx`.
+// That file is a client component for one specific reason: `Table` is
+// `clientOnly` and its column descriptors carry `cell` FUNCTIONS, which cannot
+// cross the RSC boundary. This screen composes no client component -- `Card` and
+// `Badge` are both `clientOnly: false`, and it uses neither -- so it stays a
+// server component and ships no JavaScript at all.
+//
+// NOT A TABLE, AND THAT IS THE DESIGN'S CALL RATHER THAN A SHORTCUT. Two facts
+// per app with three possible geometries on one side is not a grid of cells; the
+// design gives each app its own grouped panel so the two sources can sit side by
+// side under their own headings. A `<table>` would also have to answer what the
+// hatch state means in a cell, and the answer is "nothing a cell can carry".
+import { crossCheckDeprecated, type DeprecatedCrossCheck } from "./deprecated-logic";
 
+/**
+ * The self-reported side, and the reason this component exists at all.
+ *
+ * THREE STATES, THREE GEOMETRIES -- a filled area, an empty line, and a plain
+ * list. Not three colours and not three greys: a shape survives greyscale, a
+ * colour-blind reader and a black-and-white printout, and the geometry itself
+ * lives in globals.css keyed off the same `data-provenance` attribute the tests
+ * assert, so what the eye reads and what the test checks are one thing.
+ *
+ * The hatch for `null` is the only texture in the design, and it is deliberately
+ * not a grey box: a grey box reads as "empty", which is precisely the collapse of
+ * "unknown" into "none" that ADR-0011 D5 exists to prevent.
+ */
 type ReportedFieldProps = { readonly value: readonly string[] | null };
 
 function ReportedField({ value }: ReportedFieldProps) {
   if (value === null) {
-    return <span data-provenance="unknown">unknown (not reported)</span>;
+    return <span data-provenance="unknown">unknown &middot; not reported</span>;
   }
   if (value.length === 0) {
-    return <span data-provenance="known-none">none reported</span>;
+    return <span data-provenance="known-none">none reported &middot; measured zero</span>;
   }
   return (
-    <ul data-provenance="known">
+    <ul className="debt__names" data-provenance="known">
       {value.map((name) => (
         <li key={name}>{name}</li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * What the cross-check found, as a sentence rather than a chip.
+ *
+ * A chip cannot hold a claim about two sources, and this is a claim: it names
+ * which source saw what. `text-danger` only when they actually disagree --
+ * "cannot be cross-checked" is an absence, not a failure, so it stays muted.
+ * ADR-0014 risk 3 predicts the disagreement, so naming it is the feature.
+ */
+function Verdict({ check }: { readonly check: DeprecatedCrossCheck }) {
+  if (check.kind === "unavailable") {
+    return (
+      <p className="debt__verdict" data-verdict="unavailable">
+        Computed and self-report cannot be cross-checked here &mdash; the self-report is absent, not
+        empty.
+      </p>
+    );
+  }
+  if (check.kind === "agrees") {
+    return (
+      <p className="debt__verdict" data-verdict="agrees">
+        Self-report agrees with the computed set.
+      </p>
+    );
+  }
+  return (
+    <p className="debt__verdict" data-verdict="diverges">
+      The two sources disagree.
+      {check.computedOnly.length > 0
+        ? ` The manifest computes ${check.computedOnly.join(", ")}, which the app did not report.`
+        : ""}
+      {check.reportedOnly.length > 0
+        ? ` The app reports ${check.reportedOnly.join(", ")}, which the manifest does not mark deprecated.`
+        : ""}
+    </p>
   );
 }
 
@@ -38,42 +102,68 @@ export type DeprecatedEntry = {
 
 export type DeprecatedViewProps = { readonly entries: readonly DeprecatedEntry[] };
 
+/**
+ * NO EXPIRY COUNTDOWN, NO "OVERDUE", NO REPLACEMENT NAME, and that is a data
+ * gap rather than an omission. The design's panel shows "expires in 67d",
+ * "overdue 12d" and "use Menu instead" beside each computed name. None of the
+ * three has a source: the build-time manifest carries `name`, `className`,
+ * `clientOnly`, `import`, `slots`, `variants`, `classNames` and `tokens` and no
+ * deprecation metadata at all, so `deprecatedNamesFromManifest` has nothing to
+ * read a date or a replacement from. Rendering any of them would mean inventing
+ * arithmetic, which is worse than a screen that shows less. It goes in the ADR
+ * beside the `Table` grouping gap.
+ */
 export function DeprecatedView({ entries }: DeprecatedViewProps) {
   if (entries.length === 0) {
     return <p>No reports yet.</p>;
   }
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>Repository</th>
-          <th>App</th>
-          <th>Deprecated components in use (computed)</th>
-          <th>Self-reported deprecated components</th>
-        </tr>
-      </thead>
-      <tbody>
-        {entries.map((entry) => (
-          <tr key={`${entry.repository}:${entry.app}`}>
-            <td>{entry.repository}</td>
-            <td>{entry.app}</td>
-            <td>
-              {entry.deprecatedInUse.length === 0 ? (
-                "none"
-              ) : (
-                <ul>
-                  {entry.deprecatedInUse.map((name) => (
-                    <li key={name}>{name}</li>
-                  ))}
-                </ul>
-              )}
-            </td>
-            <td>
-              <ReportedField value={entry.reportedDeprecated} />
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="group-stack">
+      {entries.map((entry) => (
+        <section className="group" key={`${entry.repository}:${entry.app}`}>
+          {/* Repository and app together, because neither identifies an entry
+              alone: one repository reports many apps, and the same app label
+              appears across repositories. */}
+          <h2 className="group__header">
+            {entry.repository} / {entry.app}
+          </h2>
+          <div className="group__body">
+            <div className="debt__columns">
+              {/* `data-computed`, NOT `data-provenance`, and the distinction is
+                  the contract rather than naming taste. `data-provenance` answers
+                  "how much do we know about this value", and the computed side has
+                  no such question: it is intersected from the manifest and a
+                  report's own component list, both always present, so it is
+                  ALWAYS known. Marking it `data-provenance` too would make the
+                  attribute mean "a source" instead of "a provenance state" -- and
+                  it did: an earlier spelling of this file carried
+                  `data-provenance="computed-none"` here, which made
+                  `querySelector("[data-provenance]")` return the computed side and
+                  collapsed the null-vs-[] test into comparing "none" with itself.
+                  The test caught it. The attribute belongs to the self-report. */}
+              <div className="debt__source">
+                <p className="debt__source-label">Computed &mdash; from manifest</p>
+                {entry.deprecatedInUse.length === 0 ? (
+                  <span data-computed="none">none</span>
+                ) : (
+                  <ul className="debt__names" data-computed="known">
+                    {entry.deprecatedInUse.map((name) => (
+                      <li key={name}>{name}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="debt__source">
+                <p className="debt__source-label">Self-reported</p>
+                <ReportedField value={entry.reportedDeprecated} />
+              </div>
+            </div>
+            <Verdict
+              check={crossCheckDeprecated(entry.deprecatedInUse, entry.reportedDeprecated)}
+            />
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
