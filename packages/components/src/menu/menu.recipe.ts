@@ -17,10 +17,18 @@ export const MENU_RECIPE_KEY = "menu";
  * same way `Dialog.tsx` renders `Button` for its close control. Its styling therefore belongs to
  * the button recipe, and the manifest keeps the two components' token lists disjoint.
  *
- * NO BORDER SEPARATES THE POPOVER FROM THE PAGE. `color-border-strong` measurably fails WCAG
- * 1.4.11 non-text contrast (2.49:1 light, 2.66:1 dark, against a 3.0 floor — see
- * packages/constraints/README.md), so the surface is separated by `shadow-dropdown` over an
- * opaque `color-bg-surface`, exactly the precedent Dialog set with `shadow-modal`.
+ * NO BORDER SEPARATES THE POPOVER FROM THE PAGE — AND THE REASON IS NO LONGER A CONTRAST FAILURE.
+ * ADR-0005 D2 made this call while `color-border-strong` measurably failed WCAG 1.4.11 non-text
+ * contrast. ADR-0010 D6 repointed the token and closed that gap: it now measures 4.63:1 (light) /
+ * 4.16:1 (dark) against `color-bg-canvas` and 4.84:1 / 3.67:1 against `color-bg-surface`, clearing
+ * the 3.0 floor on both pairs `@zevaui/constraints` gates (see packages/constraints/README.md).
+ *
+ * The decision stands; only its justification changed. The surface is separated by
+ * `shadow-dropdown` over an opaque `color-bg-surface`, exactly the precedent Dialog set with
+ * `shadow-modal`. Unlike Dialog there is no scrim, so a border here would land on whatever page
+ * content happens to be underneath — not on either gated background, and so against a contrast
+ * pair nobody in this system has measured. ADR-0010 left the overlay design out of its own scope
+ * (see its Seguimiento); reopening it needs its own ADR, not this comment.
  *
  * NO OVERLAY RADIUS TOKEN EXISTS. `radius-card` is the surface radius this design system already
  * ships; there is no semantic `radius-dropdown` and none is invented here.
@@ -121,7 +129,8 @@ export const menuRecipe = {
   },
   variants: {
     // Both axes are purely geometric, for the same reason Dialog's are: a tone axis would need a
-    // colored boundary, and the only strong-enough neutral this system ships fails WCAG 1.4.11.
+    // colored boundary; the neutral that would draw it now clears WCAG 1.4.11, but over arbitrary
+    // page content rather than over either gated background, which is unmeasured — see above.
     size: {
       sm: {
         item: {

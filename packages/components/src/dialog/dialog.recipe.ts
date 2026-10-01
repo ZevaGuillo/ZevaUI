@@ -20,11 +20,19 @@ export const DIALOG_RECIPE_KEY = "dialog";
  * keeps the emitted value a pure `var(--zuip-*)` reference and leaves the token bridge intact (G4).
  * `__tests__/dialog.test.ts` asserts all of this against the emitted stylesheet, not this source.
  *
- * NO BORDER SEPARATES THE MODAL FROM THE PAGE. `color-border-strong` measurably fails WCAG 1.4.11
- * non-text contrast (2.49:1 light, 2.66:1 dark, against a 3.0 floor — see
- * packages/constraints/README.md), so the surface is separated by `shadow-modal` over an opaque
- * `color-bg-surface`. `color-border-default` is used only for the internal header/footer hairlines,
- * exactly as Button uses it.
+ * NO BORDER SEPARATES THE MODAL FROM THE PAGE — AND THE REASON IS NO LONGER A CONTRAST FAILURE.
+ * ADR-0005 D2 made this call while `color-border-strong` measurably failed WCAG 1.4.11 non-text
+ * contrast. ADR-0010 D6 repointed the token and closed that gap: it now measures 4.63:1 (light) /
+ * 4.16:1 (dark) against `color-bg-canvas` and 4.84:1 / 3.67:1 against `color-bg-surface`, clearing
+ * the 3.0 floor on both pairs `@zevaui/constraints` gates (see packages/constraints/README.md).
+ *
+ * The decision stands; only its justification changed. An opaque `color-bg-surface` under
+ * `shadow-modal` already establishes the boundary, and a modal's edge is drawn over the scrim —
+ * neither of the two gated backgrounds — so the pair a border here would actually have to clear is
+ * one nobody in this system has measured. Adding one would trade a closed gap for an unmeasured
+ * one. ADR-0010 explicitly left the overlay design out of its own scope (see its Seguimiento), so
+ * reopening it needs its own ADR, not this comment. `color-border-default` is used only for the
+ * internal header/footer hairlines, exactly as Button uses it.
  *
  * NO SCROLL LOCK IS EMITTED. react-aria-components prevents page scroll in JavaScript while the
  * modal is open; shipping `body { overflow: hidden }` from here would be a global reset (G3).
@@ -135,8 +143,9 @@ export const dialogRecipe = {
     },
   },
   variants: {
-    // Both axes are purely geometric. A tone/intent axis would need a colored boundary, and the
-    // only strong-enough neutral this system ships fails WCAG 1.4.11 — see the note above.
+    // Both axes are purely geometric. A tone/intent axis would need a colored boundary; the
+    // neutral that would draw it now clears WCAG 1.4.11, but over the scrim rather than over
+    // either gated background, which is unmeasured — see the note above.
     size: {
       sm: { modal: { maxWidth: "24rem" } },
       md: { modal: { maxWidth: "32rem" } },

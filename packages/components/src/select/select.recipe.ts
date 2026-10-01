@@ -16,9 +16,14 @@ export const SELECT_RECIPE_KEY = "select";
 // 1. NO NEW TOKENS. The trigger is a form control that stands in a column beside `Input` and
 //    `Textarea`, so it takes their exact palette and metrics — `space.input.*`, `radius.input`,
 //    `border.strong`, `bg.surface`. The popover takes `Menu`'s — `radius.card`, `shadow.dropdown`
-//    over an opaque `bg.surface`, and no border, because `color-border-strong` measurably fails
-//    WCAG 1.4.11 against both backgrounds an overlay can sit on (see ADR-0005 and
-//    packages/constraints/README.md).
+//    over an opaque `bg.surface`, and no border. ADR-0005 D2 withheld that border while
+//    `color-border-strong` measurably failed WCAG 1.4.11; ADR-0010 D6 repointed the token and
+//    closed the gap — it now measures 4.63:1 (light) / 4.16:1 (dark) against `color-bg-canvas` and
+//    4.84:1 / 3.67:1 against `color-bg-surface`, clearing the 3.0 floor on both gated pairs, which
+//    is why the TRIGGER above draws with it. The popover still goes without, because the shadow
+//    over an opaque surface already separates it and an overlay's edge sits over arbitrary page
+//    content rather than over either gated background — a pair nobody has measured (see ADR-0005,
+//    ADR-0010 D6 and packages/constraints/README.md).
 //
 // 2. THE TRIGGER CARRIES STATE ATTRIBUTES IT DOES NOT NATURALLY OWN, AND THAT IS THE ESTABLISHED
 //    FIX, NOT A SHORTCUT. Measured against react-aria-components 1.20, not assumed: `Select`
@@ -282,7 +287,9 @@ export const selectRecipe = {
   },
   variants: {
     // Purely geometric, like every other axis in this package: a tone axis would need a coloured
-    // boundary, and the only strong-enough neutral this system ships fails WCAG 1.4.11.
+    // boundary on the popover, and that boundary's pair — a border over arbitrary page content
+    // rather than over either gated background — is unmeasured, even though the neutral itself
+    // now clears WCAG 1.4.11. See decision 1 above.
     //
     // The trigger's padding is READ from Input's own steps rather than re-typed, so a select and
     // an input of the same `size` cannot drift apart in a form. The rows track `Menu`'s
