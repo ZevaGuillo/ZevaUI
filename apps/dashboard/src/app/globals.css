@@ -40,9 +40,15 @@ body {
 }
 
 /*
- * `border-strong` is the ONLY legal border in this design system. `border-default`
- * measures 1.24:1 light / 1.21:1 dark against a non-text floor of 3.0, so it is
- * decoration that looks like structure. `strong` measures 4.84 / 3.67.
+ * `border-strong` HERE IS AN EMPHASIS CHOICE, NOT A COMPLIANCE REQUIREMENT, and an
+ * earlier version of this comment claimed otherwise. It said `border-default` was
+ * illegal because it measures 1.24:1 light / 1.21:1 dark under a non-text floor of
+ * 3.0 -- but that floor does not apply to it. `packages/constraints/src/contract.json`
+ * gates exactly five `nonTextContrastPairs` and `color-border-default` is not one of
+ * them: WCAG 1.4.11 measures the boundary that IDENTIFIES a component (see
+ * packages/components/src/separator/separator.recipe.ts), and a nav rail's divider
+ * identifies nothing. `strong` stays because this rail separates two REGIONS of the
+ * page and wants to read as structure -- which is a design call, freely made.
  */
 .shell__nav {
   display: flex;
@@ -130,33 +136,37 @@ body {
 /* ── Grouped lists (E1) ───────────────────────────────────────────────────── */
 
 /*
- * The design's "E1 group": a raised surface whose BOUNDARY is load-bearing and
- * whose shadow is decoration on top of it. A box-shadow has no contrast ratio
- * you can commit to -- it varies with whatever is behind it -- so the 1px
- * `border-strong` edge is the boundary and `shadow-card` only adds depth.
+ * THE GROUP'S SURFACE IS NOT IN THIS FILE ANY MORE, AND ITS ABSENCE IS THE POINT.
  *
- * WRITTEN HERE RATHER THAN COMPOSED FROM `Card`, AND THAT IS A LIBRARY GAP
- * RATHER THAN A PREFERENCE. `Card`'s `outlined` boundary and its header
- * hairline both use `border.default` (packages/components/src/card/card.recipe.ts),
- * which measures 1.24:1 light / 1.21:1 dark against `bg.surface` -- under half
- * the 3.0 non-text floor. `Card` is sealed (`className: never`, `style: never`),
- * so an app cannot promote that edge, and redefining `--zui-color-border-default`
- * would silently move every component's hairline, not just this one. So the
- * group is native markup here and the gap goes in the ADR, exactly like the
- * `Table` grouping gap did.
+ * It used to be: a `.group` rule minting a border, a radius, `bg-surface` and
+ * `shadow-card`, plus a `.group__body` that minted the padding -- which is
+ * `Card` (packages/components/src/card/card.recipe.ts) rewritten in app CSS. The
+ * justification given for the replica was that `Card`'s boundary uses
+ * `border.default`, measuring 1.24:1 light / 1.21:1 dark, "under half the 3.0
+ * non-text floor". THAT JUSTIFICATION WAS WRONG: `packages/constraints/src/contract.json`
+ * declares exactly five `nonTextContrastPairs` and `color-border-default` is not
+ * among them. It is deliberately ungated, because WCAG 1.4.11 measures the
+ * boundary that IDENTIFIES a component (spelled out in
+ * packages/components/src/separator/separator.recipe.ts) -- a container edge and a
+ * divider identify nothing, and promoting them to the 3:1-gated `border.strong`
+ * would paint them heavier than the real controls beside them. The components
+ * whose boundary IS their identity (Input, Checkbox, RadioGroup, Switch, Select,
+ * Calendar) do use `border.strong`; `Card` is correct as designed. So the replica
+ * was deleted and the views compose `Card` -- see deprecated-view.tsx and
+ * release-log-view.tsx, which also carry the one real gap (`surface` is one-of:
+ * boundary OR shadow, never both).
  *
- * `radius-xl` is 12px and `radius-card` is 8px, so the design's concentric
- * radii need no new token: the outer group takes `xl`, anything nested inside
- * takes `card`.
+ * What is left below is what the library genuinely does not ship: the stack
+ * between panels, and the type treatment of the app's own `<h2>` living inside
+ * `Card.Header`.
  */
-.group {
-  border: var(--zui-space-px) solid var(--zui-color-border-strong);
-  border-radius: var(--zui-radius-xl);
-  background-color: var(--zui-color-bg-surface);
-  box-shadow: var(--zui-shadow-card);
-}
 
 /*
+ * The heading TEXT, and nothing else -- `Card.Header` owns the box around it
+ * (padding, hairline, the lot), so this rule may only ever set type. `margin: 0`
+ * because the `<h2>` is now inside a padded slot: a user-agent heading margin
+ * would stack on top of `card.py` and push the rule off the text it belongs to.
+ *
  * NO LETTER-SPACING, and the design asked for some. Its group-header role is
  * "xs 12 / 1.25 · 0.06em caps", but the token layer ships NO letter-spacing
  * scale at all -- the nearest thing, `--zui-letter-spacing-wide`, was invented
@@ -165,19 +175,20 @@ body {
  * test refuses. Caps without the tracking is the honest render; the missing
  * scale goes in the ADR.
  */
-.group__header {
-  padding: var(--zui-space-3) var(--zui-space-4);
-  border-block-end: var(--zui-space-px) solid var(--zui-color-border-strong);
+.group-title {
+  margin: 0;
   font-family: var(--zui-font-mono-family);
   font-size: var(--zui-font-size-xs);
   font-weight: var(--zui-font-weight-semibold);
   text-transform: uppercase;
 }
 
-.group__body {
-  padding: var(--zui-space-6);
-}
-
+/*
+ * THE ONE PART OF THE GROUP THAT IS REALLY THE APP'S: the vertical rhythm
+ * between panels. The library ships no layout primitive -- no Stack, no Grid, no
+ * Box -- so a flex column and a gap have nowhere else to come from. One axis,
+ * one gap, no variants, same rule as `.stack` above.
+ */
 .group-stack {
   display: flex;
   flex-direction: column;

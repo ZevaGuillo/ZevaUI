@@ -10,15 +10,16 @@
 // NO "use client" HERE, AND THAT IS WORTH CONTRASTING WITH `versions-view.tsx`.
 // That file is a client component for one specific reason: `Table` is
 // `clientOnly` and its column descriptors carry `cell` FUNCTIONS, which cannot
-// cross the RSC boundary. This screen composes no client component -- `Card` and
-// `Badge` are both `clientOnly: false`, and it uses neither -- so it stays a
-// server component and ships no JavaScript at all.
+// cross the RSC boundary. `Card` is `clientOnly: false` and carries no directive
+// of its own (see packages/components/src/card/Card.tsx), so composing it keeps
+// this a server component that ships no JavaScript at all.
 //
 // NOT A TABLE, AND THAT IS THE DESIGN'S CALL RATHER THAN A SHORTCUT. Two facts
 // per app with three possible geometries on one side is not a grid of cells; the
 // design gives each app its own grouped panel so the two sources can sit side by
 // side under their own headings. A `<table>` would also have to answer what the
 // hatch state means in a cell, and the answer is "nothing a cell can carry".
+import { Card } from "@zevaui/components";
 import { crossCheckDeprecated, type DeprecatedCrossCheck } from "./deprecated-logic";
 
 /**
@@ -120,14 +121,34 @@ export function DeprecatedView({ entries }: DeprecatedViewProps) {
   return (
     <div className="group-stack">
       {entries.map((entry) => (
-        <section className="group" key={`${entry.repository}:${entry.app}`}>
+        /* `surface="outlined"`, AND THE LIBRARY MAKES THIS AN EITHER/OR.
+           `Card`'s `surface` axis is one-of: `elevated` adds `shadow.card` and no
+           edge, `outlined` adds a 1px `border.default` edge and no shadow
+           (packages/components/src/card/card.recipe.ts). The design's E1 group
+           wants BOTH -- a boundary with additive depth on top of it -- and no
+           combination of the two values expresses that. `outlined` wins because
+           the design's own principle is that the boundary is load-bearing and the
+           shadow is decoration: with only one available, keep the boundary. The
+           missing depth goes in the ADR beside the `Badge` border gap, and is NOT
+           faked with a wrapper div -- `Card` is sealed (`className: never`,
+           `style: never`) and a hand-rolled surface around it is exactly the
+           replica this change deleted.
+
+           Two smaller things taken from the library rather than fought: the radius
+           is `radius.card` (8px) where the replica used `radius-xl` (12px), and the
+           root is a `<div>` rather than the `<section>` this used to be -- a
+           `<section>` with no accessible name is a generic element to assistive
+           technology, so nothing is lost but the source's shape. */
+        <Card key={`${entry.repository}:${entry.app}`} surface="outlined">
           {/* Repository and app together, because neither identifies an entry
               alone: one repository reports many apps, and the same app label
               appears across repositories. */}
-          <h2 className="group__header">
-            {entry.repository} / {entry.app}
-          </h2>
-          <div className="group__body">
+          <Card.Header>
+            <h2 className="group-title">
+              {entry.repository} / {entry.app}
+            </h2>
+          </Card.Header>
+          <Card.Body>
             <div className="debt__columns">
               {/* `data-computed`, NOT `data-provenance`, and the distinction is
                   the contract rather than naming taste. `data-provenance` answers
@@ -161,8 +182,8 @@ export function DeprecatedView({ entries }: DeprecatedViewProps) {
             <Verdict
               check={crossCheckDeprecated(entry.deprecatedInUse, entry.reportedDeprecated)}
             />
-          </div>
-        </section>
+          </Card.Body>
+        </Card>
       ))}
     </div>
   );
