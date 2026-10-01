@@ -115,7 +115,16 @@ describe("the app's own CSS stays on the token scale", () => {
   // the token set ships no breakpoint scale, so a media query's threshold has
   // nowhere else to come from (see the note above the @media in globals.css).
   it("declares no raw px/rem length outside the token scale", () => {
-    const declarations = globals.replace(/@media[^{]*/g, "");
+    // COMMENTS ARE STRIPPED FIRST, because this gate scans DECLARATIONS and a
+    // comment is not one. The pattern below keys off a `:` followed by a length,
+    // which prose hits constantly and legitimately: "measures 1.24:1", "the 1px
+    // border-strong edge", "`space-32` is 128px". Without this strip the gate
+    // reported five offenders for a correct stylesheet, every one of them an
+    // explanation of why a value is on the scale -- so it punished exactly the
+    // comments it most wants written, and the cheapest way to stay green was to
+    // stop explaining. Removing comments narrows what is scanned, never what is
+    // enforced: a comment cannot declare anything.
+    const declarations = globals.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media[^{]*/g, "");
     const offenders = (declarations.match(/:\s*[^;{]*?-?\d*\.?\d+(px|rem|em)\b/g) ?? []).filter(
       (declaration) => !declaration.includes("var(--zui-"),
     );
@@ -135,7 +144,15 @@ describe("the app's own CSS stays on the token scale", () => {
     const defined = new Set(stylesheet.match(/--zui-[\w-]+(?=\s*:)/g) ?? []);
     expect(defined.size).toBeGreaterThan(0);
 
-    const referenced = new Set(globals.match(/--zui-[\w-]+/g) ?? []);
+    // Comments stripped for the same reason as the length gate above, and here
+    // the collision is sharper: the clearest way to document a token that does
+    // NOT exist is to name it, and `.group__header` does exactly that about
+    // `--zui-letter-spacing-wide` -- the invented token this very test was
+    // written to catch. Scanning prose would fail the file for explaining the
+    // bug. A `var()` in a comment resolves nothing, so nothing is lost.
+    const referenced = new Set(
+      globals.replace(/\/\*[\s\S]*?\*\//g, "").match(/--zui-[\w-]+/g) ?? [],
+    );
     const undeclared = [...referenced].filter((token) => !defined.has(token));
     expect(undeclared).toEqual([]);
   });
