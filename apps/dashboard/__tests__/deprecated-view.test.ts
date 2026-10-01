@@ -180,6 +180,47 @@ describe("DeprecatedView: the cross-check verdict", () => {
   });
 });
 
+// THE PANEL SURFACE BELONGS TO THE LIBRARY, AND THE REPLICA MUST NOT COME BACK.
+//
+// An earlier version of this screen drew its own surface -- a `.group` rule in
+// globals.css minting a border, a radius, `bg-surface` and `shadow-card`, plus a
+// `.group__body` minting the padding -- on the claim that `Card`'s
+// `border.default` boundary failed WCAG 1.4.11. It does not: contract.json gates
+// five `nonTextContrastPairs` and `color-border-default` is not one of them,
+// because 1.4.11 measures the boundary that IDENTIFIES a component and a
+// container edge identifies nothing (separator.recipe.ts spells this out). The
+// replica is gone, but "write the component again in app CSS" is the cheapest
+// thing to reach for the next time `Card` lacks one declaration -- so the
+// composition gets a gate rather than a comment.
+describe("the panel surface comes from the library's Card, not an app-level replica", () => {
+  it("renders Card's own root/header/body slots and no hand-rolled group surface", () => {
+    const { container } = render(
+      createElement(DeprecatedView, { entries: [{ ...base, reportedDeprecated: [] }] }),
+    );
+    const card = container.querySelector(".zui-card__root");
+
+    expect(card).not.toBeNull();
+    expect(card?.querySelector(".zui-card__header")).not.toBeNull();
+    expect(card?.querySelector(".zui-card__body")).not.toBeNull();
+    // `.group-stack` is the app's own flex column and stays; `.group` was the
+    // surface, and nothing may render it again.
+    expect(container.querySelector(".group")).toBeNull();
+  });
+
+  // `outlined` over `elevated` is a decision with a known cost: `surface` is
+  // one-of, so the card gets a boundary OR a shadow and the design wanted both.
+  // Pinned so the gap stays visible instead of drifting to the default.
+  it("picks the outlined surface, keeping the boundary over the shadow", () => {
+    const { container } = render(
+      createElement(DeprecatedView, { entries: [{ ...base, reportedDeprecated: [] }] }),
+    );
+    const card = container.querySelector(".zui-card__root");
+
+    expect(card?.className).toContain("surface_outlined");
+    expect(card?.className).not.toContain("surface_elevated");
+  });
+});
+
 // THE GEOMETRY IS THE CONTRACT, SO THE TWO FILES HAVE TO AGREE.
 //
 // Every provenance state is distinguished by SHAPE -- a hatched area, a baseline

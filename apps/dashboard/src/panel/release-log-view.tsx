@@ -7,16 +7,17 @@
 // __tests__/no-dangerous-html.test.ts is never used here (Threat Matrix:
 // poisoned report XSS).
 //
-// NO "use client", for the same reason as `deprecated-view.tsx`: `Badge` is
-// `clientOnly: false`, so this stays a server component and ships no JavaScript.
-// Only `versions-view.tsx` has to be a client component, and only because
-// `Table`'s `cell` descriptors are functions that cannot cross the RSC boundary.
+// NO "use client", for the same reason as `deprecated-view.tsx`: `Badge` and
+// `Card` are both `clientOnly: false`, so this stays a server component and
+// ships no JavaScript. Only `versions-view.tsx` has to be a client component,
+// and only because `Table`'s `cell` descriptors are functions that cannot cross
+// the RSC boundary.
 //
 // THE ONE SCREEN THAT IS A DOCUMENT RATHER THAN A TABLE, so it gets a document's
 // layout instead of a grid's: a narrow mono rail carrying version and date, a
 // gutter, and a prose column with a reading MEASURE (62ch, in globals.css)
 // rather than a column width. Change text is real English, not a table cell.
-import { Badge } from "@zevaui/components";
+import { Badge, Card } from "@zevaui/components";
 import type { ParsedChangelog } from "../release-log/parse-changelog";
 
 export type ReleaseLogViewProps = { readonly packages: readonly ParsedChangelog[] };
@@ -40,9 +41,17 @@ export function ReleaseLogView({ packages }: ReleaseLogViewProps) {
   return (
     <div className="group-stack">
       {packages.map((pkg) => (
-        <section className="group" key={pkg.package}>
-          <h2 className="group__header">{pkg.package}</h2>
-          <div className="group__body">
+        /* `surface="outlined"` -- see the longer note in `deprecated-view.tsx`.
+           `Card`'s `surface` axis is one-of, so a boundary and a shadow cannot
+           both be had; the design's E1 group wants both, and the boundary is the
+           half that is load-bearing. Not worked around with a wrapper: `Card` is
+           sealed, and the app-level `.group` surface that used to live in
+           globals.css was a replica of this component. */
+        <Card key={pkg.package} surface="outlined">
+          <Card.Header>
+            <h2 className="group-title">{pkg.package}</h2>
+          </Card.Header>
+          <Card.Body>
             {pkg.releases.map((release) => (
               <article className="release-log__release" key={release.version}>
                 <div className="release-log__rail">
@@ -92,8 +101,8 @@ export function ReleaseLogView({ packages }: ReleaseLogViewProps) {
                 </ul>
               </article>
             ))}
-          </div>
-        </section>
+          </Card.Body>
+        </Card>
       ))}
     </div>
   );

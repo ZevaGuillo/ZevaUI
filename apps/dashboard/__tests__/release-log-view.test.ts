@@ -84,6 +84,25 @@ describe("the release date, which the log does not always have", () => {
   });
 });
 
+// Same gate as deprecated-view.test.ts, for the same reason: this screen's
+// grouped panel used to be a `.group` rule in globals.css replicating `Card`,
+// justified by a WCAG 1.4.11 reading that does not apply to `border.default`
+// (contract.json gates five `nonTextContrastPairs` and that token is not one of
+// them). The composition is asserted so the replica cannot return quietly.
+describe("the panel surface comes from the library's Card, not an app-level replica", () => {
+  it("renders Card's outlined root with its own header and body slots", () => {
+    const { container } = render(createElement(ReleaseLogView, { packages }));
+    const card = container.querySelector(".zui-card__root");
+
+    expect(card).not.toBeNull();
+    expect(card?.className).toContain("surface_outlined");
+    expect(card?.querySelector(".zui-card__header")).not.toBeNull();
+    expect(card?.querySelector(".zui-card__body")).not.toBeNull();
+    // `.group-stack` is app layout and stays; `.group` was the replica surface.
+    expect(container.querySelector(".group")).toBeNull();
+  });
+});
+
 describe("the change-type tag and the version anchor", () => {
   // major/minor/patch is a CATEGORY, not a severity. Colouring "major" as danger
   // would editorialise a changelog this panel only reports -- so the tag carries

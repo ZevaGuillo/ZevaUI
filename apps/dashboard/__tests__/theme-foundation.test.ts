@@ -146,7 +146,7 @@ describe("the app's own CSS stays on the token scale", () => {
 
     // Comments stripped for the same reason as the length gate above, and here
     // the collision is sharper: the clearest way to document a token that does
-    // NOT exist is to name it, and `.group__header` does exactly that about
+    // NOT exist is to name it, and `.group-title` does exactly that about
     // `--zui-letter-spacing-wide` -- the invented token this very test was
     // written to catch. Scanning prose would fail the file for explaining the
     // bug. A `var()` in a comment resolves nothing, so nothing is lost.
