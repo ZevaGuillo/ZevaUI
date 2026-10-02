@@ -358,9 +358,234 @@ body {
   font-size: var(--zui-font-size-sm);
 }
 
+/* ── Overview: the register band and the app roster ───────────────────────── */
+
+/*
+ * Mono, because every field in this line is a count or a duration and a
+ * proportional face makes a row of numbers ragged. Same reasoning as
+ * `.group-title`, and the same semantic alias -- `--zui-font-mono-family`
+ * rather than the `--zui-font-family-mono` primitive it points at.
+ */
+.register__summary {
+  margin: 0 0 var(--zui-space-6);
+  font-family: var(--zui-font-mono-family);
+  font-size: var(--zui-font-size-sm);
+  color: var(--zui-color-text-secondary);
+}
+
+/*
+ * `auto-fit` RATHER THAN A FIXED COLUMN COUNT, because the number of buckets is
+ * data: "version not in the release log" is rendered only when it is non-zero,
+ * so the band is two columns on a healthy register and three otherwise. A
+ * hardcoded `repeat(3, …)` would leave a reserved gap where the dropped "not
+ * reporting" count used to be -- which is exactly the absence this screen must
+ * not imply is a zero.
+ */
+.register__counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: var(--zui-space-6);
+  margin: 0 0 var(--zui-space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.register__value {
+  margin: 0;
+  font-size: var(--zui-font-size-2xl);
+  font-weight: var(--zui-font-weight-semibold);
+}
+
+.register__label {
+  margin: 0;
+  font-size: var(--zui-font-size-sm);
+  color: var(--zui-color-text-secondary);
+}
+
+/*
+ * `bg-muted` AS A FILL AND NOTHING ELSE -- no border on this track, ever. The
+ * design's §12 measured `border-strong` against `bg-muted` at 3.91 in light and
+ * 2.13 in dark: the dark theme cannot draw the system's only compliant border on
+ * its own muted fill. So `bg-muted` is a fill-only role in all three themes, and
+ * one layout serves all of them rather than growing a per-theme special case.
+ */
+.register__track {
+  height: var(--zui-space-2);
+  background-color: var(--zui-color-bg-muted);
+  border-radius: var(--zui-radius-full);
+  overflow: hidden;
+}
+
+/*
+ * The fill's WIDTH is set inline by the component, because it is a share of the
+ * reporting apps -- data, recomputed per render, which a stylesheet cannot know.
+ * Its colour is here, keyed off the bucket, because that is design.
+ */
+.register__fill {
+  height: 100%;
+  background-color: var(--zui-color-border-strong);
+}
+
+.register__count[data-register-bucket="on-latest"] .register__fill {
+  background-color: var(--zui-color-accent-default);
+}
+
+.register__count[data-register-bucket="behind"] .register__fill {
+  background-color: var(--zui-color-warning-default);
+}
+
+.register__note {
+  margin: 0;
+  max-width: 72ch;
+  font-size: var(--zui-font-size-sm);
+  color: var(--zui-color-text-muted);
+}
+
+.roster {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zui-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * THE WHOLE ROW IS THE ANCHOR, and its only two affordances are here: a hover
+ * fill and a focus ring. The design is explicit that there is "no chevron, no
+ * disclosure control" -- the row is a destination, not a control, so nothing
+ * about it should look operable beyond the pointer and the keyboard telling you
+ * where you are.
+ *
+ * FIXED `ch` COLUMNS, NOT `auto`, and the reason is that each row is its own
+ * grid: `auto` sizes a column to the widest cell IN THAT GRID, so every row
+ * would size independently and the fields would not line up down the screen --
+ * which is the whole point of a register you scan. `ch` tracks the type size
+ * without being a px value the token scale would have to own, and the
+ * token-scale gate admits it as a layout primitive for exactly this reason.
+ * `minmax(0, 1fr)` on the app name absorbs the slack and lets a long name wrap
+ * instead of widening the row.
+ */
+.roster__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 12ch 11ch 14ch 9ch;
+  align-items: baseline;
+  column-gap: var(--zui-space-3);
+  row-gap: var(--zui-space-1);
+  padding: var(--zui-space-2) var(--zui-space-3);
+  border-radius: var(--zui-radius-md);
+  /* The third carrier of the row's state (glyph and word are the other two).
+     `border-inline-start` rather than `border-left` so it follows the writing
+     direction, same as `.shell__nav`'s divider. */
+  border-inline-start: var(--zui-space-0-5) solid var(--zui-color-border-strong);
+  color: var(--zui-color-text-default);
+  text-decoration: none;
+}
+
+/*
+ * A FILL ON HOVER, NOT A SHADOW. The design asks for "hover elevation", and
+ * `shadow-card` is what would give it -- but every row already sits inside a
+ * `Card`, and stacking the card's own shadow token on a child reads as a second
+ * card rather than as a lifted row. The fill is `bg-muted`, which is the
+ * fill-only role the track above uses and carries no border of its own.
+ */
+.roster__row:hover {
+  background-color: var(--zui-color-bg-muted);
+}
+
+/*
+ * The library's own focus treatment, matched rather than invented: `Link`'s
+ * recipe uses a 2px solid `focusRing` outline at a 2px offset
+ * (packages/components/src/link/link.recipe.ts). `--zui-space-0-5` IS 2px, so
+ * this is the same ring on a native anchor -- a hand-rolled focus style that
+ * disagrees with the library's would make the keyboard path read as two
+ * different products.
+ */
+.roster__row:focus-visible {
+  outline: var(--zui-space-0-5) solid var(--zui-color-focus-ring);
+  outline-offset: var(--zui-space-0-5);
+}
+
+.roster__row[data-health="current"] {
+  border-inline-start-color: var(--zui-color-accent-default);
+}
+
+.roster__row[data-health="behind"] {
+  border-inline-start-color: var(--zui-color-warning-default);
+}
+
+/*
+ * NOT DANGER, AND THAT IS THE CONTRACT RATHER THAN A PALETTE CHOICE. An unknown
+ * version means the release log has no entry to compare against -- an absence of
+ * a claim, not a fault found. The design reserves `danger` for one thing only
+ * ("an overdue item is the only thing rendered in danger"), and nothing on this
+ * screen can be overdue, because no deprecation expiry exists to measure against.
+ * So `unknown` keeps the neutral edge the base rule already gives it, and this
+ * comment is here so nobody promotes it later thinking it was an oversight.
+ */
+
+.roster__glyph {
+  color: var(--zui-color-border-strong);
+}
+
+.roster__row[data-health="current"] .roster__glyph {
+  color: var(--zui-color-accent-default);
+}
+
+.roster__row[data-health="behind"] .roster__glyph {
+  color: var(--zui-color-warning-default);
+}
+
+.roster__app {
+  font-weight: var(--zui-font-weight-semibold);
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.roster__version {
+  font-family: var(--zui-font-mono-family);
+  font-size: var(--zui-font-size-sm);
+}
+
+.roster__source,
+.roster__age {
+  font-size: var(--zui-font-size-sm);
+  color: var(--zui-color-text-secondary);
+}
+
+.roster__health {
+  font-size: var(--zui-font-size-sm);
+}
+
+/*
+ * STARTS AT COLUMN 2, under the app name rather than under the glyph: the glyph
+ * column belongs to the row's state, and an owed line hanging off it would read
+ * as a second state marker. Spanning to the end so a long debt line is not
+ * squeezed into one field's width.
+ */
+.roster__owed {
+  grid-column: 2 / -1;
+  font-size: var(--zui-font-size-sm);
+  color: var(--zui-color-text-secondary);
+}
+
 @media (max-width: 48rem) {
   .debt__columns {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /*
+   * The register's six aligned columns are a scanning affordance, and below this
+   * width there is nothing left to scan across -- so the row stops being a grid
+   * and becomes a wrapped line. The glyph keeps its own column so the state
+   * marker stays at the row's edge; everything else flows.
+   */
+  .roster__row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .roster__owed {
+    grid-column: 2 / -1;
   }
 
   .release-log__release {

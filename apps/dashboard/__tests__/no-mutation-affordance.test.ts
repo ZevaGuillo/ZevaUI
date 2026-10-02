@@ -54,6 +54,39 @@ const VIEW_PROPS: Record<string, object> = {
       },
     ],
   },
+  // The Overview's row is the one anchor-shaped affordance in the panel, so this
+  // entry carries a row with debt on purpose: the owed line is the only branch
+  // that renders extra markup, and scanning the row without it would scan the
+  // smaller half of the component.
+  "overview-view.tsx": {
+    overview: {
+      totals: {
+        apps: 1,
+        repositories: 1,
+        onLatest: 0,
+        behind: 1,
+        unknown: 0,
+        oldestReportAge: "2h ago",
+      },
+      groups: [
+        {
+          repository: "acme/web",
+          apps: [
+            {
+              repository: "acme/web",
+              app: "web",
+              dsVersion: "0.1.0",
+              dsVersionSource: "installed",
+              health: { kind: "behind", releases: 1 },
+              deprecatedInUse: 2,
+              generatedAt: "2026-01-01T00:00:00.000Z",
+              age: "2h ago",
+            },
+          ],
+        },
+      ],
+    },
+  },
 };
 
 // RF-AP01 scenario 2: no visitor interaction may result in a write to the
@@ -62,7 +95,7 @@ const VIEW_PROPS: Record<string, object> = {
 // scan (below) -- not by assertion in a comment.
 describe("RF-AP01 scenario 2: no mutation affordance in any rendered panel view", () => {
   it("discovers the panel views (a renamed directory or suffix must fail here, not scan nothing)", () => {
-    expect(viewFiles.length).toBeGreaterThanOrEqual(3);
+    expect(viewFiles.length).toBeGreaterThanOrEqual(4);
   });
 
   it.each(viewFiles)("%s renders no interactive/write element", async (file) => {
