@@ -1,7 +1,10 @@
+import manifest from "@zevaui/components/components.manifest.json";
 import { getDb } from "../db/client";
 import { allLatestReportsQuery } from "../db/queries";
-import { parseVersionsSort, sortReports } from "../panel/versions-sort";
-import { VersionsView } from "../panel/versions-view";
+import { deprecatedNamesFromManifest } from "../panel/deprecated-logic";
+import { buildOverview, componentsReleases } from "../panel/overview-logic";
+import { OverviewView } from "../panel/overview-view";
+import { loadReleaseLog } from "../release-log/load-release-log";
 import { serializeReport } from "../reports/serialize";
 
 // D5 deviation (documented for ADR-0011 reconciliation): the design specified
@@ -11,39 +14,45 @@ import { serializeReport } from "../reports/serialize";
 // tier, which autosuspends): a build that requires a live, awake database is
 // fragile exactly where this project chose to be cheap. `force-dynamic`
 // renders at request time instead, so the build never touches the database.
-// Public, no session; VersionsView's own rendering is unit-covered in
-// __tests__/versions-view.test.ts.
 //
-// Reading `searchParams` would force dynamic rendering on its own, so the sort
-// below costs nothing this page was not already paying.
+// `force-dynamic` IS ALSO WHAT MAKES THE AGES HONEST on this particular page.
+// Every row carries a relative age ("2h ago"), computed on the server from the
+// `now` passed below. Under ISR that string would be frozen into a cached
+// payload and served for five minutes after it stopped being true; rendered per
+// request, it is correct when it is read. The arithmetic itself is unit-covered
+// in __tests__/overview-logic.test.ts and the rendering in
+// __tests__/overview-view.test.ts.
 export const dynamic = "force-dynamic";
 
-type SearchParams = Record<string, string | string[] | undefined>;
-
-export default async function VersionsPage({
-  searchParams,
-}: {
-  readonly searchParams: Promise<SearchParams>;
-}) {
-  // THE ORDERING HAPPENS HERE, NOT IN THE VIEW, and that is `Table`'s contract
-  // rather than a preference: it sorts nothing itself, it renders headings as
-  // links and rows in the order it is given. Sorting on this side of the RSC
-  // boundary means no comparator and no sort state ship to the browser -- the
-  // visitor gets a new URL and a new server render, which is also the only shape
-  // RF-AP01 scenario 2 allows (every affordance is an anchor).
-  const [rows, params] = await Promise.all([allLatestReportsQuery(getDb()), searchParams]);
-  const sort = parseVersionsSort(params);
+export default async function OverviewPage() {
+  const rows = await allLatestReportsQuery(getDb());
 
   return (
     <>
       <header className="stack">
-        <h1 className="screen__heading">Versions</h1>
+        <h1 className="screen__heading">Overview</h1>
+        {/* The lede names what the register IS and what it is not, because the
+            denominator is the one thing a reader cannot infer from the numbers:
+            every count on this screen is over the apps that report, and nothing
+            here knows how many apps exist. */}
         <p className="screen__lede">
-          The design system version each app reports, newest report per app. Sort by any heading to
-          group the rows -- the ordering lives in the URL, so a sorted view is a link you can share.
+          Every app that reports, grouped by repository and ordered alphabetically &mdash; not
+          ranked by debt. &ldquo;Behind&rdquo; counts the releases published since the version an
+          app reports, read from the committed release log. An app that has never reported is absent
+          rather than counted: the register is opt-in, so absence is not a row.
         </p>
       </header>
-      <VersionsView reports={sortReports(rows.map(serializeReport), sort)} sort={sort} />
+      <OverviewView
+        overview={buildOverview({
+          reports: rows.map(serializeReport),
+          releases: componentsReleases(loadReleaseLog()),
+          deprecatedNames: deprecatedNamesFromManifest(manifest),
+          // THE CLOCK IS READ HERE AND NOWHERE DEEPER. overview-logic.ts takes
+          // `now` as a parameter so none of its arithmetic is time-dependent
+          // under test; this is the one place that has to know what time it is.
+          now: new Date(),
+        })}
+      />
     </>
   );
 }

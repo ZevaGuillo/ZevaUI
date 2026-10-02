@@ -23,7 +23,8 @@ export const metadata = { title: "ZevaUI Adoption Panel" };
  * every other view change travels by URL.
  */
 const SOURCES: readonly { readonly href: string; readonly label: string }[] = [
-  { href: "/", label: "Versions" },
+  { href: "/", label: "Overview" },
+  { href: "/versions", label: "Versions" },
   { href: "/deprecated", label: "Deprecated in use" },
   { href: "/releases", label: "Release log" },
 ];
