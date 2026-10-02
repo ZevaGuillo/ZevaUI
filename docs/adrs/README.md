@@ -12,9 +12,9 @@ international reader can navigate the full decision history without reading
 Spanish; for the complete reasoning, measurements, and discarded
 alternatives, the linked document is always the source of truth.
 
-ADRs 0001–0011 are accepted and implemented. ADRs 0012–0020 are **proposals**:
-each was analyzed against the real codebase (read-only) and recorded, but
-none is scheduled — implementing one requires its own acceptance.
+ADRs 0001–0011 and 0021 are accepted and implemented. ADRs 0012–0020 are
+**proposals**: each was analyzed against the real codebase (read-only) and
+recorded, but none is scheduled — implementing one requires its own acceptance.
 
 ---
 
@@ -97,3 +97,7 @@ Proposes computing time-to-upgrade, share of consumers on latest, and deprecatio
 ### ADR-0020 — MCP revisited: the deferral condition was met, plus `propose_theme` (proposal)
 **File**: [`0020-mcp-revisitado-y-propose-theme.md`](./0020-mcp-revisitado-y-propose-theme.md) · **Status**: Proposed
 Notes that ADR-0003's exact deferral condition — "`components.manifest.json` does not exist yet" — has since been satisfied, and proposes unblocking exactly two tools (`list_components`, `get_component`) reading the manifest through a workspace subpath import so it cannot drift. Also proposes `propose_theme(brandColor)`: binary search over OKLCH lightness in topological order (backgrounds first, each foreground against its worst background), placed in `@zevaui/constraints` so it stays testable without the protocol; impossible colors are never silently hue-shifted — the closest pair is returned with explicit adjustments and warnings, and every proposed theme is self-validated by `validateTheme` before being returned.
+
+### ADR-0021 — The dashboard redesign's library gaps: render less rather than fake it
+**File**: [`0021-dashboard-redesign-library-gaps.md`](./0021-dashboard-redesign-library-gaps.md) · **Status**: Accepted
+Records five places where the redesigned dashboard cannot express its design doc and renders the expressible half rather than forking the design system locally: `Card`'s `surface` axis is one-of (boundary **or** shadow, never the design's E1 both), `Table` offers no row grouping and emits no per-row DOM `id` so a row-level deep link has no target, `Badge` ships no border edge, and no letter-spacing token scale exists at all. Also retracts a wrong justification on the record: `border-default × bg-surface` really does measure 1.24/1.21, but `color-border-default` is deliberately absent from the contract's five `nonTextContrastPairs` because WCAG 1.4.11 gates the boundary that *identifies* a component — so `Card` is correct as designed and the app-CSS replica defended by that number was deleted. The one measurement that would cost something to act on: the neutral badge edge the design asks for sits at 3.04 in dark, about 1% over the floor.
