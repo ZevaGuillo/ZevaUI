@@ -1,0 +1,24 @@
+ZevaUI
+Copyright the ZevaUI contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This NOTICE file is provided per Apache License, Version 2.0, Section 4(d),
+and must be reproduced in any derivative distribution that includes a
+NOTICE file.
+
+================================================================================
+
+Third-party attribution: shadcn/ui
+
+  https://github.com/shadcn-ui/ui
+  Copyright (c) 2023 shadcn
+  Licensed under the MIT License.
+
+ZevaUI's token primitives and component recipes port numeric geometry
+values (corner radii) and the resulting contrast ratios derived from
+shadcn/ui's public component registry. No source code from shadcn/ui is
+copied, vendored, or redistributed; only measured numeric values and the
+design decisions they informed are referenced. See
+`docs/adrs/0022-shadcn-visual-language-port.md` for the full record of what
+was measured and why.
