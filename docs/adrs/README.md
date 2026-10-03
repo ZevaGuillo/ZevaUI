@@ -12,7 +12,10 @@ international reader can navigate the full decision history without reading
 Spanish; for the complete reasoning, measurements, and discarded
 alternatives, the linked document is always the source of truth.
 
-ADRs 0001–0011 and 0021 are accepted and implemented. ADRs 0012–0020 are
+ADRs 0001–0011 and 0021 are accepted and implemented. ADR-0022 is accepted and
+its implementation is in flight: this record and its attribution landed first,
+and the token and component changes it decides land in the slices that follow.
+ADRs 0012–0020 are
 **proposals**: each was analyzed against the real codebase (read-only) and
 recorded, but none is scheduled — implementing one requires its own acceptance.
 
@@ -101,3 +104,7 @@ Notes that ADR-0003's exact deferral condition — "`components.manifest.json` d
 ### ADR-0021 — The dashboard redesign's library gaps: render less rather than fake it
 **File**: [`0021-dashboard-redesign-library-gaps.md`](./0021-dashboard-redesign-library-gaps.md) · **Status**: Accepted
 Records five places where the redesigned dashboard cannot express its design doc and renders the expressible half rather than forking the design system locally: `Card`'s `surface` axis is one-of (boundary **or** shadow, never the design's E1 both), `Table` offers no row grouping and emits no per-row DOM `id` so a row-level deep link has no target, `Badge` ships no border edge, and no letter-spacing token scale exists at all. Also retracts a wrong justification on the record: `border-default × bg-surface` really does measure 1.24/1.21, but `color-border-default` is deliberately absent from the contract's five `nonTextContrastPairs` because WCAG 1.4.11 gates the boundary that *identifies* a component — so `Card` is correct as designed and the app-CSS replica defended by that number was deleted. The one measurement that would cost something to act on: the neutral badge edge the design asks for sits at 3.04 in dark, about 1% over the floor.
+
+### ADR-0022 — Porting shadcn/ui's visual geometry: radius, a split token, and the knob that could not serve two floors
+**File**: [`0022-shadcn-visual-language-port.md`](./0022-shadcn-visual-language-port.md) · **Status**: Accepted
+Ports shadcn/ui's corner-radius geometry (`radius.card` → `radius.xl` 12px, `radius.button`/`radius.input` → `radius.lg` 8px, zero new radius primitives, 12px landing at 86% of shadcn's 14px because the perceptible jump is 8→12 rather than 12→14) and records the MIT attribution this requires under ZevaUI's own Apache-2.0 `LICENSE`, via a root `NOTICE` per §4(d) — naming shadcn/ui, its repository, and its `Copyright (c) 2023 shadcn` line, and noting the known gap that no publishable package's `files: ["dist"]` carries that `NOTICE` into an npm tarball today. Its central finding is unrelated to shadcn: in the light theme, `text-muted × bg-subtle` and `border-strong × bg-subtle` are the *same* colour pair, measured twice under two token names at two different floors (4.5 text, 3.0 non-text), and no lightness value of the shared primitive `gray.500` satisfies both — an earlier plan to nudge it directly is superseded in favour of a new, interpolated primitive `gray.550` that repoints only light `text.muted`, leaving `border.strong` and the dark Badge edge's 3.04 ratio untouched. Also corrects two claims in `ADR-0021` on the record: its D4 overstates shadcn's own Badge border (shadcn gives one only to its `outline` variant), and its D5 is retracted outright — shadcn uses no letter-spacing scale at all, and the "0.06em caps" requirement traces to the dashboard's own design-concept document, not to shadcn.
