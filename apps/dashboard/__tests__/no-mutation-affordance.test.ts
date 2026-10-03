@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { cleanup, render } from "@testing-library/react";
 import { type ComponentType, createElement } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 afterEach(cleanup);
 
@@ -93,15 +93,34 @@ const VIEW_PROPS: Record<string, object> = {
 // registry. Proven by a DOM scan of every rendered panel view (no
 // form/button/input/textarea/select element exists at all) plus a source
 // scan (below) -- not by assertion in a comment.
+// Importing a view transforms its whole graph -- @zevaui/components and
+// react-aria-components below it -- and on a cold runner that costs more than
+// the 5s per-test budget. That cost belongs to setup, not to the assertion:
+// whichever `it.each` case ran first used to pay it inside its own timer and
+// time out while the other three passed, which made this gate order-dependent
+// and turned it red on two docs-only commits (85f70a0, PR #118). Imported once
+// here with a setup-sized budget, so the per-test timer measures only the
+// render and the DOM scan. The assertion itself is unchanged.
+const viewModules = new Map<string, Record<string, unknown>>();
+
 describe("RF-AP01 scenario 2: no mutation affordance in any rendered panel view", () => {
+  beforeAll(async () => {
+    for (const file of viewFiles) {
+      const basename = file.slice(0, -".tsx".length);
+      viewModules.set(file, await import(`../src/panel/${basename}.tsx`));
+    }
+  }, 120_000);
+
   it("discovers the panel views (a renamed directory or suffix must fail here, not scan nothing)", () => {
     expect(viewFiles.length).toBeGreaterThanOrEqual(4);
   });
 
-  it.each(viewFiles)("%s renders no interactive/write element", async (file) => {
-    const basename = file.slice(0, -".tsx".length);
-    const module: Record<string, unknown> = await import(`../src/panel/${basename}.tsx`);
-    const views = Object.values(module).filter((value) => typeof value === "function");
+  it.each(viewFiles)("%s renders no interactive/write element", (file) => {
+    const module = viewModules.get(file);
+    expect(module, `${file} was not imported by beforeAll`).toBeDefined();
+    const views = Object.values(module as Record<string, unknown>).filter(
+      (value) => typeof value === "function",
+    );
     expect(views.length).toBeGreaterThan(0);
     for (const View of views as ComponentType<object>[]) {
       const { container } = render(createElement(View, VIEW_PROPS[file] ?? {}));
@@ -131,8 +150,21 @@ function nonApiAppFiles(): string[] {
 }
 
 describe("RF-AP01 scenario 2: source scan finds no write trigger in panel source", () => {
-  it("panel views and non-API pages contain no form, onSubmit, or POST/PUT/PATCH/DELETE fetch call", () => {
-    const forbidden = [/<form\b/i, /onSubmit/, /method\s*[:=]\s*["'](post|put|patch|delete)["']/i];
+  it("panel views and non-API pages contain no form, button, input, textarea, select, onSubmit, or POST/PUT/PATCH/DELETE fetch call", () => {
+    // `button|input|textarea|select` are here, not only in the DOM scan above,
+    // because the DOM scan can only see what the representative props actually
+    // render. Measured: a real `<button>` added to `deprecated-view.tsx`'s
+    // `ReportedField` -- a module-local helper the exported `DeprecatedView`
+    // does not reach under VIEW_PROPS -- rendered nothing, so the DOM scan
+    // passed and the source scan did not look for buttons at all. The element
+    // escaped BOTH halves of this gate. The source scan has no such blind spot:
+    // it reads every panel file whether a branch renders or not.
+    const forbidden = [
+      /<form\b/i,
+      /onSubmit/,
+      /method\s*[:=]\s*["'](post|put|patch|delete)["']/i,
+      /<(button|input|textarea|select)\b/i,
+    ];
     const files = [...listSourceFiles(panelDir), ...nonApiAppFiles()];
     const offenders = files.filter((file) => {
       const source = readFileSync(file, "utf8");
