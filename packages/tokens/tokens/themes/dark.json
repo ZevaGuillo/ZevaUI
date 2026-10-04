@@ -72,9 +72,9 @@
     }
   },
   "radius": {
-    "input": { "$value": "{radius.md}", "$type": "dimension" },
-    "card": { "$value": "{radius.lg}", "$type": "dimension" },
-    "button": { "$value": "{radius.md}", "$type": "dimension" }
+    "input": { "$value": "{radius.lg}", "$type": "dimension" },
+    "card": { "$value": "{radius.xl}", "$type": "dimension" },
+    "button": { "$value": "{radius.lg}", "$type": "dimension" }
   },
   "shadow": {
     "card": { "$value": "{shadow.sm}", "$type": "shadow" },
