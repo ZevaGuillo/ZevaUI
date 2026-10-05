@@ -6,6 +6,7 @@
     "300": { "$value": "oklch(0.872 0.01 258.338)", "$type": "color" },
     "400": { "$value": "oklch(0.707 0.022 261.325)", "$type": "color" },
     "500": { "$value": "oklch(0.551 0.027 264.364)", "$type": "color" },
+    "550": { "$value": "oklch(0.538 0.0274 263.428)", "$type": "color" },
     "600": { "$value": "oklch(0.446 0.03 256.802)", "$type": "color" },
     "700": { "$value": "oklch(0.373 0.034 259.733)", "$type": "color" },
     "800": { "$value": "oklch(0.278 0.033 256.848)", "$type": "color" },
