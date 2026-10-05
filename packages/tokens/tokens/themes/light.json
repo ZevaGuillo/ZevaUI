@@ -3,7 +3,7 @@
     "text": {
       "default": { "$value": "{gray.900}", "$type": "color" },
       "secondary": { "$value": "{gray.600}", "$type": "color" },
-      "muted": { "$value": "{gray.500}", "$type": "color" },
+      "muted": { "$value": "{gray.550}", "$type": "color" },
       "inverse": { "$value": "{white}", "$type": "color" },
       "link": { "$value": "{blue.600}", "$type": "color" },
       "danger": { "$value": "{red.600}", "$type": "color" },
