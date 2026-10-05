@@ -1,5 +1,13 @@
 # @zevaui/mcp
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies [564104b]
+  - @zevaui/tokens@0.3.0
+  - @zevaui/constraints@0.2.0
+
 ## 0.2.2
 
 ### Patch Changes

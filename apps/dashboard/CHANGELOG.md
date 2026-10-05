@@ -1,5 +1,13 @@
 # @zevaui/dashboard
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [564104b]
+  - @zevaui/tokens@0.3.0
+  - @zevaui/components@0.4.0
+
 ## 0.0.4
 
 ### Patch Changes
