@@ -9,11 +9,16 @@ const WHITE = "oklch(1 0 0)";
 const BLACK = "oklch(0 0 0)";
 
 // Black text on white surfaces, white text on a black inverse pair: every one
-// of the 16 declared text pairs sits at a ratio of 21, far above any threshold.
+// of the 17 declared text pairs sits at a ratio of 21, far above any threshold.
 // The 3 tone-`-subtle` tokens plus `border-strong` and the 3 tone-`-default`
 // tokens are included so the union of contrastPairs + nonTextContrastPairs
 // (5 entries as of PR2) resolves without missing-token noise; BLACK-on-WHITE
 // clears both the 4.5 text floor and the flat 3.0 non-text floor.
+//
+// This fixture must carry every token in `requiredTokens`, so it grows when the
+// contract gates a new pair: ADR-0022 D1 added text-muted x bg-subtle, which
+// made `color-bg-subtle` required and turned eight tests in this file red with
+// missing-token violations until it was listed here.
 function compliantColors(): Record<string, string> {
   return {
     "color-text-default": BLACK,
@@ -25,6 +30,7 @@ function compliantColors(): Record<string, string> {
     "color-text-inverse": WHITE,
     "color-bg-canvas": WHITE,
     "color-bg-surface": WHITE,
+    "color-bg-subtle": WHITE,
     "color-bg-inverse": BLACK,
     "color-danger-subtle": WHITE,
     "color-success-subtle": WHITE,
@@ -72,6 +78,30 @@ describe("validateTheme / missing token", () => {
     expect(result.violations[0]).toMatchObject({
       rule: "missing-token",
       tokens: ["color-text-muted"],
+    });
+  });
+});
+
+describe("validateTheme / the 2.0.0 breaking change", () => {
+  it("fails a palette that supplies every other required token but not color-bg-subtle", () => {
+    // The migration scenario README.md describes, asserted as BEHAVIOR rather
+    // than as a count. The "18 missing-token violations for an empty candidate"
+    // test in packages/mcp cannot show this: that number would stay green if
+    // some OTHER token had become required instead of color-bg-subtle, so it
+    // measures the size of requiredTokens and not which token joined it.
+    // This is the whole justification for the major version bump, so it is
+    // worth a test that fails for the right reason.
+    const colors = compliantColors();
+    delete colors["color-bg-subtle"];
+    const theme: Theme = { id: "light", colors };
+
+    const result = validateTheme(theme);
+
+    expect(result.pass).toBe(false);
+    expect(result.violations).toHaveLength(1);
+    expect(result.violations[0]).toMatchObject({
+      rule: "missing-token",
+      tokens: ["color-bg-subtle"],
     });
   });
 });

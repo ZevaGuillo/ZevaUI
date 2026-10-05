@@ -2,13 +2,20 @@ import { describe, expect, it } from "vitest";
 import { contract, minContrastRatioFor, requiredTokens } from "../src/contract.js";
 
 describe("contract / contrastPairs", () => {
-  it("declares exactly 16 contrast pairs", () => {
-    expect(contract.contrastPairs).toHaveLength(16);
+  it("declares exactly 17 contrast pairs", () => {
+    expect(contract.contrastPairs).toHaveLength(17);
   });
 
-  it("never references color-bg-subtle or color-bg-muted", () => {
+  // This assertion used to read "never references color-bg-subtle or
+  // color-bg-muted". ADR-0022 D1 inverted half of it: an ungated pair is
+  // unacceptable once something paints text on that background, because D1
+  // proved an unguarded move ships green. `color-bg-subtle` is now a declared
+  // background and must stay one; `color-bg-muted` still carries no text in any
+  // theme, so it stays out — the pair class is a statement about what is
+  // measured, not a list of every token that exists.
+  it("declares color-bg-subtle as a background, and still not color-bg-muted", () => {
     const backgrounds = contract.contrastPairs.map((pair) => pair.background);
-    expect(backgrounds).not.toContain("color-bg-subtle");
+    expect(backgrounds).toContain("color-bg-subtle");
     expect(backgrounds).not.toContain("color-bg-muted");
   });
 });
@@ -51,13 +58,19 @@ describe("contract / declared-but-unconsumed blocks", () => {
 });
 
 describe("contract / requiredTokens", () => {
-  it("derives exactly 17 tokens, in first-appearance order", () => {
+  it("derives exactly 18 tokens, in first-appearance order", () => {
     expect(requiredTokens).toEqual([
       "color-text-default",
       "color-bg-canvas",
       "color-bg-surface",
       "color-text-secondary",
       "color-text-muted",
+      // Sixth, not appended: the derived union walks contrastPairs in order and
+      // the new text-muted x bg-subtle pair sits immediately after the two
+      // older muted pairs, so bg-subtle first appears here. A third-party
+      // palette that omits it now reports missing-token — the migration note in
+      // README.md is the consumer-facing half of this line.
+      "color-bg-subtle",
       "color-text-link",
       "color-text-danger",
       "color-text-success",

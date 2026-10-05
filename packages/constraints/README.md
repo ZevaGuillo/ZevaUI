@@ -29,6 +29,40 @@ broken theme fails CI instead of shipping.
    minimum contrast ratio. Otherwise `result.violations` lists each failure
    with both token names and the measured/required ratios.
 
+## Breaking in 2.0.0: `color-bg-subtle` is now required
+
+`contrastPairs` gained `color-text-muted` × `color-bg-subtle`, so
+`requiredTokens` grew from 17 entries to 18 and now includes
+`color-bg-subtle`. **A palette that does not supply it gets a
+`missing-token` violation from `validateTheme` where it previously passed.**
+Most palettes already define the token — it has been in
+`contract.json`'s `tokenTypes.color` since before this change — so the usual
+migration is to pass a value you already have, not to invent one.
+
+Why it was gated rather than left alone: ADR-0022 D1 measured
+`color-text-muted` × `color-bg-subtle` at **4.39:1** in the light theme, below
+the 4.5 floor, while both tokens resolved to `gray.500`. Nothing reported it,
+because the pair was declared in neither pair class — an undeclared pair is
+not a passing pair, it is an unmeasured one. The fix needed a new primitive
+rung: `gray.550` now backs light `color-text-muted` at **4.64:1**, and
+`color-border-strong` deliberately stays on `gray.500`. There is no single
+lightness that clears 4.5 for muted text on `bg.subtle` and 3.0 for a
+`border-strong` edge on it at the same time, which is why the rung was split
+instead of nudged.
+
+Gating the pair puts it under a floor in all three themes, not only the light
+one the repoint fixed. Note the high-contrast floor is **7.0**, not 4.5, so its
+higher ratio is not extra headroom — it is the same margin against a steeper
+bar. All three are pinned in `tokens-contract.gate.test.ts`.
+
+| New text pair | light (floor 4.5) | dark (floor 4.5) | high-contrast (floor 7.0) |
+|---|---|---|---|
+| `color-text-muted` × `color-bg-subtle` | 4.64 | 5.64 | 9.37 |
+
+Dark and high-contrast `text.muted` were not repointed — they resolve to
+`gray.400` and `gray.700` and already cleared their floors. Only the light
+theme needed the new rung.
+
 ## Non-text contrast (WCAG 1.4.11) is enforced
 
 `nonTextContrastPairs` is a sibling pair class to `contrastPairs`, checked
@@ -75,10 +109,19 @@ higher ratio than the browser would render.
   **3.48:1 — 16% headroom**.
 - **dark border-strong × bg-surface** (non-text, 3.0:1 floor): passes at
   **3.67:1 — 22% headroom**.
+- **dark border-strong × bg-subtle** — the Badge edge, and the one entry here
+  that is **declared in neither pair class**, so `validateTheme` never checks
+  it. Measured at **3.04:1 — 1.2% of room above a 3.0 floor it is not held
+  to.** It is pinned anyway because ADR-0022 D1 is the proof that an undeclared
+  pair ships green: had `color-border-strong` moved to `gray.550` alongside
+  `color-text-muted`, this edge would have dropped to 2.88 and no gate would
+  have said a word. If the pin fails, the question is not how to make it pass
+  but whether the pair now belongs in `nonTextContrastPairs`.
 
-All three are pinned with `toBeCloseTo` in `tokens-contract.gate.test.ts`. If
-headroom widens, update this doc; never loosen a pin to make a regression
-pass.
+All four are pinned with `toBeCloseTo` in `tokens-contract.gate.test.ts`,
+alongside a regression fence on the three `color-border-strong` ratios that
+stayed on `gray.500`. If headroom widens, update this doc; never loosen a pin
+to make a regression pass.
 
 ## Checklist
 
