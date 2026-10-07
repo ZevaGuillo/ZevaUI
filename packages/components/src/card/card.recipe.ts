@@ -23,14 +23,38 @@ export const CARD_RECIPE_KEY = "card";
  * dot-notation parts attached with `Object.assign` at module scope, each rendering its own slot
  * class independently: no React context, no `Children.map`, no cloning, no ordering enforcement.
  *
- * ONE AXIS, PURELY GEOMETRIC. `surface` decides how the card separates itself from the page:
- * `elevated` lifts it off the page with `shadow.card`, `outlined` draws a 1px boundary instead.
- * Neither is a tone/intent axis, so whatever keeps Dialog and Menu off `color-border-strong` for
- * THEIR boundary is not in play here either way. (That used to be a measured WCAG 1.4.11 non-text
- * contrast failure; ADR-0010 D6 repointed the token and closed it, and the overlays go without a
- * border for the separate reason their own recipes now record.) The hairlines and the outlined
- * boundary both use `border.default`, exactly as Dialog already does for its own header/footer
- * hairlines.
+ * TWO AXES, BOTH GEOMETRIC AND INDEPENDENT. `surface` decides how the card separates itself from
+ * the page: `elevated` lifts it off the page with `shadow.card`, `outlined` draws a 1px boundary
+ * instead. `shadow` decides, separately, whether the card is lifted at all. Neither is a
+ * tone/intent axis, so whatever keeps Dialog and Menu off `color-border-strong` for THEIR boundary
+ * is not in play here either way. (That used to be a measured WCAG 1.4.11 non-text contrast
+ * failure; ADR-0010 D6 repointed the token and closed it, and the overlays go without a border for
+ * the separate reason their own recipes now record.) The hairlines and the outlined boundary both
+ * use `border.default`, exactly as Dialog already does for its own header/footer hairlines.
+ *
+ * WHY `shadow` IS A SECOND AXIS AND NOT A THIRD `surface` VALUE. ADR-0021 recorded the gap as E1:
+ * `surface` is one-of, so a card could own a boundary OR an elevation and never both, while the
+ * dashboard redesign's own E1 panel wanted both. A third value (`outlinedElevated`) would encode
+ * the combination instead of composing it, and would need a fourth the next time either half grew
+ * a value. Two axes multiply where an enum has to be enumerated.
+ *
+ * WHY `shadow` IS SINGLE-VALUE (`card`) AND NOT `none | card` OR A BOOLEAN. Two values would emit
+ * two root classes of identical specificity (`--shadow_none` and `--shadow_card`), and which one
+ * wins would then rest on Panda's source order in `dist/styles.css` — an emission detail, not a
+ * contract. With one value, ABSENCE of the class is the no-shadow state, which no ordering can
+ * reverse. It also keeps the axis additive: `defaultVariants` deliberately does NOT name `shadow`,
+ * so every Card that exists today renders byte-identical DOM (pinned in card.test.ts). A boolean
+ * prop was rejected for a third reason — `shadow` names the token it applies, so a future second
+ * elevation is a new value here rather than a new prop.
+ *
+ * `elevated` + `shadow="card"` IS REACHABLE AND DECLARES THE SAME SHADOW TWICE, DELIBERATELY. Both
+ * rules set `boxShadow: "card"`, so that pair renders exactly what `elevated` alone renders and the
+ * second declaration is a no-op. It is not guarded, because the only guards available are worse:
+ * narrowing `surface` to a pure boundary axis would delete the `elevated` value every existing
+ * consumer passes, and a compound-variant rejection would turn a harmless redundancy into a type
+ * error for a combination that is merely pointless. The useful combination is `outlined` +
+ * `shadow`, which is the gap ADR-0021 E1 named; the redundant one costs a duplicate declaration
+ * and nothing else.
  *
  * TYPOGRAPHY IS DECLARED ON `root`, NOT PER ZONE, AND IT IS NOT OPTIONAL. `root` already paints
  * `bg.surface`, so the moment this component owns the background behind text it also owns that
@@ -96,6 +120,11 @@ export const cardRecipe = {
           borderStyle: "solid",
           borderColor: "border.default",
         },
+      },
+    },
+    shadow: {
+      card: {
+        root: { boxShadow: "card" },
       },
     },
   },

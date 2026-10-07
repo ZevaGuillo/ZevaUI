@@ -19,7 +19,7 @@ export type {
 export { Calendar } from "./calendar/Calendar.js";
 export type { CalendarProps } from "./calendar/calendar.types.js";
 export { Card } from "./card/Card.js";
-export type { CardPartProps, CardProps, CardSurface } from "./card/card.types.js";
+export type { CardPartProps, CardProps, CardShadow, CardSurface } from "./card/card.types.js";
 export { Checkbox } from "./checkbox/Checkbox.js";
 export type { CheckboxProps, CheckboxSize } from "./checkbox/checkbox.types.js";
 export { DateField } from "./date-field/DateField.js";

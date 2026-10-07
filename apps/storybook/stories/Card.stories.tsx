@@ -39,3 +39,16 @@ export const Outlined: Story = {
     </Card>
   ),
 };
+
+// The combination ADR-0021 recorded as gap E1: a boundary AND an elevation on the same card, which
+// the one-of `surface` axis could not express. `Elevated` and `Outlined` above are untouched and
+// stay byte-identical, so this is the only new baseline this slice owes.
+export const OutlinedWithShadow: Story = {
+  render: () => (
+    <Card surface="outlined" shadow="card">
+      <Card.Header>Project overview</Card.Header>
+      <Card.Body>Track progress across every workstream in one place.</Card.Body>
+      <Card.Footer>Updated 2 hours ago</Card.Footer>
+    </Card>
+  ),
+};
