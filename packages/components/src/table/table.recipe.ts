@@ -32,6 +32,19 @@ export const TABLE_RECIPE_KEY = "table";
  * against a row of real data, which is a thing to do with a table in front of you rather than in a
  * recipe.
  *
+ * THE ROW HOVER BELOW IS NOT AN EXCEPTION TO THAT REJECTION — IT IS THE PREMISE OF IT. The striping
+ * argument above only works because `bg.subtle` is already hover's colour; that is the whole reason
+ * a striped row would collide with a hovered one. So spending `bg.subtle` on hover here is the
+ * consistent move, and striping stays rejected for exactly the reason it was before.
+ *
+ * AND THE HOVER IS GATED ON `@media (hover: hover)`, WHICH IS NOT BOILERPLATE. `Menu` keys its own
+ * tint off `[data-hovered]`, an attribute react-aria maintains and removes. `Table` has no such
+ * attribute: it is built on TanStack Table and renders plain `<tr>` elements, so the rule
+ * has to be a real CSS `:hover` — and on a touch device a bare `:hover` STICKS, leaving the
+ * last-tapped row tinted with nothing pointing at it, which reads as selection. The at-rule
+ * confines the tint to pointers that can move away again. Plain `bg.subtle` and no `color-mix()`,
+ * matching `Menu`: a table row has nothing behind it to blend with, unlike the Dialog scrim.
+ *
  * THE BORDERS ARE HORIZONTAL ONLY. A full grid of rules reads as a spreadsheet and fights the
  * alignment that is already doing the work; a rule under each row is what separates records without
  * claiming each cell is a box. `border.default` rather than `border.strong` for the reason
@@ -102,6 +115,8 @@ export const tableRecipe = {
       // The last row's rule would draw a line under the whole table with nothing beneath it, which
       // reads as a border the table does not have.
       "&:last-of-type": { borderBlockEndStyle: "none" },
+      // Selector outer, at-rule inner — see the hover reasoning in this file's header comment.
+      "&:hover": { "@media (hover: hover)": { backgroundColor: "bg.subtle" } },
     },
     cell: {
       textAlign: "start",
