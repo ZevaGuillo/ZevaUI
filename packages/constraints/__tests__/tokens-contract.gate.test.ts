@@ -37,6 +37,32 @@ function ratioOf(themeId: string, foreground: string, background: string): numbe
   return contrastRatio(relativeLuminance(fg), relativeLuminance(bg));
 }
 
+// EVERY PINNED RATIO ASSERTS THE SAME TWO THINGS, SO IT SAYS THEM ONCE. Each pin
+// below answers "is this pair above its floor, and is it still at the number the
+// README states" — and eleven hand-copied three-line bodies differing only in a
+// token name and a literal is exactly the shape SonarCloud's duplication gate
+// flags. It is not a style complaint: Sonar normalises literals before comparing,
+// so blocks that differ only in strings and numbers are IDENTICAL to it, and this
+// file's new code measured 5.8% duplication against a 3% ceiling. The gate is
+// right. `declarationBodies` in @zevaui/components carries the same note from the
+// time it failed the `Avatar` branch for the same reason.
+//
+// The floor is a PARAMETER rather than derived here, because the three callers
+// pass three different ones — a text floor that varies per theme, and the single
+// non-text floor — and hiding that choice inside the helper would hide the one
+// thing each block is arguing about.
+function pinRatio(
+  themeId: string,
+  foreground: string,
+  background: string,
+  floor: number,
+  expected: number,
+): void {
+  const ratio = ratioOf(themeId, foreground, background);
+  expect(ratio).toBeGreaterThan(floor);
+  expect(ratio).toBeCloseTo(expected, 2);
+}
+
 describe.each(themeIds)("%s theme", (themeId: string) => {
   it("satisfies the declared contrast contract", () => {
     const result = validateTheme(themeFrom(themeId));
@@ -75,17 +101,18 @@ describe("non-text contrast headroom (PR2 repoints)", () => {
   // If either fails because headroom WIDENED, update the README's stated
   // headroom rather than loosening the assertion.
 
-  it("keeps dark color-danger-default just above its 3.0 non-text floor (16% headroom)", () => {
-    const ratio = ratioOf("dark", "color-danger-default", "color-danger-subtle");
-    expect(ratio).toBeGreaterThan(contract.nonTextMinContrastRatio);
-    expect(ratio).toBeCloseTo(3.48, 2);
-  });
-
-  it("keeps dark color-border-strong x color-bg-surface just above its 3.0 non-text floor (22% headroom)", () => {
-    const ratio = ratioOf("dark", "color-border-strong", "color-bg-surface");
-    expect(ratio).toBeGreaterThan(contract.nonTextMinContrastRatio);
-    expect(ratio).toBeCloseTo(3.67, 2);
-  });
+  // The headroom string comes BEFORE the expected ratio: the title's three `%s`
+  // are filled positionally, so with the ratio third the title printed "(3.48
+  // headroom)" and the "16%" never reached it.
+  it.each([
+    ["color-danger-default", "color-danger-subtle", "16%", 3.48],
+    ["color-border-strong", "color-bg-surface", "22%", 3.67],
+  ])(
+    "keeps dark %s x %s just above its 3.0 non-text floor (%s headroom)",
+    (foreground, background, _headroom, expected) => {
+      pinRatio("dark", foreground, background, contract.nonTextMinContrastRatio, expected);
+    },
+  );
 });
 
 describe("light color-text-muted on gray.550 (ADR-0022 D1)", () => {
@@ -97,22 +124,14 @@ describe("light color-text-muted on gray.550 (ADR-0022 D1)", () => {
   // rather than loosening the assertion.
   const floor = minContrastRatioFor("light");
 
-  it("clears 4.5 on bg-subtle, the pair D1 gated", () => {
-    const ratio = ratioOf("light", "color-text-muted", "color-bg-subtle");
-    expect(ratio).toBeGreaterThan(floor);
-    expect(ratio).toBeCloseTo(4.64, 2);
-  });
-
-  it("clears 4.5 on bg-canvas", () => {
-    const ratio = ratioOf("light", "color-text-muted", "color-bg-canvas");
-    expect(ratio).toBeGreaterThan(floor);
-    expect(ratio).toBeCloseTo(4.89, 2);
-  });
-
-  it("clears 4.5 on bg-surface", () => {
-    const ratio = ratioOf("light", "color-text-muted", "color-bg-surface");
-    expect(ratio).toBeGreaterThan(floor);
-    expect(ratio).toBeCloseTo(5.11, 2);
+  // bg-subtle is first because it is the pair D1 gated; the other two are the
+  // backgrounds the repoint lifted alongside it.
+  it.each([
+    ["bg-subtle, the pair D1 gated", "color-bg-subtle", 4.64],
+    ["bg-canvas", "color-bg-canvas", 4.89],
+    ["bg-surface", "color-bg-surface", 5.11],
+  ])("clears 4.5 on %s", (_background, token, expected) => {
+    pinRatio("light", "color-text-muted", token, floor, expected);
   });
 });
 
@@ -126,16 +145,17 @@ describe("the newly gated pair in the other two themes", () => {
   // Each theme is asserted against its OWN floor, not a shared 4.5: the
   // high-contrast floor is 7.0, which is why that ratio needs to be far higher
   // to mean the same thing.
-  it("clears the 4.5 dark floor", () => {
-    const ratio = ratioOf("dark", "color-text-muted", "color-bg-subtle");
-    expect(ratio).toBeGreaterThan(minContrastRatioFor("dark"));
-    expect(ratio).toBeCloseTo(5.64, 2);
-  });
-
-  it("clears the steeper 7.0 high-contrast floor", () => {
-    const ratio = ratioOf("high-contrast", "color-text-muted", "color-bg-subtle");
-    expect(ratio).toBeGreaterThan(minContrastRatioFor("high-contrast"));
-    expect(ratio).toBeCloseTo(9.37, 2);
+  it.each([
+    ["the 4.5 dark", "dark", 5.64],
+    ["the steeper 7.0 high-contrast", "high-contrast", 9.37],
+  ])("clears %s floor", (_label, themeId, expected) => {
+    pinRatio(
+      themeId,
+      "color-text-muted",
+      "color-bg-subtle",
+      minContrastRatioFor(themeId),
+      expected,
+    );
   });
 });
 
@@ -147,22 +167,12 @@ describe("color-border-strong regression fence (still gray.500)", () => {
   // A future edit that "finishes the job" by moving border.strong to gray.550
   // fails here, which is the entire point of the block.
   // dark x bg-surface is already pinned above at 3.67 and is not repeated.
-  it("keeps light border-strong x bg-canvas where it was", () => {
-    const ratio = ratioOf("light", "color-border-strong", "color-bg-canvas");
-    expect(ratio).toBeGreaterThan(contract.nonTextMinContrastRatio);
-    expect(ratio).toBeCloseTo(4.63, 2);
-  });
-
-  it("keeps light border-strong x bg-surface where it was", () => {
-    const ratio = ratioOf("light", "color-border-strong", "color-bg-surface");
-    expect(ratio).toBeGreaterThan(contract.nonTextMinContrastRatio);
-    expect(ratio).toBeCloseTo(4.84, 2);
-  });
-
-  it("keeps dark border-strong x bg-canvas where it was", () => {
-    const ratio = ratioOf("dark", "color-border-strong", "color-bg-canvas");
-    expect(ratio).toBeGreaterThan(contract.nonTextMinContrastRatio);
-    expect(ratio).toBeCloseTo(4.16, 2);
+  it.each([
+    ["light", "bg-canvas", "color-bg-canvas", 4.63],
+    ["light", "bg-surface", "color-bg-surface", 4.84],
+    ["dark", "bg-canvas", "color-bg-canvas", 4.16],
+  ])("keeps %s border-strong x %s where it was", (themeId, _label, token, expected) => {
+    pinRatio(themeId, "color-border-strong", token, contract.nonTextMinContrastRatio, expected);
   });
 
   // No high-contrast assertion here on purpose: high-contrast `border-strong`
