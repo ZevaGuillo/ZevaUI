@@ -22,11 +22,15 @@ describe("validateThemeRequest / candidate mode", () => {
     );
   });
 
-  it("reports exactly 17 missing-token violations for an empty candidate", () => {
+  // The count tracks `requiredTokens`, which is derived from the contract's two
+  // pair arrays rather than maintained by hand — so gating a new pair moves this
+  // number. ADR-0022 D1 took it from 17 to 18 by gating text-muted x bg-subtle,
+  // which made `color-bg-subtle` required.
+  it("reports exactly 18 missing-token violations for an empty candidate", () => {
     const result = validateThemeRequest({ theme: "light", colors: {} });
 
     expect(result.pass).toBe(false);
-    expect(result.violations.filter((v) => v.rule === "missing-token")).toHaveLength(17);
+    expect(result.violations.filter((v) => v.rule === "missing-token")).toHaveLength(18);
   });
 
   it("reports an invalid-color violation for an unparseable value", () => {

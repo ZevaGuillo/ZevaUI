@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "2.0.0",
   "defaultMinContrastRatio": 4.5,
   "themes": {
     "light": { "minContrastRatio": 4.5 },
@@ -13,6 +13,7 @@
     { "foreground": "color-text-secondary", "background": "color-bg-surface" },
     { "foreground": "color-text-muted", "background": "color-bg-canvas" },
     { "foreground": "color-text-muted", "background": "color-bg-surface" },
+    { "foreground": "color-text-muted", "background": "color-bg-subtle" },
     { "foreground": "color-text-link", "background": "color-bg-canvas" },
     { "foreground": "color-text-link", "background": "color-bg-surface" },
     { "foreground": "color-text-danger", "background": "color-bg-canvas" },
