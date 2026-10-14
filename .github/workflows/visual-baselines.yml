@@ -67,15 +67,15 @@ jobs:
       # "regenerated baselines never land", which is QUIET, so it is not the
       # place to find out. v5 changes nothing about it and is actively
       # maintained.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           # The push at the end reuses GITHUB_TOKEN.
           persist-credentials: true
       # Same SHA bump as ci.yml: v4.3.0 -> v4.4.0 is one line of action.yml
       # (`node20` -> `node24`) with a byte-identical dist.
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-      - uses: actions/setup-node@v5
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
           cache: pnpm
@@ -88,7 +88,7 @@ jobs:
       # download instead of paying ~300MB twice.
       # v5 is the first cache major on Node 24; identical input surface to
       # v4.3.0, so the shared key above is untouched.
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -171,7 +171,7 @@ jobs:
         # actually runs on node24 — and `include-hidden-files` below is
         # unchanged there, which is the one input this step cannot lose. The
         # full argument lives next to the same bump in ci.yml.
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: visual-baselines-diffs-${{ github.run_id }}
           path: |

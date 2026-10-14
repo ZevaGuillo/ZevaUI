@@ -146,7 +146,7 @@ jobs:
       # the base — unaffected by the fork-PR hardening that shipped across
       # every major on 2026-07-20 and which a floating `@v4` was already
       # running.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -160,7 +160,7 @@ jobs:
       # WORKFLOW_DS_CHECKOUT_DIR in packages/audit/scripts/walk-source-tree.js,
       # which is what prunes it. Change one without the other and every
       # consumer's report silently gains our components.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           repository: ZevaGuillo/ZevaUI
           ref: ${{ inputs.ds-ref }}
@@ -171,7 +171,7 @@ jobs:
       # what sits at the workspace root, so an `.nvmrc` found there would be
       # THEIRS — and the scanner's runtime is our contract, not theirs. Ours
       # lives at `.zevaui-audit/.nvmrc` and reads `22`; this tracks it.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           # REQUIRED from v5 on, and the only line in this bump that is a bug
@@ -244,7 +244,7 @@ jobs:
       # v6, not v5 — v5's action.yml still declares `using: 'node20'` despite
       # its "supports Node v24.x" release title. The full argument lives next to
       # the same bump in ci.yml.
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.name.outputs.value }}
           path: ds-usage-report.json
@@ -288,7 +288,7 @@ jobs:
         # This action never appeared in the Node 20 CI annotation, because the
         # step is gated on `registry-url` and never runs in our own CI — so the
         # runner never downloaded it to warn about it.
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           result-encoding: string
           script: return await core.getIDToken(process.env.REGISTRY_URL)
