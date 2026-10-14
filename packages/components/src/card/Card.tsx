@@ -13,8 +13,8 @@ import type { CardPartProps, CardProps } from "./card.types.js";
  * content a consumer cannot structurally break (see card.recipe.ts for the full reasoning on why
  * this differs from Dialog/Menu's typed-props composition).
  */
-function CardRoot({ surface, children }: CardProps) {
-  const slots = slotRecipeClassNames(cardRecipe, { surface });
+function CardRoot({ surface, shadow, children }: CardProps) {
+  const slots = slotRecipeClassNames(cardRecipe, { surface, shadow });
   return <div className={slots.root}>{children}</div>;
 }
 

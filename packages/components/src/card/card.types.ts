@@ -4,6 +4,13 @@ import type { cardRecipe } from "./card.recipe.js";
 export type CardSurface = keyof typeof cardRecipe.variants.surface;
 
 /**
+ * Derived from the recipe for the same reason `CardSurface` is: the axis' values live in exactly
+ * one place. Optional with no default, so omitting the prop is the no-shadow state — see
+ * card.recipe.ts for why the axis carries one value rather than `none | card`.
+ */
+export type CardShadow = keyof typeof cardRecipe.variants.shadow;
+
+/**
  * Hand-picked, never a re-export of anything: Card renders plain elements only (no
  * react-aria-components), so there is no upstream prop type to diverge from in the first place.
  *
@@ -14,6 +21,7 @@ export type CardSurface = keyof typeof cardRecipe.variants.surface;
 export type CardProps = {
   readonly children: ReactNode;
   readonly surface?: CardSurface;
+  readonly shadow?: CardShadow;
   /** Styling is owned by the design system. Theme with --zui-* custom properties instead. */
   readonly className?: never;
   readonly style?: never;
