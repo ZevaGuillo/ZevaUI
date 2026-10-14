@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { relativeLuminance } from "../src/color/luminance.js";
 import { parseColor } from "../src/color/parse.js";
 import { contract, minContrastRatioFor } from "../src/contract.js";
-import type { Theme } from "../src/validate-theme.js";
+import type { Theme, ValidationResult, Violation } from "../src/validate-theme.js";
 import { checkContrast, validateTheme } from "../src/validate-theme.js";
 
 const WHITE = "oklch(1 0 0)";
@@ -51,6 +51,53 @@ function luminanceOf(hex: string): number {
   return relativeLuminance(parsed);
 }
 
+// EVERY SOLE-VIOLATION TEST BELOW WAS THE SAME BODY WITH ONE LITERAL CHANGED,
+// SO IT SAYS IT ONCE. Six tests built a theme from a mutated palette, validated
+// it, asserted `pass: false` and exactly one violation, then matched that
+// violation's shape — differing only in which token they broke and what they
+// expected back. SonarCloud normalises literals before comparing blocks, so to
+// its duplication detector those bodies were IDENTICAL, and the matching run
+// did not stop at a test boundary: it continued into the opening lines of the
+// next `describe`. That is how adding ONE block took this file's new code to
+// 5.3% duplication against a 3% ceiling, while the two bodies it matched had
+// been sitting here unchanged since before the change that got flagged.
+// `pinRatio` in tokens-contract.gate.test.ts carries the same note for the
+// same reason.
+//
+// `themeId` is a parameter rather than fixed to "light" because three callers
+// pass something else, and which threshold a theme selects is the one thing
+// those three tests are arguing about.
+function validate(colors: Record<string, string>, themeId = "light"): ValidationResult {
+  return validateTheme({ id: themeId, colors });
+}
+
+// Returns the single violation so each caller still matches its own shape —
+// the rule, the tokens, and for some the rendered expected/actual ratios.
+// `expect(...).not.toThrow()` is deliberately NOT folded in here: only two of
+// the six tests argue it, and asserting it for the other four would be adding
+// coverage under cover of a refactor. Those two keep saying it themselves.
+function soleViolation(colors: Record<string, string>, themeId = "light"): Violation {
+  const result = validate(colors, themeId);
+
+  expect(result.pass).toBe(false);
+  expect(result.violations).toHaveLength(1);
+  return result.violations[0];
+}
+
+// The passing counterpart. Two tests make this exact claim about a palette that
+// clears its floor, and they sit directly above two `soleViolation` tests — so
+// leaving them expanded re-formed the duplicated run one `describe` further
+// down, which is how the first attempt at this fix moved the duplication rather
+// than removing it. Asserting the empty array as well as the flag is the
+// existing claim kept whole: `pass: true` with a non-empty `violations` would
+// be a contradiction worth failing on.
+function expectClean(colors: Record<string, string>, themeId = "light"): void {
+  const result = validate(colors, themeId);
+
+  expect(result.pass).toBe(true);
+  expect(result.violations).toEqual([]);
+}
+
 describe("validateTheme / signature", () => {
   it("takes exactly one argument", () => {
     expect(validateTheme.length).toBe(1);
@@ -68,14 +115,9 @@ describe("validateTheme / missing token", () => {
   it("reports exactly one missing-token violation and continues without throwing", () => {
     const colors = compliantColors();
     delete colors["color-text-muted"];
-    const theme: Theme = { id: "light", colors };
 
-    expect(() => validateTheme(theme)).not.toThrow();
-    const result = validateTheme(theme);
-
-    expect(result.pass).toBe(false);
-    expect(result.violations).toHaveLength(1);
-    expect(result.violations[0]).toMatchObject({
+    expect(() => validate(colors)).not.toThrow();
+    expect(soleViolation(colors)).toMatchObject({
       rule: "missing-token",
       tokens: ["color-text-muted"],
     });
@@ -93,13 +135,8 @@ describe("validateTheme / the 2.0.0 breaking change", () => {
     // worth a test that fails for the right reason.
     const colors = compliantColors();
     delete colors["color-bg-subtle"];
-    const theme: Theme = { id: "light", colors };
 
-    const result = validateTheme(theme);
-
-    expect(result.pass).toBe(false);
-    expect(result.violations).toHaveLength(1);
-    expect(result.violations[0]).toMatchObject({
+    expect(soleViolation(colors)).toMatchObject({
       rule: "missing-token",
       tokens: ["color-bg-subtle"],
     });
@@ -110,14 +147,9 @@ describe("validateTheme / invalid color", () => {
   it("reports exactly one invalid-color violation without throwing", () => {
     const colors = compliantColors();
     colors["color-text-link"] = "not-a-color";
-    const theme: Theme = { id: "light", colors };
 
-    expect(() => validateTheme(theme)).not.toThrow();
-    const result = validateTheme(theme);
-
-    expect(result.pass).toBe(false);
-    expect(result.violations).toHaveLength(1);
-    expect(result.violations[0]).toMatchObject({
+    expect(() => validate(colors)).not.toThrow();
+    expect(soleViolation(colors)).toMatchObject({
       rule: "invalid-color",
       tokens: ["color-text-link"],
     });
@@ -131,13 +163,8 @@ describe("validateTheme / known-failing pair", () => {
     // these two tokens, so this is the sole violation produced.
     colors["color-text-inverse"] = "#0b0b0b";
     colors["color-bg-inverse"] = "#5f5f5f";
-    const theme: Theme = { id: "light", colors };
 
-    const result = validateTheme(theme);
-
-    expect(result.pass).toBe(false);
-    expect(result.violations).toHaveLength(1);
-    expect(result.violations[0]).toMatchObject({
+    expect(soleViolation(colors)).toMatchObject({
       rule: "low-contrast",
       tokens: ["color-text-inverse", "color-bg-inverse"],
       expected: "4.5",
@@ -152,25 +179,16 @@ describe("validateTheme / theme.id threshold selection", () => {
     // Ratio 6.000000000000001: passes 4.5, fails 7.0.
     colors["color-text-inverse"] = "oklch(0.5 0 0)";
     colors["color-bg-inverse"] = WHITE;
-    const theme: Theme = { id: "sepia", colors };
 
-    const result = validateTheme(theme);
-
-    expect(result.pass).toBe(true);
-    expect(result.violations).toEqual([]);
+    expectClean(colors, "sepia");
   });
 
   it("applies 7.0 when theme.id is 'high-contrast'", () => {
     const colors = compliantColors();
     colors["color-text-inverse"] = "oklch(0.5 0 0)";
     colors["color-bg-inverse"] = WHITE;
-    const theme: Theme = { id: "high-contrast", colors };
 
-    const result = validateTheme(theme);
-
-    expect(result.pass).toBe(false);
-    expect(result.violations).toHaveLength(1);
-    expect(result.violations[0]).toMatchObject({
+    expect(soleViolation(colors, "high-contrast")).toMatchObject({
       rule: "low-contrast",
       tokens: ["color-text-inverse", "color-bg-inverse"],
       expected: "7.0",
@@ -183,25 +201,16 @@ describe("validateTheme / boundary comparison on the unrounded float", () => {
     const colors = compliantColors();
     colors["color-text-inverse"] = "oklch(0.568085640286245 0 0)";
     colors["color-bg-inverse"] = WHITE;
-    const theme: Theme = { id: "light", colors };
 
-    const result = validateTheme(theme);
-
-    expect(result.pass).toBe(true);
-    expect(result.violations).toEqual([]);
+    expectClean(colors);
   });
 
   it("fails a ratio that is < 4.5, even though it displays as 4.50", () => {
     const colors = compliantColors();
     colors["color-text-inverse"] = "oklch(0.5680909960443082 0 0)";
     colors["color-bg-inverse"] = WHITE;
-    const theme: Theme = { id: "light", colors };
 
-    const result = validateTheme(theme);
-
-    expect(result.pass).toBe(false);
-    expect(result.violations).toHaveLength(1);
-    expect(result.violations[0]).toMatchObject({
+    expect(soleViolation(colors)).toMatchObject({
       rule: "low-contrast",
       expected: "4.5",
       actual: "4.50",
