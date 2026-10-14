@@ -1,5 +1,53 @@
 # @zevaui/components
 
+## 0.5.0
+
+### Minor Changes
+
+- 95b6c0d: Card gains an optional, additive `shadow` axis; `surface` is unchanged and no existing Card renders
+  differently.
+
+  **Why a second axis and not a third `surface` value.** ADR-0021 recorded this as gap E1: `surface`
+  is one-of, so a card could own a boundary OR an elevation and never both, while the dashboard
+  redesign's own E1 panel wanted both. A third value (`outlinedElevated`) would encode the
+  combination rather than compose it, and would need a fourth the next time either half grew a value.
+  Two axes multiply where an enum has to be enumerated.
+
+  **The axis carries one value (`card`), not `none | card`, and not a boolean.** Two values would emit
+  two root classes of identical specificity, and which one wins would then rest on Panda's source
+  order in `dist/styles.css` — an emission detail, not a contract. With one value, absence of the
+  class is the no-shadow state, which no ordering can reverse. `defaultVariants` deliberately does not
+  name `shadow`, so every Card that exists today renders byte-identical DOM; `card.test.ts` pins that
+  directly. A boolean was rejected for a third reason: `shadow` names the token it applies, so a
+  future second elevation is a new value here rather than a new prop.
+
+  `CardShadow` is exported alongside `CardSurface`. This is the only public type addition in the
+  shadcn visual-language port, and it is additive — a consumer that never passes `shadow` typechecks
+  and renders exactly as before.
+
+- 606e9f5: The look changes, the API does not. Table rows now respond to hover.
+
+  **`bg.subtle`, the same colour `Menu` spends on hover, and that is the consistent choice rather
+  than a collision.** `table.recipe.ts` already rejected zebra striping _because_ `bg.subtle` is
+  hover's colour — a striped row and a hovered row would have been the same tint and the hover would
+  have stopped meaning anything. Spending it on hover is the premise that rejection rested on, so
+  striping stays rejected for exactly the reason it already was. Plain `bg.subtle` with no
+  `color-mix()`, matching `Menu`: a table row has nothing behind it to blend with, unlike the Dialog
+  scrim.
+
+  **Gated on `@media (hover: hover)`, which is load-bearing and not boilerplate.** `Menu` keys its
+  tint off `[data-hovered]`, an attribute react-aria maintains and removes. `Table` has no such
+  attribute — it renders plain `<tr>` elements — so the rule has to be a real CSS `:hover`, and on a
+  touch device a bare `:hover` sticks: the last-tapped row stays tinted with nothing pointing at it,
+  which reads as selection. The at-rule confines the tint to pointers that can move away again.
+
+  **Proven by a stylesheet assertion rather than a hover screenshot.** `visual-baselines.yml` already
+  shows a flake family at exactly this kind of interaction-modality state (`DateField > Focused
+Segment`), so a screenshot would have bought a flake instead of a check. This slice adds no
+  baseline at all. The two new assertions were measured against the regression they exist for —
+  deleting the media query and leaving the `:hover` — and both fail there: the at-rule block reads
+  empty, and the row-hover rule count outside the query goes from zero to one.
+
 ## 0.4.0
 
 ### Minor Changes
