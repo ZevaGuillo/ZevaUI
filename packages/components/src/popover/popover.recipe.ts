@@ -17,13 +17,18 @@ export const POPOVER_RECIPE_KEY = "popover";
  * manifest keeps the two components' token lists disjoint.
  *
  * IT BORROWS MENU'S SURFACE, NOT DIALOG'S, AND THE DIFFERENCE IS THE SHADOW. Both are panels of
- * `bg.surface` with `radius.card` and no border — `color-border-strong` was measured failing WCAG
- * 1.4.11 when ADR-0005 D2 made the call, and the structural decision stands (see the README's "Why
- * neither overlay has a tone variant"). What separates them is depth: `shadow.modal` says "the
- * page behind this is unavailable", which is true of a modal and false here. A popover is
- * non-modal — the page stays interactive, clicking outside dismisses it — so it takes
- * `shadow.dropdown`, the same elevation `Menu` sits at, because it sits at the same distance from
- * the page.
+ * `bg.surface` with `radius.card` and no border. `color-border-strong` was measured failing WCAG
+ * 1.4.11 when ADR-0005 D2 made that call, but ADR-0010 D6 repointed the token and closed the gap:
+ * it now measures 4.63:1 (light) / 4.16:1 (dark) against `color-bg-canvas` and 4.84:1 / 3.67:1
+ * against `color-bg-surface`, clearing the 3.0 non-text floor on both gated pairs. The structural
+ * decision stands anyway (see the README's "Why neither overlay has a tone variant"): the opaque
+ * surface plus its shadow already draws the boundary, and a border on a non-modal overlay sits
+ * over arbitrary page content — neither gated background, so a pair nobody has measured.
+ *
+ * What separates the two surfaces is depth: `shadow.modal` says "the page behind this is
+ * unavailable", which is true of a modal and false here. A popover is non-modal — the page stays
+ * interactive, clicking outside dismisses it — so it takes `shadow.dropdown`, the same elevation
+ * `Menu` sits at, because it sits at the same distance from the page.
  *
  * NO SCRIM, WHICH IS WHY THERE IS NO `overlay` SLOT. `Dialog` has one because a modal must stop
  * the page behind it from being read or clicked. A popover that dimmed the page would be claiming

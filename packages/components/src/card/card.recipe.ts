@@ -25,10 +25,12 @@ export const CARD_RECIPE_KEY = "card";
  *
  * ONE AXIS, PURELY GEOMETRIC. `surface` decides how the card separates itself from the page:
  * `elevated` lifts it off the page with `shadow.card`, `outlined` draws a 1px boundary instead.
- * Neither is a tone/intent axis, so the WCAG 1.4.11 non-text-contrast failure that keeps Dialog
- * and Menu off `color-border-strong` for THEIR boundary is not in play here either way — the
- * hairlines and the outlined boundary both use `border.default`, exactly as Dialog already does
- * for its own header/footer hairlines.
+ * Neither is a tone/intent axis, so whatever keeps Dialog and Menu off `color-border-strong` for
+ * THEIR boundary is not in play here either way. (That used to be a measured WCAG 1.4.11 non-text
+ * contrast failure; ADR-0010 D6 repointed the token and closed it, and the overlays go without a
+ * border for the separate reason their own recipes now record.) The hairlines and the outlined
+ * boundary both use `border.default`, exactly as Dialog already does for its own header/footer
+ * hairlines.
  *
  * TYPOGRAPHY IS DECLARED ON `root`, NOT PER ZONE, AND IT IS NOT OPTIONAL. `root` already paints
  * `bg.surface`, so the moment this component owns the background behind text it also owns that
