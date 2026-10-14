@@ -374,6 +374,63 @@ describe("the emitted CSS Table owes", () => {
     const bodies = declarationBodies(css, (selector) => selector.includes(".zui-table__table"));
     expect(bodies.join(";")).toMatch(/border-collapse:\s*collapse/);
   });
+
+  /**
+   * THE HOVER TINT HAS TO BE GATED ON A POINTER THAT CAN LEAVE, AND THAT IS NOT DECORATION.
+   *
+   * `Table` renders plain `<tr>` elements — it is built on `@tanstack/react-table`, not on a
+   * react-aria collection — so it has no `[data-hovered]` attribute to key off the way `Menu`
+   * does, and the rule has to be a real CSS `:hover`. On a touch device a bare `:hover` STICKS:
+   * the last-tapped row stays tinted with nothing pointing at it, which reads as selection.
+   * `@media (hover: hover)` is what confines the rule to pointers that can actually move away.
+   *
+   * A CSS ASSERTION RATHER THAN A HOVER SCREENSHOT, on purpose. `visual-baselines.yml` already
+   * shows a flake family at exactly this kind of interaction-modality state (`DateField > Focused
+   * Segment`); a stylesheet read has no such state, and this slice adds no baseline at all.
+   *
+   * READ OFF THE AT-RULE BLOCK RATHER THAN A FLAT RULE BODY, because `declarationBodies` slices
+   * to the first closing brace and cannot tell an at-rule's contents from its end. The brace
+   * counter is kept LOCAL for the same reason this file's `packageRoot` is: `support/emitted-css`
+   * earned each of its helpers by de-duplicating five or six existing copies, and this one has a
+   * single caller. Hoist it when a second component gates a rule behind an at-rule.
+   */
+  const atRuleBlock = (head: string): string => {
+    const start = css.indexOf(head);
+    if (start === -1) return "";
+    const open = css.indexOf("{", start);
+    if (open === -1) return "";
+    let depth = 0;
+    for (let i = open; i < css.length; i += 1) {
+      if (css[i] === "{") depth += 1;
+      if (css[i] === "}") {
+        depth -= 1;
+        if (depth === 0) return css.slice(open + 1, i);
+      }
+    }
+    return "";
+  };
+
+  const rowHoverRule = (head: string) =>
+    head.includes(".zui-table__row") && head.includes(":hover");
+
+  it("tints a hovered row with bg-subtle, inside the hover-capable media query", () => {
+    const block = atRuleBlock("@media (hover: hover)");
+    expect(block).not.toBe("");
+    const bodies = declarationBodies(block, rowHoverRule);
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0]).toContain("var(--zuip-colors-bg-subtle)");
+  });
+
+  /**
+   * The regression this pair exists for is someone deleting the media query and leaving the
+   * `:hover`, which no screenshot and no DOM test would notice. Counted rather than cut out of
+   * the sheet with string surgery: if the whole stylesheet holds exactly ONE row-hover rule and
+   * exactly one lives inside the media query, they are the same rule and none sits outside it.
+   */
+  it("declares that tint nowhere outside the media query", () => {
+    expect(declarationBodies(css, rowHoverRule)).toHaveLength(1);
+    expect(declarationBodies(atRuleBlock("@media (hover: hover)"), rowHoverRule)).toHaveLength(1);
+  });
 });
 
 /**
