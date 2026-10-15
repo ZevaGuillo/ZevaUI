@@ -233,11 +233,16 @@ practice the views do not even need `xl`: composing `Card` gives them
 
 ## Follow-up (deferred decisions)
 
-- **`Card`: an additive `shadow` alongside `surface`.** The smallest honest
-  shape is a second, independent axis (`surface` keeps deciding the boundary, a
-  new one decides depth) rather than a third `surface` value, which would make
-  the axis no longer one-of — the property `card.recipe.ts` states as "ONE AXIS,
-  PURELY GEOMETRIC". Trigger: the second consumer that wants E1.
+- ~~**`Card`: an additive `shadow` alongside `surface`.**~~ **Closed
+  2026-10-14** by `95b6c0d` (PR #124), which shipped exactly the shape this
+  bullet predicted: a second, independent axis, `surface` still deciding the
+  boundary. Two details were decided during implementation rather than here —
+  the axis is single-value (`shadow="card"`), so absence of the class is the
+  no-shadow state and no CSS ordering can reverse it, and it is deliberately
+  absent from `defaultVariants` so it stays additive. `card.recipe.ts` carries
+  the full reasoning. The stated trigger ("the second consumer that wants E1")
+  was never what unblocked it; the dashboard redesign asking for E1 was
+  enough.
 - **`Table`: grouping, and a row `id`.** D3b is much the cheaper of the two —
   `rowId` is already required and already computed per row, so emitting it as a
   DOM `id` is one attribute. It is deferred only because an `id` on a `<tr>` is
