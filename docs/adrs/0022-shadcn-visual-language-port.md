@@ -69,6 +69,21 @@ each `files` array grows an entry, which is its own decision with its own
 blast radius and does not belong inside this record. It is named here as an
 open follow-up and deliberately not resolved in this change.
 
+**Closed 2026-10-15.** The gap above held for one more release and was
+measured on the way out: `@zevaui/constraints@1.0.0`, published
+2026-10-15, packs `LICENSE`, `README.md`, `dist/contract.json` and
+`package.json` — and no `NOTICE`. The decision this paragraph deferred is
+answered by the precedent the repository had already set for the other half
+of Apache-2.0's obligation: all four publishable packages carry a
+byte-identical committed copy of the root `LICENSE`, so `NOTICE` gets a
+committed copy too and `"NOTICE"` joins each `files` array. Copies rather
+than symlinks because npm follows neither into a tarball. The drift that
+choice invites — four copies of two files, previously ungated for `LICENSE`
+as well — is now held by `packages/config/__tests__/legal-files-reach-tarballs.test.ts`,
+which derives the publishable set from the workspace instead of listing it
+and asks `npm pack` itself what ships, rather than trusting a reading of
+npm's packing rules. Trusting that reading is what produced this gap.
+
 ### D2. The radius repoint, and the 12-vs-14px divergence
 
 `radius.card` repoints to `radius.xl` (12px, `primitives/radius.json`).
@@ -372,11 +387,12 @@ is unrelated to this port and is not touched by this change or this record.
 
 ## Follow-up (deferred decisions)
 
-- **`NOTICE` propagation into npm tarballs.** Each publishable package
-  declares `"files": ["dist"]`, and npm does not auto-include `NOTICE` the
-  way it auto-includes `LICENSE`. Whether to add a `NOTICE` copy and a
-  `files` entry to each of the four publishable packages is its own
-  decision, deliberately not made here.
+- ~~**`NOTICE` propagation into npm tarballs.**~~ **Closed 2026-10-15.** Both
+  halves of the deferred decision were taken as asked: each of the four
+  publishable packages carries a committed `NOTICE` copy, and each `files`
+  array grew a `"NOTICE"` entry. See the dated note under D1 for the
+  precedent that decided it and for the gate that now holds all eight
+  copies — the four `LICENSE` ones included, which had no gate before.
 - **`Badge`'s border edge**, per `ADR-0021` D4 as corrected above: still
   blocked on the D4 measurement — a 3.04 dark ratio with roughly 1% of
   margin — being accepted as a cost, not on any remaining design doubt about
